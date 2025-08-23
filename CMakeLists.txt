@@ -55,17 +55,17 @@ if (WIN32)
     WinWindowChrome.cpp)
 endif()
 
-add_executable(Main WIN32 ${app_sources})
-target_link_libraries(Main PRIVATE ui_components viewmodels core_render Qt6::Widgets)
+add_executable(FangJia WIN32 ${app_sources})
+target_link_libraries(FangJia PRIVATE ui_components viewmodels core_render Qt6::Widgets)
 
 # Windows 下链接 dwmapi（DWM 扩展）
 if (WIN32)
-  target_link_libraries(Main PRIVATE Dwmapi)
-  target_compile_definitions(Main PRIVATE WIN32_LEAN_AND_MEAN NOMINMAX)
+  target_link_libraries(FangJia PRIVATE Dwmapi)
+  target_compile_definitions(FangJia PRIVATE WIN32_LEAN_AND_MEAN NOMINMAX)
 endif()
 
 # C++ 标准
-set_property(TARGET Main PROPERTY CXX_STANDARD 23)
+set_property(TARGET FangJia PROPERTY CXX_STANDARD 23)
 set_property(TARGET viewmodels PROPERTY CXX_STANDARD 23)
 set_property(TARGET ui_components PROPERTY CXX_STANDARD 23)
 set_property(TARGET core_render PROPERTY CXX_STANDARD 23)
