@@ -1,0 +1,22 @@
+<RCC>
+  <!-- 图标资源：前缀 /icons -->
+  <qresource prefix="/icons">
+	  
+    <!-- alias 是资源内的文件名，实际磁盘（或资源目录）路径写在文本内容 -->
+    <file alias="sun.svg">icons/sun.svg</file>
+    <file alias="moon.svg">icons/moon.svg</file>
+    <file alias="follow_on.svg">icons/follow_on.svg</file>
+    <file alias="follow_off.svg">icons/follow_off.svg</file>
+	  
+    <!-- 左侧导航（示例） -->
+    <file alias="home_light.svg">icons/home_light.svg</file>
+    <file alias="home_dark.svg">icons/home_dark.svg</file>
+    <file alias="explore_light.svg">icons/explore_light.svg</file>
+    <file alias="explore_dark.svg">icons/explore_dark.svg</file>
+    <file alias="fav_light.svg">icons/fav_light.svg</file>
+    <file alias="fav_dark.svg">icons/fav_dark.svg</file>
+    <file alias="settings_light.svg">icons/settings_light.svg</file>
+    <file alias="settings_dark.svg">icons/settings_dark.svg</file>
+  </qresource>
+
+</RCC>
