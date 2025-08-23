@@ -15,34 +15,51 @@
 #include <qstring.h>
 #include <qtypes.h>
 
-// 数据页的“选项卡内容组件”：不绘制卡片，仅绘制 Tab Bar 与指示条
-class UiDataTabs final : public IUiComponent, public IUiContent
+// 前向声明
+class TabViewModel;
+
+// 通用 TabView 组件：支持 ViewModel 数据驱动
+class UiTabView final : public IUiComponent, public IUiContent
 {
 public:
 	struct Palette {
-		QColor barBg;            // 选项卡条背景（轻微衬底，可为透明）
+		QColor barBg;            // 选项卡条背景
 		QColor tabHover;         // 悬停背景
-		QColor tabSelectedBg;    // 选中背景（轻微）
+		QColor tabSelectedBg;    // 选中背景
 		QColor indicator;        // 选中指示条颜色
 		QColor label;            // 标签文字颜色
 		QColor labelSelected;    // 选中标签文字颜色
 	};
 
-	UiDataTabs() = default;
-	~UiDataTabs() override = default;
+	enum class IndicatorStyle {
+		Bottom,  // 底部指示条
+		Top,     // 顶部指示条
+		Full     // 整个背景高亮
+	};
+
+	UiTabView() = default;
+	~UiTabView() override = default;
+
+	// 接入 ViewModel（推荐方式）
+	void setViewModel(TabViewModel* vm);
+	[[nodiscard]] TabViewModel* viewModel() const noexcept { return m_vm; }
+
+	// 兼容旧接口（未接 VM 时使用）
+	void setTabs(const QStringList& labels);
+	void setSelectedIndex(int idx);
+	[[nodiscard]] int selectedIndex() const noexcept;
 
 	// IUiContent
 	void setViewportRect(const QRect& r) override { m_viewport = r; }
 
-	// 业务
-	void setTabs(const QStringList& labels);
-	void setSelectedIndex(int idx);
-	int  selectedIndex() const noexcept { return m_selected; }
-
+	// 外观配置
 	void setPalette(const Palette& p) { m_pal = p; }
+	void setIndicatorStyle(IndicatorStyle style) { m_indicatorStyle = style; }
+	void setTabHeight(int h) { m_tabHeight = std::max(24, h); }
+	void setAnimationDuration(int ms) { m_animDuration = std::max(50, ms); }
 
 	// IUiComponent
-	void updateLayout(const QSize& /*windowSize*/) override;
+	void updateLayout(const QSize& windowSize) override;
 	void updateResourceContext(IconLoader& loader, QOpenGLFunctions* gl, float devicePixelRatio) override {
 		m_loader = &loader; m_gl = gl; m_dpr = std::max(0.5f, devicePixelRatio);
 	}
@@ -53,29 +70,36 @@ public:
 	bool tick() override;
 	QRect bounds() const override { return m_viewport; }
 
-	// 可选：供上层判断动画是否活跃（目前上层无需调用）
-	bool hasActiveAnimation() const { return m_animHighlight.active; }
+	// 供外部查询动画状态
+	[[nodiscard]] bool hasActiveAnimation() const { return m_animHighlight.active; }
 
 private:
 	QRectF tabBarRectF() const;
 	QRectF tabRectF(int i) const;
-
-	static QString textCacheKey(const QString& baseKey, int px, const QColor& color) {
-		const QString colorKey = color.name(QColor::HexArgb);
-		return QString("data-tabs:%1@%2px@%3").arg(baseKey).arg(px).arg(colorKey);
-	}
-
-	static float easeInOut(float t) { t = std::clamp(t, 0.0f, 1.0f); return t * t * (3.0f - 2.0f * t); }
-	void startHighlightAnim(float toCenterX, int durationMs = 220);
+	
+	int tabCount() const;
+	QString tabLabel(int i) const;
+	
+	void syncFromVmInstant();
+	void startHighlightAnim(float toCenterX);
+	
+	static QString textCacheKey(const QString& baseKey, int px, const QColor& color);
+	static float easeInOut(float t);
 
 private:
 	QRect m_viewport;
-	QStringList m_tabs{ QStringList{ "方剂","中药","经典","医案","内科","诊断" } };
-	int m_selected{ 0 };
+	TabViewModel* m_vm{ nullptr };
+	
+	// 兼容模式数据（未接 VM 时使用）
+	QStringList m_fallbackTabs;
+	int m_fallbackSelected{ 0 };
+	
+	// 交互状态
 	int m_hover{ -1 };
 	int m_pressed{ -1 };
+	int m_viewSelected{ 0 }; // 视图层选中索引
 
-	// “整体高亮单元”的中心 X（逻辑像素）。<0 表示未初始化
+	// 高亮中心 X（逻辑像素）
 	float m_highlightCenterX{ -1.0f };
 
 	// 动画
@@ -87,6 +111,7 @@ private:
 	} m_animHighlight;
 	QElapsedTimer m_clock;
 
+	// 外观配置
 	Palette m_pal{
 		.barBg = QColor(0,0,0,0),
 		.tabHover = QColor(0,0,0,16),
@@ -95,6 +120,10 @@ private:
 		.label = QColor(50,60,70,255),
 		.labelSelected = QColor(20,32,48,255)
 	};
+	
+	IndicatorStyle m_indicatorStyle{ IndicatorStyle::Bottom };
+	int m_tabHeight{ 43 };
+	int m_animDuration{ 220 };
 
 	// 资源上下文
 	IconLoader* m_loader{ nullptr };

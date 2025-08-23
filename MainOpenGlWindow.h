@@ -5,11 +5,12 @@
 #include "NavViewModel.h"
 #include "RenderData.hpp"
 #include "Renderer.h"
+#include "TabViewModel.h"
 #include "ThemeManager.h"
-#include "UiDataTabs.h" // 新增
 #include "UiNav.h"
 #include "UiPage.h"
 #include "UiRoot.h"
+#include "UiTabView.h"
 #include "UiTopBar.h"
 
 #include <qcolor.h>
@@ -101,7 +102,8 @@ private:
 
 	// 页面（主内容）
 	UiPage m_page;
-	UiDataTabs m_dataTabs; // 新增：数据页内容组件
+	TabViewModel m_dataTabsVm;  // 新增：数据页 TabViewModel
+	UiTabView m_dataTabView;    // 新增：通用 TabView
 
 	// 导航视图
 	Ui::NavRail m_nav;
@@ -113,6 +115,7 @@ private:
 
 	Renderer  m_renderer;
 	IconLoader m_iconLoader;
+
 
 	Render::DataBus   m_renderBus;
 	Render::FrameData m_baseFrameData;

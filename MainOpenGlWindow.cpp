@@ -25,8 +25,9 @@
 #include <qstringliteral.h>
 #include <qtimer.h>
 #include <utility>
-#include "UiDataTabs.h"
-
+#include <qlogging.h>
+#include "TabViewModel.h"
+#include "UiTabView.h"
 namespace {
 	struct PaletteBtn { QColor btnBg, btnBgHover, btnBgPressed, iconColor; };
 	PaletteBtn paletteBtnForTheme(const MainOpenGlWindow::Theme t) {
@@ -138,7 +139,44 @@ void MainOpenGlWindow::initializeGL()
 	m_uiRoot.add(&m_page);
 
 	// 初始化数据页内容组件（UiPage 会在需要时插入/清空）
-	m_dataTabs.setTabs(QStringList{ "方剂","中药","经典","医案","内科","诊断" });
+// 初始化数据页 TabViewModel
+	m_dataTabsVm.setItems(QVector<TabViewModel::TabItem>{
+		{.id = "formula", .label = "方剂", .tooltip = "中医方剂数据库"},
+		{ .id = "herb",       .label = "中药", .tooltip = "中药材信息" },
+		{ .id = "classic",    .label = "经典", .tooltip = "经典医籍" },
+		{ .id = "case",       .label = "医案", .tooltip = "临床医案记录" },
+		{ .id = "internal",   .label = "内科", .tooltip = "内科诊疗" },
+		{ .id = "diagnosis",  .label = "诊断", .tooltip = "诊断方法" }
+	});
+	m_dataTabsVm.setSelectedIndex(0);
+
+	// 设置 TabView
+	m_dataTabView.setViewModel(&m_dataTabsVm);
+	m_dataTabView.setIndicatorStyle(UiTabView::IndicatorStyle::Bottom);
+	m_dataTabView.setTabHeight(43);
+	m_dataTabView.setAnimationDuration(220);
+
+	// 在 applyPagePalette 中
+	if (m_theme == Theme::Dark) {
+		m_dataTabView.setPalette(UiTabView::Palette{
+			.barBg = QColor(255,255,255,10),
+			.tabHover = QColor(255,255,255,20),
+			.tabSelectedBg = QColor(255,255,255,24),
+			.indicator = QColor(0,122,255,220),
+			.label = QColor(220,230,240,230),
+			.labelSelected = QColor(255,255,255,255)
+			});
+	}
+	else {
+		m_dataTabView.setPalette(UiTabView::Palette{
+			.barBg = QColor(0,0,0,6),
+			.tabHover = QColor(0,0,0,10),
+			.tabSelectedBg = QColor(0,0,0,14),
+			.indicator = QColor(0,102,204,220),
+			.label = QColor(70,76,84,255),
+			.labelSelected = QColor(40,46,54,255)
+			});
+	}
 
 	m_nav.setViewModel(&m_navVm);
 	m_nav.setDarkTheme(m_theme == Theme::Dark);
@@ -185,6 +223,17 @@ void MainOpenGlWindow::initializeGL()
 	// 监听导航选中项变化 -> 更新页面标题/内容
 	connect(&m_navVm, &NavViewModel::selectedIndexChanged, this, &MainOpenGlWindow::updatePageFromSelection);
 
+	// 监听 Tab 切换（可选）
+	connect(&m_dataTabsVm, &TabViewModel::selectedIndexChanged, this, [this](int idx) {
+		// 可以根据选中的 Tab 更新内容区域
+		const QString selectedId = m_dataTabsVm.selectedId();
+		qDebug() << "Tab selected:" << selectedId << "at index" << idx;
+
+		// 这里可以切换不同的内容组件
+		// 例如：updateDataContent(selectedId);
+
+		update();
+		});
 	// 加载/同步主题（可能触发上述两个信号）
 	m_themeMgr.load();
 
@@ -415,14 +464,7 @@ void MainOpenGlWindow::applyPagePalette()
 			.headingColor = QColor(235, 240, 245, 255),
 			.bodyColor = QColor(210, 220, 230, 220)
 			});
-		m_dataTabs.setPalette(UiDataTabs::Palette{
-			.barBg = QColor(255,255,255,10),
-			.tabHover = QColor(255,255,255,20),
-			.tabSelectedBg = QColor(255,255,255,24),
-			.indicator = QColor(0,122,255,220),
-			.label = QColor(220,230,240,230),
-			.labelSelected = QColor(255,255,255,255)
-			});
+
 	}
 	else {
 		m_page.setPalette(UiPage::Palette{
@@ -430,14 +472,7 @@ void MainOpenGlWindow::applyPagePalette()
 			.headingColor = QColor(40, 46, 54, 255),
 			.bodyColor = QColor(70, 76, 84, 220)
 			});
-		m_dataTabs.setPalette(UiDataTabs::Palette{
-			.barBg = QColor(0,0,0,6),
-			.tabHover = QColor(0,0,0,10),
-			.tabSelectedBg = QColor(0,0,0,14),
-			.indicator = QColor(0,102,204,220),
-			.label = QColor(70,76,84,255),
-			.labelSelected = QColor(40,46,54,255)
-			});
+
 	}
 }
 
@@ -457,7 +492,7 @@ void MainOpenGlWindow::updatePageFromSelection(const int idx)
 
 	// 内容：仅“数据”页使用 UiDataTabs
 	if (isDataPageIndex(idx)) {
-		m_page.setContent(&m_dataTabs);
+		m_page.setContent(&m_dataTabView);
 	}
 	else {
 		m_page.setContent(nullptr);
