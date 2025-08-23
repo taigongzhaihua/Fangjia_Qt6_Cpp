@@ -2,11 +2,9 @@
 #include "RenderData.hpp"
 #include "UiComponent.hpp"
 #include "UiRoot.h"
-#include <algorithm>
+
 #include <qopenglfunctions.h>
-#include <qpoint.h>
 #include <qrect.h>
-#include <qsize.h>
 #include <vector>
 
 void UiRoot::add(IUiComponent* c)

@@ -7,6 +7,7 @@
 #pragma comment(lib, "dwmapi.lib")
 
 #include <QGuiApplication>
+#include <QObject>
 #include <QPoint>
 #include <QRect>
 #include <algorithm>
@@ -18,7 +19,7 @@
 #define GET_Y_LPARAM(lp) ((int)(short)HIWORD(lp))
 #endif
 
-static inline bool isMaximized(HWND h) { return IsZoomed(h); }
+static inline bool isMaximized(const HWND h) { return IsZoomed(h); }
 
 WinWindowChrome* WinWindowChrome::attach(QWindow* win,
 	const int dragHeight,
@@ -30,8 +31,15 @@ WinWindowChrome* WinWindowChrome::attach(QWindow* win,
 	auto* chrome = new WinWindowChrome(win, dragHeight, std::move(noDragRectsProvider));
 	qApp->installNativeEventFilter(chrome);
 
-	if (HWND h = reinterpret_cast<HWND>(chrome->hwnd())) {
-		const MARGINS m{ 0, 0, 0, 0 };
+	// 窗口销毁时，自动卸载过滤器并删除自身，避免悬挂
+	// 使用 qApp 为接收者 + QueuedConnection，避免在回调栈中自删
+	QObject::connect(win, &QObject::destroyed, qApp, [chrome]() {
+		chrome->detach();
+		delete chrome;
+		}, Qt::QueuedConnection);
+
+	if (const auto h = static_cast<HWND>(chrome->hwnd())) {
+		constexpr MARGINS m{ 0, 0, 0, 0 };
 		DwmExtendFrameIntoClientArea(h, &m); // 保持 DWM 阴影
 	}
 	chrome->notifyLayoutChanged();
@@ -42,6 +50,7 @@ WinWindowChrome::WinWindowChrome(QWindow* win,
 	const int dragHeight,
 	std::function<QList<QRect>()> noDragRectsProvider)
 	: m_window(win),
+	m_hwnd(reinterpret_cast<void*>(win->winId())),
 	m_dragHeightLogical(std::max(24, dragHeight)),
 	m_noDragRectsProvider(std::move(noDragRectsProvider))
 {
@@ -49,18 +58,30 @@ WinWindowChrome::WinWindowChrome(QWindow* win,
 
 WinWindowChrome::~WinWindowChrome()
 {
-	if (qApp) qApp->removeNativeEventFilter(this);
+	detach();          // 幂等
+	m_window = nullptr;
+	m_hwnd = nullptr;
+}
+
+void WinWindowChrome::detach()
+{
+	if (!m_detached) {
+		if (qApp) qApp->removeNativeEventFilter(this);
+		m_detached = true;
+		m_hwnd = nullptr;
+	}
 }
 
 void* WinWindowChrome::hwnd() const
 {
-	if (!m_window) return nullptr;
-	return reinterpret_cast<void*>(m_window->winId());
+	if (m_detached) return nullptr;
+	return m_hwnd; // 使用缓存句柄，避免销毁期调用 winId()
 }
 
 int WinWindowChrome::dpi() const
 {
-	if (HWND h = reinterpret_cast<HWND>(hwnd())) {
+	if (m_detached) return 96;
+	if (const auto h = static_cast<HWND>(hwnd())) {
 		static auto pGetDpiForWindow = reinterpret_cast<UINT(WINAPI*)(HWND)>(
 			GetProcAddress(GetModuleHandleW(L"user32.dll"), "GetDpiForWindow"));
 		if (pGetDpiForWindow) return static_cast<int>(pGetDpiForWindow(h));
@@ -99,7 +120,8 @@ int WinWindowChrome::resizeBorderThicknessY() const
 
 void WinWindowChrome::notifyLayoutChanged()
 {
-	if (HWND h = reinterpret_cast<HWND>(hwnd())) {
+	if (m_detached) return;
+	if (const auto h = static_cast<HWND>(hwnd())) {
 		// 注意：不要在连续 resize 时调用，否则会闪烁
 		SetWindowPos(h, nullptr, 0, 0, 0, 0,
 			SWP_NOSIZE | SWP_NOMOVE | SWP_NOZORDER | SWP_NOACTIVATE | SWP_FRAMECHANGED);
@@ -108,7 +130,7 @@ void WinWindowChrome::notifyLayoutChanged()
 
 qintptr WinWindowChrome::hitTestNonClient(const QPoint& posLogical) const
 {
-	if (!m_window) return HTCLIENT;
+	if (m_detached || !m_window) return HTCLIENT;
 
 	const QSize sz = m_window->size();
 	if (sz.isEmpty()) return HTCLIENT;
@@ -151,12 +173,24 @@ qintptr WinWindowChrome::hitTestNonClient(const QPoint& posLogical) const
 
 bool WinWindowChrome::nativeEventFilter(const QByteArray& eventType, void* message, qintptr* result)
 {
+	if (m_detached) return false;
 	if (eventType != "windows_generic_MSG" || !m_window) return false;
 
-	MSG* msg = reinterpret_cast<MSG*>(message);
-	if (msg->hwnd != reinterpret_cast<HWND>(hwnd())) return false;
+	const MSG* msg = static_cast<MSG*>(message);
+
+	// 使用缓存句柄进行匹配，避免调用 hwnd()/winId()
+	if (!m_hwnd || msg->hwnd != static_cast<HWND>(m_hwnd))
+		return false;
 
 	const UINT uMsg = msg->message;
+
+	// 窗口销毁：尽早放行，避免在销毁期调用任何 API
+	if (uMsg == WM_NCDESTROY) {
+		// 标记分离，确保后续过滤器不再处理
+		m_detached = true;
+		if (result) *result = 0;
+		return false;
+	}
 
 	LRESULT dwmResult = 0;
 	if (DwmDefWindowProc(msg->hwnd, uMsg, msg->wParam, msg->lParam, &dwmResult)) {
@@ -166,13 +200,11 @@ bool WinWindowChrome::nativeEventFilter(const QByteArray& eventType, void* messa
 
 	switch (uMsg) {
 	case WM_NCCALCSIZE: {
-		// 目标：吞掉系统标题栏，但保留“可调整边框”的厚度，确保阴影/系统缩放存在
 		if (msg->wParam) {
 			auto* p = reinterpret_cast<NCCALCSIZE_PARAMS*>(msg->lParam);
 			RECT& r = p->rgrc[0];
 
 			if (isMaximized(msg->hwnd)) {
-				// 最大化时对齐工作区，避免覆盖/顶到自动隐藏任务栏
 				MONITORINFO mi{ sizeof(MONITORINFO) };
 				if (GetMonitorInfo(MonitorFromWindow(msg->hwnd, MONITOR_DEFAULTTONEAREST), &mi)) {
 					r = mi.rcWork;
@@ -183,7 +215,7 @@ bool WinWindowChrome::nativeEventFilter(const QByteArray& eventType, void* messa
 				const int by = resizeBorderThicknessY();
 				r.left += bx;
 				r.right -= bx;
-				r.top += 1;  // 只保留 sizeframe 顶边，标题栏部分由我们自绘
+				r.top += 1;
 				r.bottom -= by;
 			}
 			if (result) *result = 0;
@@ -192,7 +224,7 @@ bool WinWindowChrome::nativeEventFilter(const QByteArray& eventType, void* messa
 		break;
 	}
 	case WM_NCHITTEST: {
-		POINT ptScreen{ GET_X_LPARAM(msg->lParam), GET_Y_LPARAM(msg->lParam) };
+		const POINT ptScreen{ GET_X_LPARAM(msg->lParam), GET_Y_LPARAM(msg->lParam) };
 		POINT ptClient = ptScreen;
 		ScreenToClient(msg->hwnd, &ptClient);
 		const QPoint posLogical(ptClient.x, ptClient.y);
@@ -200,29 +232,26 @@ bool WinWindowChrome::nativeEventFilter(const QByteArray& eventType, void* messa
 		return true;
 	}
 	case WM_GETMINMAXINFO: {
-		// 修正最大化尺寸/位置
 		auto* mmi = reinterpret_cast<MINMAXINFO*>(msg->lParam);
-		HMONITOR mon = MonitorFromWindow(msg->hwnd, MONITOR_DEFAULTTONEAREST);
+		const HMONITOR mon = MonitorFromWindow(msg->hwnd, MONITOR_DEFAULTTONEAREST);
 		MONITORINFO mi{ sizeof(MONITORINFO) };
 		if (GetMonitorInfo(mon, &mi)) {
-			const RECT& rcWork = mi.rcWork;
+			const auto& [left, top, right, bottom] = mi.rcWork;
 			const RECT& rcMon = mi.rcMonitor;
-			mmi->ptMaxSize.x = rcWork.right - rcWork.left;
-			mmi->ptMaxSize.y = rcWork.bottom - rcWork.top;
-			mmi->ptMaxPosition.x = rcWork.left - rcMon.left;
-			mmi->ptMaxPosition.y = rcWork.top - rcMon.top;
+			mmi->ptMaxSize.x = right - left;
+			mmi->ptMaxSize.y = bottom - top;
+			mmi->ptMaxPosition.x = left - rcMon.left;
+			mmi->ptMaxPosition.y = top - rcMon.top;
 			if (result) *result = 0;
 			return true;
 		}
 		break;
 	}
 	case WM_ERASEBKGND:
-		// 避免 GDI 擦背景与 GL 清屏叠加引起闪烁
 		if (result) *result = 1;
 		return true;
 
 	case WM_NCACTIVATE:
-		// 允许默认处理（避免闪烁）
 		return false;
 
 	default:

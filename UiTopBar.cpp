@@ -2,6 +2,7 @@
 
 #include "IconLoader.h"
 #include "RenderData.hpp"
+#include "UiButton.hpp"
 #include <algorithm>
 #include <cmath>
 #include <qbytearray.h>
@@ -20,6 +21,9 @@ UiTopBar::UiTopBar()
 {
 	m_btnTheme.setCornerRadius(6.0f);
 	m_btnFollow.setCornerRadius(6.0f);
+	m_btnMin.setCornerRadius(6.0f);
+	m_btnMax.setCornerRadius(6.0f);
+	m_btnClose.setCornerRadius(6.0f);
 }
 
 void UiTopBar::setDarkTheme(const bool dark)
@@ -61,12 +65,19 @@ void UiTopBar::setPalette(const Palette& p)
 {
 	m_btnTheme.setPalette(p.bg, p.bgHover, p.bgPressed, p.icon);
 	m_btnFollow.setPalette(p.bg, p.bgHover, p.bgPressed, p.icon);
+	m_btnMin.setPalette(p.bg, p.bgHover, p.bgPressed, p.icon);
+	m_btnMax.setPalette(p.bg, p.bgHover, p.bgPressed, p.icon);
+	// 关闭键常见是红色 hover/press；这里如需可定制，可另做参数。暂沿用统一调色板。
+	m_btnClose.setPalette(p.bg, p.bgHover, p.bgPressed, p.icon);
 }
 
 void UiTopBar::setCornerRadius(const float r)
 {
 	m_btnTheme.setCornerRadius(r);
 	m_btnFollow.setCornerRadius(r);
+	m_btnMin.setCornerRadius(r);
+	m_btnMax.setCornerRadius(r);
+	m_btnClose.setCornerRadius(r);
 }
 
 void UiTopBar::setSvgPaths(QString themeWhenDark, QString themeWhenLight, QString followOn, QString followOff)
@@ -83,11 +94,19 @@ void UiTopBar::updateLayout(const QSize& windowSize)
 	constexpr int btnSize = 28;
 	constexpr int gap = 8;
 
-	const int rightX = windowSize.width() - margin - btnSize;
-	constexpr int topY = margin;
+	// 右侧从 Close -> Max -> Min，然后才是 Follow -> Theme
+	int x = windowSize.width() - margin - btnSize;
+	constexpr int y = margin;
 
-	m_btnTheme.setBaseRect(QRect(rightX, topY, btnSize, btnSize));
-	m_btnFollow.setBaseRect(QRect(rightX - gap - btnSize, topY, btnSize, btnSize));
+	m_btnClose.setBaseRect(QRect(x, y, btnSize, btnSize));
+	x -= (btnSize + gap);
+	m_btnMax.setBaseRect(QRect(x, y, btnSize, btnSize));
+	x -= (btnSize + gap);
+	m_btnMin.setBaseRect(QRect(x, y, btnSize, btnSize));
+	x -= (btnSize + gap);
+	m_btnTheme.setBaseRect(QRect(x, y, btnSize, btnSize));
+	x -= (btnSize + gap);
+	m_btnFollow.setBaseRect(QRect(x, y, btnSize, btnSize));
 
 	// 如果没有动画，按当前 follow 状态立即就位
 	if (m_animPhase == AnimPhase::Idle) {
@@ -101,10 +120,13 @@ void UiTopBar::updateLayout(const QSize& windowSize)
 
 	m_btnTheme.setEnabled(themeInteractive());
 
-	// 更新整体包围盒（取两个按钮的可视 rect 合并）
-	const QRectF r1 = m_btnTheme.visualRectF();
-	const QRectF r2 = m_btnFollow.visualRectF();
-	m_bounds = r1.toRect().united(r2.toRect());
+	// 更新整体包围盒（含所有按钮）
+	QRect u = m_btnTheme.visualRectF().toRect();
+	u = u.united(m_btnFollow.visualRectF().toRect());
+	u = u.united(m_btnMin.visualRectF().toRect());
+	u = u.united(m_btnMax.visualRectF().toRect());
+	u = u.united(m_btnClose.visualRectF().toRect());
+	m_bounds = u;
 }
 
 void UiTopBar::updateResourceContext(IconLoader& loader, QOpenGLFunctions* gl, const float devicePixelRatio)
@@ -113,6 +135,7 @@ void UiTopBar::updateResourceContext(IconLoader& loader, QOpenGLFunctions* gl, c
 
 	if (!m_loader || !m_gl) return;
 
+	// 主题/跟随图标
 	const QString themePath = m_dark ? m_svgThemeWhenDark : m_svgThemeWhenLight;
 	const QString themeBaseKey = m_dark ? "theme_sun" : "theme_moon";
 
@@ -123,19 +146,16 @@ void UiTopBar::updateResourceContext(IconLoader& loader, QOpenGLFunctions* gl, c
 		if (!m_loader || !m_gl) return;
 		constexpr int iconLogical = 18;
 		const int px = std::lround(iconLogical * m_dpr);
-		const QString key = iconCacheKey(themeBaseKey, iconLogical, m_dpr);
+		const QString key = iconCacheKey(themeBaseKey, iconLogical, m_dpr); // 已带 @v2
 
-		const QByteArray svg = svgDataCached(themePath);
-		const int tex = m_loader->ensureSvgPx(key, svg, QSize(px, px), m_gl);
+		QByteArray raw = svgDataCached(themePath);
+		QByteArray svg = IconLoader::scrubSvgAlpha(raw); // 去掉 SVG 内置透明度
+		const int tex = m_loader->ensureSvgPx(key, svg, QSize(px, px), QColor(255, 255, 255, 255), m_gl); // 统一白底
 		const QSize texSz = m_loader->textureSizePx(tex);
 
 		const QRectF dst(r.center().x() - iconLogical * 0.5, r.center().y() - iconLogical * 0.5, iconLogical, iconLogical);
-		fd.images.push_back(Render::ImageCmd{
-			.dstRect = dst,
-			.textureId = tex,
-			.srcRectPx = QRectF(0, 0, texSz.width(), texSz.height()),
-			.tint = iconColor
-			});
+		// 颜色/透明度仅通过 tint 控制
+		fd.images.push_back(Render::ImageCmd{ .dstRect = dst, .textureId = tex, .srcRectPx = QRectF(0, 0, texSz.width(), texSz.height()), .tint = iconColor });
 		});
 
 	m_btnFollow.setIconPainter([this, followPath, followBaseKey](const QRectF& r, Render::FrameData& fd, const QColor& iconColor, float) {
@@ -144,18 +164,47 @@ void UiTopBar::updateResourceContext(IconLoader& loader, QOpenGLFunctions* gl, c
 		const int px = std::lround(iconLogical * m_dpr);
 		const QString key = iconCacheKey(followBaseKey, iconLogical, m_dpr);
 
-		const QByteArray svg = svgDataCached(followPath);
-		const int tex = m_loader->ensureSvgPx(key, svg, QSize(px, px), m_gl);
+		QByteArray raw = svgDataCached(followPath);
+		QByteArray svg = IconLoader::scrubSvgAlpha(raw);
+		const int tex = m_loader->ensureSvgPx(key, svg, QSize(px, px), QColor(255, 255, 255, 255), m_gl);
 		const QSize texSz = m_loader->textureSizePx(tex);
 
 		const QRectF dst(r.center().x() - iconLogical * 0.5, r.center().y() - iconLogical * 0.5, iconLogical, iconLogical);
-		fd.images.push_back(Render::ImageCmd{
-			.dstRect = dst,
-			.textureId = tex,
-			.srcRectPx = QRectF(0, 0, texSz.width(), texSz.height()),
-			.tint = iconColor
-			});
+		fd.images.push_back(Render::ImageCmd{ .dstRect = dst, .textureId = tex, .srcRectPx = QRectF(0, 0, texSz.width(), texSz.height()), .tint = iconColor });
 		});
+
+	// 改为使用 SVG 图标的三大键（最小化/最大化/关闭）
+	auto setupSvgIcon = [this](Ui::Button& btn, const QString& baseKey, const QString& path, int logicalPx) {
+		btn.setIconPainter([this, baseKey, path, logicalPx](const QRectF& r, Render::FrameData& fd, const QColor& iconColor, float) {
+			if (!m_loader || !m_gl) return;
+			const int px = std::lround(static_cast<float>(logicalPx) * m_dpr);
+			const QString key = iconCacheKey(baseKey, logicalPx, m_dpr);
+
+			QByteArray raw = svgDataCached(path);
+			QByteArray svg = IconLoader::scrubSvgAlpha(raw);
+			const int tex = m_loader->ensureSvgPx(key, svg, QSize(px, px), QColor(255, 255, 255, 255), m_gl);
+			const QSize texSz = m_loader->textureSizePx(tex);
+
+			const QRectF dst(
+				r.center().x() - static_cast<qreal>(logicalPx) * 0.5,
+				r.center().y() - static_cast<qreal>(logicalPx) * 0.5,
+				static_cast<qreal>(logicalPx),
+				static_cast<qreal>(logicalPx)
+			);
+
+			fd.images.push_back(Render::ImageCmd{
+				.dstRect = dst,
+				.textureId = tex,
+				.srcRectPx = QRectF(0,0,texSz.width(), texSz.height()),
+				.tint = iconColor // 通过 tint 着色
+				});
+			});
+		};
+
+	// 统一用 16 的逻辑像素大小，视觉更协调
+	setupSvgIcon(m_btnMin, "sys_min", m_svgSysMin, 16);
+	setupSvgIcon(m_btnMax, "sys_max", m_svgSysMax, 16);
+	setupSvgIcon(m_btnClose, "sys_close", m_svgSysClose, 16);
 }
 
 bool UiTopBar::onMousePress(const QPoint& pos)
@@ -163,36 +212,55 @@ bool UiTopBar::onMousePress(const QPoint& pos)
 	bool handled = false;
 	handled = m_btnTheme.onMousePress(pos) || handled;
 	handled = m_btnFollow.onMousePress(pos) || handled;
+	handled = m_btnMin.onMousePress(pos) || handled;
+	handled = m_btnMax.onMousePress(pos) || handled;
+	handled = m_btnClose.onMousePress(pos) || handled;
 	return handled;
 }
 
 bool UiTopBar::onMouseMove(const QPoint& pos)
 {
 	m_btnTheme.setEnabled(themeInteractive());
-	const bool c1 = m_btnTheme.onMouseMove(pos);
-	const bool c2 = m_btnFollow.onMouseMove(pos);
-	return (c1 || c2);
+	bool c = false;
+	c = m_btnTheme.onMouseMove(pos) || c;
+	c = m_btnFollow.onMouseMove(pos) || c;
+	c = m_btnMin.onMouseMove(pos) || c;
+	c = m_btnMax.onMouseMove(pos) || c;
+	c = m_btnClose.onMouseMove(pos) || c;
+	return c;
 }
 
 bool UiTopBar::onMouseRelease(const QPoint& pos)
 {
 	m_btnTheme.setEnabled(themeInteractive());
-	bool clickedTheme = false;
-	bool clickedFollow = false;
-	bool handled = m_btnTheme.onMouseRelease(pos, clickedTheme);
+	bool clickedTheme = false, clickedFollow = false;
+	bool handled = false;
+
+	handled = m_btnTheme.onMouseRelease(pos, clickedTheme) || handled;
 	handled = m_btnFollow.onMouseRelease(pos, clickedFollow) || handled;
+
+	bool cMin = false, cMax = false, cClose = false;
+	handled = m_btnMin.onMouseRelease(pos, cMin) || handled;
+	handled = m_btnMax.onMouseRelease(pos, cMax) || handled;
+	handled = m_btnClose.onMouseRelease(pos, cClose) || handled;
 
 	// 记录待处理动作
 	m_clickThemePending = m_clickThemePending || clickedTheme;
 	m_clickFollowPending = m_clickFollowPending || clickedFollow;
+	m_clickMinPending = m_clickMinPending || cMin;
+	m_clickMaxPending = m_clickMaxPending || cMax;
+	m_clickClosePending = m_clickClosePending || cClose;
 
-	return handled || clickedTheme || clickedFollow;
+	return handled || clickedTheme || clickedFollow || cMin || cMax || cClose;
 }
 
 void UiTopBar::append(Render::FrameData& fd) const
 {
 	m_btnTheme.append(fd);
 	m_btnFollow.append(fd);
+	m_btnMin.append(fd);
+	m_btnMax.append(fd);
+	m_btnClose.append(fd);
 }
 
 bool UiTopBar::tick()

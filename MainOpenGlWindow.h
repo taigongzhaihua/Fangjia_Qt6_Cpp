@@ -22,6 +22,8 @@
 #ifdef Q_OS_WIN
 class WinWindowChrome;
 #endif
+#include <qsystemdetection.h>
+#include <qrect.h>
 
 // 主窗口：左侧导航 + 右上角两个图标按钮 + 主内容页面
 class MainOpenGlWindow final : public QOpenGLWindow, protected QOpenGLFunctions
@@ -47,6 +49,9 @@ public:
 	QRect navBounds() const { return m_nav.bounds(); }
 	QRect topBarThemeRect() const { return m_topBar.themeButtonRect(); }
 	QRect topBarFollowRect() const { return m_topBar.followButtonRect(); }
+	QRect topBarSysMinRect() const { return m_topBar.sysMinRect(); }
+	QRect topBarSysMaxRect() const { return m_topBar.sysMaxRect(); }
+	QRect topBarSysCloseRect() const { return m_topBar.sysCloseRect(); }
 
 protected:
 	void initializeGL() override;

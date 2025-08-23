@@ -9,6 +9,7 @@
 #ifdef Q_OS_WIN
 #include "WinWindowChrome.h"
 #endif
+#include <qsystemdetection.h>
 
 #include <algorithm>
 #include <gl/GL.h>
@@ -34,28 +35,28 @@ namespace {
 				QColor(255, 255,255,255) };
 		}
 		return { .btnBg = QColor(240,243,247,200), .btnBgHover = QColor(232, 237,242,220), .btnBgPressed = QColor(225, 230,236,230), .iconColor =
-			QColor(60, 64,72,220) };
+			QColor(60, 64,72,255) };
 	}
 
 	Ui::NavPalette paletteNavForTheme(const MainOpenGlWindow::Theme t) {
 		if (t == MainOpenGlWindow::Theme::Dark) {
 			return Ui::NavPalette{
-				.railBg = QColor(21, 28, 36, 166),
+				.railBg = QColor(21, 28, 36, 0),
 				.itemHover = QColor(255,255,255,18),
 				.itemPressed = QColor(255,255,255,30),
 				.itemSelected = QColor(255,255,255,36),
-				.iconColor = QColor(230,236,242,255),
-				.labelColor = QColor(230,236,242,230),
+				.iconColor = QColor(242,245,255,198),
+				.labelColor = QColor(255,255,255,255),
 				.indicator = QColor(0,122,255,200)
 			};
 		}
 		return Ui::NavPalette{
-			.railBg = QColor(246,248,250,127),
+			.railBg = QColor(246,248,250,0),
 			.itemHover = QColor(0,0,0,14),
 			.itemPressed = QColor(0,0,0,26),
 			.itemSelected = QColor(0,0,0,32),
 			.iconColor = QColor(70,76,84,255),
-			.labelColor = QColor(70,76,84,220),
+			.labelColor = QColor(70,76,84,255),
 			.indicator = QColor(0,102,204,220)
 		};
 	}
@@ -73,13 +74,21 @@ MainOpenGlWindow::MainOpenGlWindow(const UpdateBehavior updateBehavior)
 	m_animClock.start();
 
 	m_navCollapsedW = 48;
-	m_navExpandedW = 220;
+	m_navExpandedW = 180;
 
 	m_topBar.setCornerRadius(8.0f);
 }
 
 MainOpenGlWindow::~MainOpenGlWindow()
 {
+#ifdef Q_OS_WIN
+	// 先卸载原生事件过滤器，避免窗口销毁期间回调到已失效对象
+	if (m_winChrome) {
+		m_winChrome->detach();
+		m_winChrome = nullptr; // attach 时也会在窗口 destroyed 中 delete
+	}
+#endif
+
 	makeCurrent();
 	m_iconLoader.releaseAll(this);
 	m_renderer.releaseGL();
@@ -98,13 +107,16 @@ void MainOpenGlWindow::initializeGL()
 #ifdef Q_OS_WIN
 	if (!m_winChrome) {
 		// 顶部认为 56 逻辑像素作为“标题栏拖动”高度（与 UiTopBar 的 margin + 按钮大小接近）
-		const int dragHeight = 56;
+		constexpr int dragHeight = 56;
 		m_winChrome = WinWindowChrome::attach(this, dragHeight, [this]() {
 			// 返回不允许拖拽的区域（例如导航栏、右上角按钮），均为逻辑像素坐标
 			QVector<QRect> out;
 			out.push_back(this->navBounds());
 			out.push_back(this->topBarThemeRect());
 			out.push_back(this->topBarFollowRect());
+			out.push_back(this->topBarSysMinRect());
+			out.push_back(this->topBarSysMaxRect());
+			out.push_back(this->topBarSysCloseRect());
 			return out;
 			});
 	}
@@ -133,6 +145,8 @@ void MainOpenGlWindow::initializeGL()
 
 	applyTopBarPalette();
 	m_topBar.setSvgPaths(m_svgThemeWhenDark, m_svgThemeWhenLight, m_svgFollowOn, m_svgFollowOff);
+	// 新增：为系统三大键指定 SVG（也可不调用，UiTopBar 有默认值）
+	m_topBar.setSystemButtonSvgPaths(":/icons/sys_min.svg", ":/icons/sys_max.svg", ":/icons/sys_close.svg");
 
 	m_uiRoot.add(&m_nav);
 	m_uiRoot.add(&m_topBar);
@@ -230,10 +244,21 @@ void MainOpenGlWindow::mouseReleaseEvent(QMouseEvent* e)
 {
 	if (e->button() == Qt::LeftButton) {
 		if (m_uiRoot.onMouseRelease(e->pos())) {
-			// 读取顶栏动作（单向数据流：View 发意图 -> Window 调 VM）
+			// 读取顶栏动作（单向数据流：View 发意图 -> Window 调 VM/窗口行为）
 			if (bool clickedTheme = false, clickedFollow = false; m_topBar.takeActions(clickedTheme, clickedFollow)) {
 				if (clickedTheme) toggleTheme();
 				if (clickedFollow) toggleFollowSystem();
+			}
+			if (bool cMin = false, cMax = false, cClose = false; m_topBar.takeSystemActions(cMin, cMax, cClose)) {
+				if (cClose) {
+					close();
+				}
+				if (cMin) {
+					showMinimized();
+				}
+				if (cMax) {
+					if (visibility() == Maximized) showNormal(); else showMaximized();
+				}
 			}
 
 			if (m_nav.hasActiveAnimation() && !m_animTimer.isActive()) {
@@ -401,8 +426,7 @@ void MainOpenGlWindow::applyPagePalette()
 
 void MainOpenGlWindow::updatePageFromSelection(const int idx)
 {
-	const auto& items = m_navVm.items();
-	if (idx >= 0 && idx < items.size()) {
+	if (const auto& items = m_navVm.items(); idx >= 0 && idx < items.size()) {
 		m_page.setTitle(items[idx].label);
 		update();
 	}

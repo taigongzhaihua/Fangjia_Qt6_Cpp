@@ -2,12 +2,12 @@
 #include <qbytearray.h>
 #include <qchar.h>
 #include <qcolor.h>
+#include <qfont.h>
 #include <qhash.h>
 #include <qimage.h>
 #include <qopenglfunctions.h>
 #include <qsize.h>
 #include <qstring.h>
-#include <qwindowdefs.h>
 
 class QSvgRenderer;
 
@@ -18,7 +18,7 @@ public:
 	~IconLoader() = default;
 
 	// 确保存在一个 SVG 纹理（像素尺寸指定）。返回 GL 纹理 id。
-	int ensureSvgPx(const QString& key, const QByteArray& svgData, const QSize& pixelSize, QOpenGLFunctions* gl);
+	int ensureSvgPx(const QString& key, const QByteArray& svgData, const QSize& pixelSize, const QColor& glyphColor, QOpenGLFunctions* gl);
 
 	// 使用字体渲染一个字符为纹理。
 	int ensureFontGlyphPx(const QString& key, const QFont& font, QChar glyph, const QSize& pixelSize, const QColor& glyphColor, QOpenGLFunctions* gl);
@@ -34,6 +34,9 @@ public:
 	// 释放所有纹理（窗口销毁时调用）
 	void releaseAll(QOpenGLFunctions* gl);
 
+	// 工具：移除 SVG 文本中的 alpha（opacity/fill-opacity/stroke-opacity、rgba 的 a、#RRGGBBAA 的 AA）
+	static QByteArray scrubSvgAlpha(const QByteArray& svgUtf8);
+
 private:
 	struct Tex {
 		int   id{ 0 };
@@ -42,7 +45,7 @@ private:
 	QHash<QString, Tex> m_cache;        // key -> Tex
 	QHash<int, QSize>   m_idToSize;     // id  -> size
 
-	static QImage renderSvgToImage(const QByteArray& svg, const QSize& pixelSize);
+	static QImage renderSvgToImage(const QByteArray& svg, const QSize& pixelSize, const QColor& color);
 	static QImage renderGlyphToImage(const QFont& font, QChar ch, const QSize& pixelSize, const QColor& color);
 	static QImage renderTextToImage(const QFont& fontPx, const QString& text, const QColor& color);
 

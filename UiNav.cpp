@@ -2,19 +2,21 @@
 #include "RenderData.hpp"
 #include "UiNav.h"
 
+#include "IconLoader.h"
 #include <algorithm>
 #include <cmath>
 #include <cstdlib>
 #include <qbytearray.h>
-#include <qchar.h>
 #include <qcolor.h>
 #include <qfile.h>
 #include <qfont.h>
 #include <qiodevice.h>
+#include <qnamespace.h>
 #include <qpoint.h>
 #include <qrect.h>
 #include <qsize.h>
 #include <qstring.h>
+#include <qstringliteral.h>
 #include <qtypes.h>
 #include <utility>
 #include <vector>
@@ -80,19 +82,63 @@ namespace Ui {
 		m_selected = sel;
 	}
 
-	QRectF NavRail::itemRectF(const int i) const
+	// 顶部项目起始 Y：顶部留 8px，再放 32px 的 toggle，再留 8px
+	qreal NavRail::topItemsStartY() const
 	{
-		qreal y = m_rect.top() + i * m_itemH;
-		return { static_cast<qreal>(m_rect.left()), y, static_cast<qreal>(m_rect.width()), static_cast<qreal>(m_itemH) };
+		constexpr int size = 32;
+		constexpr int margin = 8;
+		return static_cast<qreal>(m_rect.top()) + margin + size + margin;
 	}
 
-	// 底部“展开/收起”按钮区域：与左右留白 8px，对齐底边上方 8px，尺寸 32x32
+	// 将“设置”固定到底部。若找不到 id=="settings"，返回 -1（全部走顶部流式布局）。
+	int NavRail::findSettingsIndex() const
+	{
+		if (m_vm) {
+			const auto& vitems = m_vm->items();
+			for (int i = 0; i < vitems.size(); ++i) {
+				if (vitems[i].id.compare(QStringLiteral("settings"), Qt::CaseInsensitive) == 0)
+					return i;
+			}
+			return -1;
+		}
+		for (int i = 0; i < static_cast<int>(m_items.size()); ++i) {
+			if (m_items[i].id.compare(QStringLiteral("settings"), Qt::CaseInsensitive) == 0)
+				return i;
+		}
+		return -1;
+	}
+
+	QRectF NavRail::itemRectF(const int i) const
+	{
+		const int n = count();
+		if (i < 0 || i >= n) return {};
+		const int settingsIdx = findSettingsIndex();
+
+		// 底部“设置”
+		if (i == settingsIdx) {
+			constexpr int margin = 8;
+			qreal y = static_cast<qreal>(m_rect.bottom()) - margin - m_itemH;
+			return { static_cast<qreal>(m_rect.left()), y, static_cast<qreal>(m_rect.width()), static_cast<qreal>(m_itemH) };
+		}
+
+		// 顶部其它项目：在 toggle 下方开始，自上而下排列
+		int rank = 0;
+		for (int j = 0; j < n; ++j) {
+			if (j == settingsIdx) continue;
+			if (j == i) break;
+			++rank;
+		}
+		const qreal y0 = topItemsStartY() + static_cast<qreal>(rank * m_itemH);
+		return { static_cast<qreal>(m_rect.left()), y0, static_cast<qreal>(m_rect.width()), static_cast<qreal>(m_itemH) };
+	}
+
+	// 顶部“展开/收起”按钮区域：与左右留白 8px，对齐顶边下方 8px，尺寸 32x32
 	QRectF NavRail::toggleRectF() const
 	{
 		constexpr int size = 32;
 		constexpr int margin = 8;
-		qreal x = m_rect.left() + margin;
-		qreal y = m_rect.bottom() - margin - size;
+		qreal x = static_cast<qreal>(m_rect.left()) + margin;
+		qreal y = static_cast<qreal>(m_rect.top()) + margin;
 		return { x, y, size, size };
 	}
 
@@ -146,16 +192,18 @@ namespace Ui {
 	{
 		if (!m_rect.contains(pos)) return false;
 
-		// 优先命中“展开/收起”按钮
+		// 优先命中“展开/收起”按钮（顶部）
 		if (toggleRectF().toRect().contains(pos)) {
 			m_togglePressed = true;
 			return true;
 		}
 
-		// 命中 item
-		if (const int i = (pos.y() - m_rect.top()) / m_itemH; i >= 0 && i < count()) {
-			m_pressed = i;
-			return true;
+		// 命中 item（扫描矩形）
+		for (int i = 0; i < count(); ++i) {
+			if (itemRectF(i).toRect().contains(pos)) {
+				m_pressed = i;
+				return true;
+			}
 		}
 		return false;
 	}
@@ -164,17 +212,19 @@ namespace Ui {
 	{
 		bool changed = false;
 
-		// toggle hover
+		// toggle hover（顶部）
 		const bool toggleHov = m_rect.contains(pos) && toggleRectF().toRect().contains(pos);
 		if (toggleHov != m_toggleHovered) {
 			m_toggleHovered = toggleHov;
 			changed = true;
 		}
 
-		// item hover
+		// item hover（扫描）
 		int hov = -1;
 		if (m_rect.contains(pos)) {
-			if (const int i = (pos.y() - m_rect.top()) / m_itemH; i >= 0 && i < count()) hov = i;
+			for (int i = 0; i < count(); ++i) {
+				if (itemRectF(i).toRect().contains(pos)) { hov = i; break; }
+			}
 		}
 		if (hov != m_hover) {
 			m_hover = hov;
@@ -210,15 +260,19 @@ namespace Ui {
 		}
 
 		// 释放在某个 item 上：激活选中
-		if (const int i = (pos.y() - m_rect.top()) / m_itemH; i >= 0 && i < count() && i == wasPressed) {
+		int iHit = -1;
+		for (int i = 0; i < count(); ++i) {
+			if (itemRectF(i).toRect().contains(pos)) { iHit = i; break; }
+		}
+		if (iHit >= 0 && iHit == wasPressed) {
 			if (m_vm) {
-				m_vm->setSelectedIndex(i);
-				const QRectF targetR = itemRectF(i);
+				m_vm->setSelectedIndex(iHit);
+				const QRectF targetR = itemRectF(iHit);
 				startIndicatorAnim(static_cast<float>(targetR.center().y()), 240);
-				m_selected = i; // 视图高亮立即对齐
+				m_selected = iHit; // 视图高亮立即对齐
 				return true;
 			}
-			setSelectedIndex(i);
+			setSelectedIndex(iHit);
 			return true;
 		}
 		return (wasPressed >= 0) || toggleWasPressed;
@@ -267,10 +321,11 @@ namespace Ui {
 
 				// 图标纹理
 				const QString path = m_isDark ? vitems[i].svgDark : vitems[i].svgLight;
-				const QByteArray svg = svgDataCached(path);
+				QByteArray raw = svgDataCached(path);
+				QByteArray svg = IconLoader::scrubSvgAlpha(raw);
 				const QString key = iconCacheKey(vitems[i].id, iconPx, m_isDark);
 
-				const int tex = m_loader->ensureSvgPx(key, svg, QSize(iconPx, iconPx), m_gl);
+				const int tex = m_loader->ensureSvgPx(key, svg, QSize(iconPx, iconPx), QColor(255, 255, 255, 255), m_gl);
 				const QSize texSz = m_loader->textureSizePx(tex);
 
 				QRectF iconDst;
@@ -288,7 +343,6 @@ namespace Ui {
 					.srcRectPx = QRectF(0, 0, texSz.width(), texSz.height()),
 					.tint = m_pal.iconColor
 					});
-
 				// 展开时绘制文字
 				if (isExpanded && !vitems[i].label.isEmpty()) {
 					constexpr float rightPadding = 12.0f;
@@ -327,7 +381,7 @@ namespace Ui {
 						.dstRect = textDst,
 						.textureId = textTex,
 						.srcRectPx = QRectF(0, 0, ts.width(), ts.height()),
-						.tint = QColor(255,255,255,255)
+						.tint = m_pal.labelColor
 						});
 				}
 			}
@@ -353,10 +407,11 @@ namespace Ui {
 
 				// 图标纹理
 				const QString path = m_isDark ? m_items[i].svgDark : m_items[i].svgLight;
-				const QByteArray svg = svgDataCached(path);
+				QByteArray raw = svgDataCached(path);
+				QByteArray svg = IconLoader::scrubSvgAlpha(raw);
 				const QString key = iconCacheKey(m_items[i].id, iconPx, m_isDark);
 
-				const int tex = m_loader->ensureSvgPx(key, svg, QSize(iconPx, iconPx), m_gl);
+				const int tex = m_loader->ensureSvgPx(key, svg, QSize(iconPx, iconPx), QColor(255, 255, 255, 255), m_gl);
 				const QSize texSz = m_loader->textureSizePx(tex);
 
 				QRectF iconDst;
@@ -413,13 +468,13 @@ namespace Ui {
 						.dstRect = textDst,
 						.textureId = textTex,
 						.srcRectPx = QRectF(0, 0, ts.width(), ts.height()),
-						.tint = QColor(255,255,255,255)
+						.tint = m_pal.labelColor
 						});
 				}
 			}
 		}
 
-		// 4) 底部“展开/收起”按钮（仅根据事件阶段维护的状态渲染）
+		// 4) 顶部“展开/收起”按钮（背景 + SVG 图标）
 		const QRectF tgl = toggleRectF();
 		const QColor tglBg = m_togglePressed ? m_pal.itemPressed
 			: (m_toggleHovered ? m_pal.itemHover : QColor(0, 0, 0, 0));
@@ -427,29 +482,33 @@ namespace Ui {
 			fd.roundedRects.push_back(Render::RoundedRectCmd{ .rect = tgl, .radiusPx = 8.0f, .color = tglBg });
 		}
 
-		// 箭头文本
-		const QChar arrow = expanded() ? QChar(0x2039) /*‹*/ : QChar(0x203A) /*›*/;
-		QFont af;
-		const int arrowPx = std::lround(18.0f * m_dpr); // 箭头视觉大小
-		af.setPixelSize(arrowPx);
+		// 选择 SVG：展开时显示“向左收起”，收起时显示“向右展开”
+		const bool isOpen = expanded();
+		const QString svgPath = isOpen ? m_svgToggleCollapse : m_svgToggleExpand;
+		const QString baseKey = isOpen ? QStringLiteral("nav_toggle_collapse") : QStringLiteral("nav_toggle_expand");
 
-		const QString arrowKey = textCacheKey(QString("nav-toggle-%1").arg(expanded() ? "left" : "right"), arrowPx, m_pal.iconColor);
-		const int arrowTex = m_loader->ensureTextPx(arrowKey, af, QString(arrow), m_pal.iconColor, m_gl);
-		const QSize asz = m_loader->textureSizePx(arrowTex);
+		constexpr int iconLogical = 18; // 视觉大小
+		const int px = std::lround(static_cast<float>(iconLogical) * m_dpr);
+		QByteArray raw = svgDataCached(svgPath);
+		QByteArray svg = IconLoader::scrubSvgAlpha(raw);
+		const QString key = iconCacheKey(baseKey, px, false);
 
-		// 居中放置箭头（纹理像素 -> 逻辑像素）
-		const QRectF arrowDst(
-			tgl.center().x() - static_cast<float>(asz.width()) / (2.0f * m_dpr),
-			tgl.center().y() - static_cast<float>(asz.height()) / (2.0f * m_dpr),
-			static_cast<float>(asz.width()) / m_dpr,
-			static_cast<float>(asz.height()) / m_dpr
+		const int tex = m_loader->ensureSvgPx(key, svg, QSize(px, px), QColor(255, 255, 255, 255), m_gl);
+		const QSize texSz = m_loader->textureSizePx(tex);
+
+		// 居中放置（用固定逻辑尺寸，不依赖纹理像素大小）
+		const QRectF iconDst(
+			tgl.center().x() - static_cast<float>(iconLogical) * 0.5f,
+			tgl.center().y() - static_cast<float>(iconLogical) * 0.5f,
+			static_cast<float>(iconLogical),
+			static_cast<float>(iconLogical)
 		);
 
 		fd.images.push_back(Render::ImageCmd{
-			.dstRect = arrowDst,
-			.textureId = arrowTex,
-			.srcRectPx = QRectF(0, 0, asz.width(), asz.height()),
-			.tint = QColor(255,255,255,255) // 已用 iconColor 着色
+			.dstRect = iconDst,
+			.textureId = tex,
+			.srcRectPx = QRectF(0, 0, texSz.width(), texSz.height()),
+			.tint = m_pal.iconColor // 着色
 			});
 	}
 

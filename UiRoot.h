@@ -4,9 +4,7 @@
 #include "UiComponent.hpp"
 
 #include <qopenglfunctions.h>
-#include <qpoint.h>
 #include <qrect.h>
-#include <qsize.h>
 #include <vector>
 
 // 组件根：统一驱动布局/资源上下文、事件分发、绘制收集、动画推进

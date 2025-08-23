@@ -23,7 +23,7 @@ int main(int argc, char* argv[])
 	QSurfaceFormat::setDefaultFormat(fmt);
 
 	MainOpenGlWindow window;
-	window.resize(800, 600);
+	window.resize(1200, 760);
 	window.show();
 
 	return QApplication::exec();

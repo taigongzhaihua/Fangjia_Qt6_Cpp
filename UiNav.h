@@ -16,6 +16,8 @@
 #include <qsize.h>
 #include <qstring.h>
 #include <qtypes.h>
+#include <utility>
+#include <utility>
 #include <vector>
 
 // 前向声明：接入轻量 ViewModel
@@ -45,9 +47,7 @@ namespace Ui {
 	{
 	public:
 		void setItems(std::vector<NavItem> items);
-		// 如接入 NavViewModel，则使用 VM 的项目数
 #if defined(_MSC_VER)
-		// VS 有时对内联三目访问前置声明的成员有挑剔，这里单独实现为非内联也可
 #endif
 		int  count() const noexcept { return m_vm ? vmCount() : static_cast<int>(m_items.size()); }
 
@@ -97,9 +97,27 @@ namespace Ui {
 			return m_animIndicator.active || m_animExpand.active;
 		}
 
+		// 设置“展开/收起”按钮的 SVG 资源路径（可选，已有默认值）
+		void setToggleSvgPaths(QString expand, QString collapse) {
+			m_svgToggleExpand = std::move(expand);
+			m_svgToggleCollapse = std::move(collapse);
+		}
+
 	private:
+		// 返回索引 i 对应的 item 的矩形：
+		// - "设置" 固定在底部
+		// - 其余项目自顶部（在“展开/收起”按钮下方）向下排列
 		QRectF itemRectF(int i) const;
-		QRectF toggleRectF() const; // “展开/收起”按钮区域
+
+		// 顶部“展开/收起”按钮区域：放在最顶部，左右留白 8px，尺寸 32x32
+		QRectF toggleRectF() const;
+
+		// 顶部列表的起始 Y（位于“展开/收起”按钮下方留边之后）
+		qreal topItemsStartY() const;
+
+		// 查找“设置”项索引；找不到时返回 -1
+		int findSettingsIndex() const;
+
 		QByteArray svgDataCached(const QString& path) const;
 		QString iconCacheKey(const QString& baseKey, int px, bool dark) const;
 
@@ -140,7 +158,7 @@ namespace Ui {
 
 		int  m_hover{ -1 };
 		int  m_pressed{ -1 };
-		int  m_selected{ -1 }; // 仅用于“未接入 VM”模式，以及视图层的高亮对齐
+		int  m_selected{ -1 }; // 仅用于“未接 VM”模式，以及视图层的高亮对齐
 
 		// “展开/收起”按钮 hover/press 状态
 		bool m_toggleHovered{ false };
@@ -166,6 +184,10 @@ namespace Ui {
 		NavViewModel* m_vm{ nullptr };
 
 		mutable QHash<QString, QByteArray> m_svgCache; // path -> bytes
+
+		// toggle 的 SVG 路径（默认提供）
+		QString m_svgToggleExpand{ ":/icons/nav_toggle_expand.svg" };     // 收起状态时显示“向右展开”
+		QString m_svgToggleCollapse{ ":/icons/nav_toggle_collapse.svg" }; // 展开状态时显示“向左收起”
 	};
 
 } // namespace Ui

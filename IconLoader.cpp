@@ -15,20 +15,45 @@
 #include <qpainter.h>
 #include <qpoint.h>
 #include <qrect.h>
+#include <qregularexpression.h>
 #include <qsize.h>
 #include <qstring.h>
 #include <qsvgrenderer.h>
+#include <qtypes.h>
 
-QImage IconLoader::renderSvgToImage(const QByteArray& svg, const QSize& pixelSize)
+static QImage toWhiteMask(const QImage& srcRgba8888)
 {
+	// 将 RGB 置为 255，保留 alpha（生成“白色蒙版”）
+	QImage out = srcRgba8888;
+	for (int y = 0; y < out.height(); ++y) {
+		uchar* line = out.scanLine(y);
+		// Format_RGBA8888：每像素 4 字节，顺序 RGBA
+		for (int x = 0; x < out.width(); ++x) {
+			uchar* px = line + x * 4;
+			const uchar a = px[3];
+			px[0] = 255; // R
+			px[1] = 255; // G
+			px[2] = 255; // B
+			px[3] = a;   // A
+		}
+	}
+	return out;
+}
+
+QImage IconLoader::renderSvgToImage(const QByteArray& svg, const QSize& pixelSize, const QColor& /*color*/)
+{
+	// 先按 SVG 自己的样式渲染到图像
 	QImage img(pixelSize, QImage::Format_ARGB32_Premultiplied);
 	img.fill(Qt::transparent);
-	QPainter p(&img);
-	p.setRenderHint(QPainter::Antialiasing, true);
-	QSvgRenderer renderer(svg);
-	renderer.render(&p, QRectF(QPointF(0, 0), QSizeF(pixelSize)));
-	p.end();
-	return img.convertToFormat(QImage::Format_RGBA8888);
+	{
+		QPainter p(&img);
+		p.setRenderHint(QPainter::Antialiasing, true);
+		QSvgRenderer renderer(svg);
+		renderer.render(&p, QRectF(QPointF(0, 0), QSizeF(pixelSize)));
+	}
+	// 转为非预乘 RGBA8888，再把 RGB 统一变为白色，保留 alpha
+	QImage rgba = img.convertToFormat(QImage::Format_RGBA8888);
+	return toWhiteMask(rgba);
 }
 
 QImage IconLoader::renderGlyphToImage(const QFont& font, const QChar ch, const QSize& pixelSize, const QColor& color)
@@ -85,12 +110,13 @@ int IconLoader::createTextureFromImage(const QImage& imgRGBA, QOpenGLFunctions* 
 	return static_cast<int>(tex);
 }
 
-int IconLoader::ensureSvgPx(const QString& key, const QByteArray& svgData, const QSize& pixelSize, QOpenGLFunctions* gl)
+int IconLoader::ensureSvgPx(const QString& key, const QByteArray& svgData, const QSize& pixelSize, const QColor& glyphColor, QOpenGLFunctions* gl)
 {
 	if (const auto it = m_cache.find(key); it != m_cache.end()) {
 		return it->id;
 	}
-	const QImage img = renderSvgToImage(svgData, pixelSize);
+	// 注意：renderSvgToImage 现在忽略 glyphColor，统一输出白色蒙版
+	const QImage img = renderSvgToImage(svgData, pixelSize, glyphColor);
 	const int id = createTextureFromImage(img, gl);
 	m_cache.insert(key, Tex{ .id = id, .sizePx = img.size() });
 	m_idToSize.insert(id, img.size());
@@ -129,11 +155,34 @@ QSize IconLoader::textureSizePx(const int texId) const
 
 void IconLoader::releaseAll(QOpenGLFunctions* gl)
 {
-	for (const auto& it : m_cache)
+	for (const auto& [_id, sizePx] : m_cache)
 	{
-		GLuint id = static_cast<GLuint>(it.id);
+		GLuint id = static_cast<GLuint>(_id);
 		if (id) gl->glDeleteTextures(1, &id);
 	}
 	m_cache.clear();
 	m_idToSize.clear();
+}
+
+QByteArray IconLoader::scrubSvgAlpha(const QByteArray& svgUtf8)
+{
+	QString s = QString::fromUtf8(svgUtf8);
+
+	// 属性形式
+	s.replace(QRegularExpression(R"(opacity\s*=\s*['"][0-9]*\.?[0-9]+['"])", QRegularExpression::CaseInsensitiveOption), "opacity=\"1\"");
+	s.replace(QRegularExpression(R"(fill-opacity\s*=\s*['"][0-9]*\.?[0-9]+['"])", QRegularExpression::CaseInsensitiveOption), "fill-opacity=\"1\"");
+	s.replace(QRegularExpression(R"(stroke-opacity\s*=\s*['"][0-9]*\.?[0-9]+['"])", QRegularExpression::CaseInsensitiveOption), "stroke-opacity=\"1\"");
+
+	// style 内联形式
+	s.replace(QRegularExpression(R"(opacity\s*:\s*[0-9]*\.?[0-9]+)", QRegularExpression::CaseInsensitiveOption), "opacity:1");
+	s.replace(QRegularExpression(R"(fill-opacity\s*:\s*[0-9]*\.?[0-9]+)", QRegularExpression::CaseInsensitiveOption), "fill-opacity:1");
+	s.replace(QRegularExpression(R"(stroke-opacity\s*:\s*[0-9]*\.?[0-9]+)", QRegularExpression::CaseInsensitiveOption), "stroke-opacity:1");
+
+	// rgba(...) -> rgb(...)
+	s.replace(QRegularExpression(R"(rgba\s*\(\s*([0-9.\s,]+)\s*,\s*[0-9.]+\s*\))", QRegularExpression::CaseInsensitiveOption), "rgb(\\1)");
+
+	// #RRGGBBAA -> #RRGGBB
+	s.replace(QRegularExpression(R"(#([0-9a-fA-F]{6})([0-9a-fA-F]{2}))"), "#\\1");
+
+	return s.toUtf8();
 }
