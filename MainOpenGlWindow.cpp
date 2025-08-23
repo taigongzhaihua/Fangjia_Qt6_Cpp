@@ -25,6 +25,7 @@
 #include <qstringliteral.h>
 #include <qtimer.h>
 #include <utility>
+#include "UiDataTabs.h"
 
 namespace {
 	struct PaletteBtn { QColor btnBg, btnBgHover, btnBgPressed, iconColor; };
@@ -122,11 +123,12 @@ void MainOpenGlWindow::initializeGL()
 	}
 #endif
 
-	// 初始化导航 VM 与 View
+	// 初始化导航 VM 与 View：新增“数据”项
 	m_navVm.setItems(QVector<NavViewModel::Item>{
-		{.id = "home", .svgLight = ":/icons/home_light.svg", .svgDark = ":/icons/home_dark.svg", .label = "首页"},
-		{ .id = "explore",   .svgLight = ":/icons/explore_light.svg",  .svgDark = ":/icons/explore_dark.svg",  .label = "探索" },
-		{ .id = "favorites", .svgLight = ":/icons/fav_light.svg",      .svgDark = ":/icons/fav_dark.svg",      .label = "收藏" },
+		{.id = "home", .svgLight = ":/icons/home_light.svg", .svgDark = ":/icons/home_dark.svg", .label = "首页" },
+		{ .id = "data",    .svgLight = ":/icons/data_light.svg",  .svgDark = ":/icons/data_dark.svg",  .label = "数据" },
+		{ .id = "explore", .svgLight = ":/icons/explore_light.svg",.svgDark = ":/icons/explore_dark.svg",.label = "探索" },
+		{ .id = "favorites", .svgLight = ":/icons/fav_light.svg", .svgDark = ":/icons/fav_dark.svg",   .label = "收藏" },
 		{ .id = "settings",  .svgLight = ":/icons/settings_light.svg", .svgDark = ":/icons/settings_dark.svg", .label = "设置" },
 	});
 	m_navVm.setSelectedIndex(0);
@@ -134,6 +136,9 @@ void MainOpenGlWindow::initializeGL()
 
 	// 组件加入顺序决定绘制层级：先 Page（底层），后 Nav，再 TopBar（最上层）
 	m_uiRoot.add(&m_page);
+
+	// 初始化数据页内容组件（UiPage 会在需要时插入/清空）
+	m_dataTabs.setTabs(QStringList{ "方剂","中药","经典","医案","内科","诊断" });
 
 	m_nav.setViewModel(&m_navVm);
 	m_nav.setDarkTheme(m_theme == Theme::Dark);
@@ -177,7 +182,7 @@ void MainOpenGlWindow::initializeGL()
 #endif
 		});
 
-	// 监听导航选中项变化 -> 更新页面标题
+	// 监听导航选中项变化 -> 更新页面标题/内容
 	connect(&m_navVm, &NavViewModel::selectedIndexChanged, this, &MainOpenGlWindow::updatePageFromSelection);
 
 	// 加载/同步主题（可能触发上述两个信号）
@@ -244,27 +249,23 @@ void MainOpenGlWindow::mouseReleaseEvent(QMouseEvent* e)
 {
 	if (e->button() == Qt::LeftButton) {
 		if (m_uiRoot.onMouseRelease(e->pos())) {
-			// 读取顶栏动作（单向数据流：View 发意图 -> Window 调 VM/窗口行为）
+			// 读取顶栏动作
 			if (bool clickedTheme = false, clickedFollow = false; m_topBar.takeActions(clickedTheme, clickedFollow)) {
 				if (clickedTheme) toggleTheme();
 				if (clickedFollow) toggleFollowSystem();
 			}
 			if (bool cMin = false, cMax = false, cClose = false; m_topBar.takeSystemActions(cMin, cMax, cClose)) {
-				if (cClose) {
-					close();
-				}
-				if (cMin) {
-					showMinimized();
-				}
-				if (cMax) {
-					if (visibility() == Maximized) showNormal(); else showMaximized();
-				}
+				if (cClose) close();
+				if (cMin) showMinimized();
+				if (cMax) { if (visibility() == Maximized) showNormal(); else showMaximized(); }
 			}
 
-			if (m_nav.hasActiveAnimation() && !m_animTimer.isActive()) {
+			// 关键修改：任一组件消费点击后，若计时器未启动，则启动动画计时器
+			if (!m_animTimer.isActive()) {
 				m_animClock.start();
 				m_animTimer.start();
 			}
+
 			update();
 			e->accept();
 			return;
@@ -345,12 +346,14 @@ void MainOpenGlWindow::applyThemeColors()
 	if (m_theme == Theme::Dark) m_clearColor = QColor::fromRgbF(0.05f, 0.10f, 0.15f);
 	else                        m_clearColor = QColor::fromRgbF(0.91f, 0.92f, 0.94f);
 }
+
 void MainOpenGlWindow::updateLayout()
 {
-	// 先计算页面 viewport，使其不与导航重叠
+	// 计算页面 viewport，使其不与导航重叠
 	const int left = m_nav.currentWidth();
 	const QSize winSz = size();
-	m_page.setViewportRect(QRect(left, 0, std::max(0, winSz.width() - left), winSz.height()));
+	const QRect vp(left, 0, std::max(0, winSz.width() - left), winSz.height());
+	m_page.setViewportRect(vp);
 
 	// 同步各组件布局与资源上下文
 	m_uiRoot.updateLayout(winSz);
@@ -386,10 +389,8 @@ void MainOpenGlWindow::submitFrame(const Render::FrameData& fd, const bool sched
 void MainOpenGlWindow::onAnimTick()
 {
 	const bool any = m_uiRoot.tick();
-
 	// 导航展开/指示条动画进行时，实时更新布局（会推动 Page viewport 左侧随之变化）
 	if (m_nav.hasActiveAnimation()) updateLayout();
-
 	if (!any) m_animTimer.stop();
 	update();
 }
@@ -414,6 +415,14 @@ void MainOpenGlWindow::applyPagePalette()
 			.headingColor = QColor(235, 240, 245, 255),
 			.bodyColor = QColor(210, 220, 230, 220)
 			});
+		m_dataTabs.setPalette(UiDataTabs::Palette{
+			.barBg = QColor(255,255,255,10),
+			.tabHover = QColor(255,255,255,20),
+			.tabSelectedBg = QColor(255,255,255,24),
+			.indicator = QColor(0,122,255,220),
+			.label = QColor(220,230,240,230),
+			.labelSelected = QColor(255,255,255,255)
+			});
 	}
 	else {
 		m_page.setPalette(UiPage::Palette{
@@ -421,13 +430,38 @@ void MainOpenGlWindow::applyPagePalette()
 			.headingColor = QColor(40, 46, 54, 255),
 			.bodyColor = QColor(70, 76, 84, 220)
 			});
+		m_dataTabs.setPalette(UiDataTabs::Palette{
+			.barBg = QColor(0,0,0,6),
+			.tabHover = QColor(0,0,0,10),
+			.tabSelectedBg = QColor(0,0,0,14),
+			.indicator = QColor(0,102,204,220),
+			.label = QColor(70,76,84,255),
+			.labelSelected = QColor(40,46,54,255)
+			});
 	}
+}
+
+bool MainOpenGlWindow::isDataPageIndex(const int idx) const
+{
+	const auto& items = m_navVm.items();
+	if (idx < 0 || idx >= items.size()) return false;
+	return items[idx].id == QStringLiteral("data");
 }
 
 void MainOpenGlWindow::updatePageFromSelection(const int idx)
 {
 	if (const auto& items = m_navVm.items(); idx >= 0 && idx < items.size()) {
+		// 标题
 		m_page.setTitle(items[idx].label);
-		update();
 	}
+
+	// 内容：仅“数据”页使用 UiDataTabs
+	if (isDataPageIndex(idx)) {
+		m_page.setContent(&m_dataTabs);
+	}
+	else {
+		m_page.setContent(nullptr);
+	}
+
+	update(); // 触发重绘
 }

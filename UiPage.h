@@ -2,6 +2,7 @@
 #include "IconLoader.h"
 #include "RenderData.hpp"
 #include "UiComponent.hpp"
+#include "UiContent.hpp" // 新增
 
 #include <algorithm>
 #include <qcolor.h>
@@ -30,17 +31,24 @@ public:
 	// 设置页面内容的可用区域（逻辑像素），避免与导航栏重叠
 	void setViewportRect(const QRect& r) { m_viewport = r; }
 
+	// 设置内容组件（可为 nullptr）
+	void setContent(IUiComponent* content) { m_content = content; }
+
 	// IUiComponent
-	void updateLayout(const QSize& /*windowSize*/) override { /* 尺寸由 viewport 决定，上层负责设置 */ }
-	void updateResourceContext(IconLoader& loader, QOpenGLFunctions* gl, float devicePixelRatio) override {
-		m_loader = &loader; m_gl = gl; m_dpr = std::max(0.5f, devicePixelRatio);
-	}
+	void updateLayout(const QSize& /*windowSize*/) override;
+	void updateResourceContext(IconLoader& loader, QOpenGLFunctions* gl, float devicePixelRatio) override;
 	void append(Render::FrameData& fd) const override;
-	bool onMousePress(const QPoint&) override { return false; }
-	bool onMouseMove(const QPoint&) override { return false; }
-	bool onMouseRelease(const QPoint&) override { return false; }
-	bool tick() override { return false; }
+	bool onMousePress(const QPoint& pos) override;
+	bool onMouseMove(const QPoint& pos) override;
+	bool onMouseRelease(const QPoint& pos) override;
+	bool tick() override;
 	QRect bounds() const override { return m_viewport; }
+
+	// 计算内部卡片矩形（供需要时查询）
+	QRectF cardRectF() const;
+
+	// 内容区矩形（卡片内，避开标题区域）
+	QRectF contentRectF() const;
 
 private:
 	static QString textCacheKey(const QString& baseKey, int px, const QColor& color) {
@@ -58,8 +66,18 @@ private:
 		.bodyColor = QColor(60, 70, 84, 220)
 	};
 
+	// 内容组件（不拥有），UiPage 负责把 contentRect 传给实现了 IUiContent 的组件
+	IUiComponent* m_content{ nullptr };
+
 	// 资源上下文
 	IconLoader* m_loader{ nullptr };
 	QOpenGLFunctions* m_gl{ nullptr };
 	float m_dpr{ 1.0f };
+
+	// 布局常量（逻辑像素）
+	static constexpr int kMargin = 8;
+	static constexpr int kMarginTop = 52;
+	static constexpr int kCardPad = 24;
+	// 标题区域高度（卡片内从顶部预留）
+	static constexpr int kTitleAreaH = 44;
 };

@@ -31,7 +31,9 @@ add_library(ui_components STATIC
   UiRoot.h UiRoot.cpp
   UiTopBar.h UiTopBar.cpp
   UiNav.h UiNav.cpp
-  UiPage.h UiPage.cpp)  # 新增页面组件
+  UiPage.h UiPage.cpp
+  UiContent.hpp              # 新增接口头
+  UiDataTabs.h UiDataTabs.cpp)  # 新增内容组件
 target_link_libraries(ui_components PUBLIC core_render Qt6::Gui)
 target_include_directories(ui_components PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 

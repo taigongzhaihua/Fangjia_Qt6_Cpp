@@ -148,7 +148,7 @@ namespace Ui {
 		NavPalette m_pal;
 		bool m_isDark{ true };
 
-		int  m_iconLogical{ 20 };
+		int  m_iconLogical{ 18 };
 		int  m_itemH{ 48 };
 		int  m_labelFontPx{ 13 };
 

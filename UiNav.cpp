@@ -67,7 +67,7 @@ namespace Ui {
 		m_expandT = m_vm->expanded() ? 1.0f : 0.0f;
 		m_animExpand.active = false;
 
-		// 选中项与指示条
+		// 选中项与“整体高亮”锚点（使用选中项中心 Y）
 		const int sel = m_vm->selectedIndex();
 		if (sel >= 0 && sel < vmCount()) {
 			const QRectF r = itemRectF(sel);
@@ -78,14 +78,14 @@ namespace Ui {
 		}
 		m_animIndicator.active = false;
 
-		// 高亮（视图层变量，仅用于 append 的选中态着色）
+		// 视图层高亮索引
 		m_selected = sel;
 	}
 
-	// 顶部项目起始 Y：顶部留 8px，再放 32px 的 toggle，再留 8px
+	// 顶部项目起始 Y：顶部留 8px，再放 32/36px 的 toggle，再留 8px
 	qreal NavRail::topItemsStartY() const
 	{
-		constexpr int size = 32;
+		constexpr int size = 36;
 		constexpr int margin = 8;
 		return static_cast<qreal>(m_rect.top()) + margin + size + margin;
 	}
@@ -132,7 +132,7 @@ namespace Ui {
 		return { static_cast<qreal>(m_rect.left()), y0, static_cast<qreal>(m_rect.width()), static_cast<qreal>(m_itemH) };
 	}
 
-	// 顶部“展开/收起”按钮区域：与左右留白 8px，对齐顶边下方 8px，尺寸 32x32
+	// 顶部“展开/收起”按钮区域：与左右留白 8px，对齐顶边下方 8px，尺寸 36x36
 	QRectF NavRail::toggleRectF() const
 	{
 		constexpr int size = 36;
@@ -283,16 +283,44 @@ namespace Ui {
 		// 1) 导航栏背景
 		fd.roundedRects.push_back(Render::RoundedRectCmd{ .rect = QRectF(m_rect), .radiusPx = 0.0f, .color = m_pal.railBg });
 
-		// 2) 选中指示条（在背景之上，项之下）
+		// 2) “整体高亮单元”（将原选中背景矩形 + 指示条合并为一体，并整体移动）
 		const int selForHighlight = m_vm ? m_vm->selectedIndex() : m_selected;
 		if (selForHighlight >= 0 && m_indicatorY >= 0.0f) {
+			const QRectF rSelTmpl = itemRectF(selForHighlight);
+			// 背景胶囊：相对模板项左右/上下内缩，Y 由 m_indicatorY 控制（与动画一致）
+			constexpr float padX = 5.0f;
+			constexpr float padY = 5.0f;
+			const float bgH = static_cast<float>(rSelTmpl.height()) - padY * 2.0f;
+			const QRectF bgRect(
+				rSelTmpl.left() + padX,
+				m_indicatorY - bgH * 0.5f,
+				rSelTmpl.width() - padX * 2.0f,
+				bgH
+			);
+			fd.roundedRects.push_back(Render::RoundedRectCmd{
+				.rect = bgRect,
+				.radiusPx = 6.0f,
+				.color = m_pal.itemSelected
+				});
+
+			// 左侧指示条：贴合在高亮胶囊底部内部，随同移动
 			constexpr float indW = 3.0f;
-			const float indH = static_cast<float>(m_itemH) - 28.0f;
-			const QRectF r(static_cast<float>(m_rect.left()) + 5.0f, m_indicatorY - indH * 0.5f, indW, indH);
-			fd.roundedRects.push_back(Render::RoundedRectCmd{ .rect = r, .radiusPx = indW * 0.5f, .color = m_pal.indicator });
+			const float indH = std::clamp(static_cast<float>(bgRect.height()) * 0.5f, 24.0f, static_cast<float>(bgRect.height()) - 10.0f);
+			constexpr float indOffsetLeft = 3.0f; // 离左边一点距离
+			const QRectF indRect(
+				bgRect.left() + indOffsetLeft,
+				bgRect.center().y() - indH * 0.5f,
+				indW,
+				indH
+			);
+			fd.roundedRects.push_back(Render::RoundedRectCmd{
+				.rect = indRect,
+				.radiusPx = indW * 0.5f,
+				.color = m_pal.indicator
+				});
 		}
 
-		// 3) 各项
+		// 3) 各项内容与状态（不再绘制“选中项专属背景”，避免与整体高亮重复）
 		if (!m_loader || !m_gl) return;
 
 		const int iconPx = std::lround(static_cast<float>(m_iconLogical) * m_dpr);
@@ -305,17 +333,16 @@ namespace Ui {
 			for (int i = 0; i < vitems.size(); ++i) {
 				const QRectF r = itemRectF(i);
 
-				// 背景态（高亮层）
-				if (i == selForHighlight) {
-					fd.roundedRects.push_back(Render::RoundedRectCmd{ .rect = r.adjusted(4, 4, -4, -4), .radiusPx = 10.0f,
-						.color = m_pal.itemSelected });
+				// 背景态（仅 hover/pressed；选中背景由“整体高亮单元”承担）
+				if (i == m_selected) {
+					// 视图层高亮索引与 VM 选中项不一致时，使用“整体高亮单元”代替
 				}
 				else if (i == m_pressed) {
-					fd.roundedRects.push_back(Render::RoundedRectCmd{ .rect = r.adjusted(6, 6, -6, -6), .radiusPx = 10.0f,
+					fd.roundedRects.push_back(Render::RoundedRectCmd{ .rect = r.adjusted(5, 5, -5, -5), .radiusPx = 6.0f,
 						.color = m_pal.itemPressed });
 				}
 				else if (i == m_hover) {
-					fd.roundedRects.push_back(Render::RoundedRectCmd{ .rect = r.adjusted(6, 6, -6, -6), .radiusPx = 10.0f,
+					fd.roundedRects.push_back(Render::RoundedRectCmd{ .rect = r.adjusted(5, 5, -5, -5), .radiusPx = 6.0f,
 						.color = m_pal.itemHover });
 				}
 
@@ -390,12 +417,8 @@ namespace Ui {
 			for (int i = 0; i < count(); ++i) {
 				const QRectF r = itemRectF(i);
 
-				// 背景态（高亮层）
-				if (i == m_selected) {
-					fd.roundedRects.push_back(Render::RoundedRectCmd{ .rect = r.adjusted(4, 4, -4, -4), .radiusPx = 10.0f,
-						.color = m_pal.itemSelected });
-				}
-				else if (i == m_pressed) {
+				// 背景态（仅 hover/pressed；选中背景由“整体高亮单元”承担）
+				if (i == m_pressed) {
 					fd.roundedRects.push_back(Render::RoundedRectCmd{ .rect = r.adjusted(6, 6, -6, -6), .radiusPx = 10.0f,
 						.color = m_pal.itemPressed });
 				}
@@ -519,13 +542,13 @@ namespace Ui {
 		if (m_vm) {
 			const int vmSel = m_vm->selectedIndex();
 			if (vmSel != m_selected) {
-				// 同步视图高亮并启动指示条动画/或清除
+				// 同步视图高亮并启动“整体高亮单元”动画/或清除
 				if (vmSel >= 0 && vmSel < vmCount()) {
 					const QRectF targetR = itemRectF(vmSel);
 					startIndicatorAnim(static_cast<float>(targetR.center().y()), 240);
 				}
 				else {
-					// 无选中：直接隐藏指示条
+					// 无选中：直接隐藏
 					m_indicatorY = -1.0f;
 					m_animIndicator.active = false;
 				}

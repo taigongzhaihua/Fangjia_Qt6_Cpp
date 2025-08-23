@@ -6,6 +6,7 @@
 #include "RenderData.hpp"
 #include "Renderer.h"
 #include "ThemeManager.h"
+#include "UiDataTabs.h" // 新增
 #include "UiNav.h"
 #include "UiPage.h"
 #include "UiRoot.h"
@@ -78,8 +79,10 @@ private:
 	void applyNavPalette();
 	void applyPagePalette();
 
-	// 根据导航选中项更新页面标题
+	// 根据导航选中项更新页面标题与内容
 	void updatePageFromSelection(int idx);
+
+	bool isDataPageIndex(int idx) const;
 
 private:
 	Theme m_theme{ Theme::Dark };
@@ -98,6 +101,7 @@ private:
 
 	// 页面（主内容）
 	UiPage m_page;
+	UiDataTabs m_dataTabs; // 新增：数据页内容组件
 
 	// 导航视图
 	Ui::NavRail m_nav;

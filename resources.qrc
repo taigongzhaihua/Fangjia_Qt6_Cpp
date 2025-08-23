@@ -11,6 +11,8 @@
 		<!-- 左侧导航（示例） -->
 		<file alias="home_light.svg">icons/home_light.svg</file>
 		<file alias="home_dark.svg">icons/home_dark.svg</file>
+		<file alias="data_light.svg">icons/data_light.svg</file>
+		<file alias="data_dark.svg">icons/data_dark.svg</file>
 		<file alias="explore_light.svg">icons/explore_light.svg</file>
 		<file alias="explore_dark.svg">icons/explore_dark.svg</file>
 		<file alias="fav_light.svg">icons/fav_light.svg</file>
