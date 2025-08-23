@@ -16,7 +16,7 @@ void UiPage::append(Render::FrameData& fd) const
 
 	// 在 viewport 内部绘制内容卡片（留边距）
 	constexpr int margin = 8;
-	constexpr int marginTop = 48;
+	constexpr int marginTop = 52;
 
 	const QRectF card(
 		m_viewport.left() + margin,

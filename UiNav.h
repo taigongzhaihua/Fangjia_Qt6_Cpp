@@ -17,7 +17,6 @@
 #include <qstring.h>
 #include <qtypes.h>
 #include <utility>
-#include <utility>
 #include <vector>
 
 // 前向声明：接入轻量 ViewModel

@@ -148,8 +148,7 @@ void UiTopBar::updateResourceContext(IconLoader& loader, QOpenGLFunctions* gl, c
 		const int px = std::lround(iconLogical * m_dpr);
 		const QString key = iconCacheKey(themeBaseKey, iconLogical, m_dpr); // 已带 @v2
 
-		QByteArray raw = svgDataCached(themePath);
-		QByteArray svg = IconLoader::scrubSvgAlpha(raw); // 去掉 SVG 内置透明度
+		QByteArray svg = svgDataCached(themePath);
 		const int tex = m_loader->ensureSvgPx(key, svg, QSize(px, px), QColor(255, 255, 255, 255), m_gl); // 统一白底
 		const QSize texSz = m_loader->textureSizePx(tex);
 
@@ -164,8 +163,7 @@ void UiTopBar::updateResourceContext(IconLoader& loader, QOpenGLFunctions* gl, c
 		const int px = std::lround(iconLogical * m_dpr);
 		const QString key = iconCacheKey(followBaseKey, iconLogical, m_dpr);
 
-		QByteArray raw = svgDataCached(followPath);
-		QByteArray svg = IconLoader::scrubSvgAlpha(raw);
+		QByteArray svg = svgDataCached(followPath);
 		const int tex = m_loader->ensureSvgPx(key, svg, QSize(px, px), QColor(255, 255, 255, 255), m_gl);
 		const QSize texSz = m_loader->textureSizePx(tex);
 
@@ -180,8 +178,7 @@ void UiTopBar::updateResourceContext(IconLoader& loader, QOpenGLFunctions* gl, c
 			const int px = std::lround(static_cast<float>(logicalPx) * m_dpr);
 			const QString key = iconCacheKey(baseKey, logicalPx, m_dpr);
 
-			QByteArray raw = svgDataCached(path);
-			QByteArray svg = IconLoader::scrubSvgAlpha(raw);
+			QByteArray svg = svgDataCached(path);
 			const int tex = m_loader->ensureSvgPx(key, svg, QSize(px, px), QColor(255, 255, 255, 255), m_gl);
 			const QSize texSz = m_loader->textureSizePx(tex);
 

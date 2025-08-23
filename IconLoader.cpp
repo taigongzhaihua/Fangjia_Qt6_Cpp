@@ -15,7 +15,6 @@
 #include <qpainter.h>
 #include <qpoint.h>
 #include <qrect.h>
-#include <qregularexpression.h>
 #include <qsize.h>
 #include <qstring.h>
 #include <qsvgrenderer.h>
@@ -164,25 +163,3 @@ void IconLoader::releaseAll(QOpenGLFunctions* gl)
 	m_idToSize.clear();
 }
 
-QByteArray IconLoader::scrubSvgAlpha(const QByteArray& svgUtf8)
-{
-	QString s = QString::fromUtf8(svgUtf8);
-
-	// 属性形式
-	s.replace(QRegularExpression(R"(opacity\s*=\s*['"][0-9]*\.?[0-9]+['"])", QRegularExpression::CaseInsensitiveOption), "opacity=\"1\"");
-	s.replace(QRegularExpression(R"(fill-opacity\s*=\s*['"][0-9]*\.?[0-9]+['"])", QRegularExpression::CaseInsensitiveOption), "fill-opacity=\"1\"");
-	s.replace(QRegularExpression(R"(stroke-opacity\s*=\s*['"][0-9]*\.?[0-9]+['"])", QRegularExpression::CaseInsensitiveOption), "stroke-opacity=\"1\"");
-
-	// style 内联形式
-	s.replace(QRegularExpression(R"(opacity\s*:\s*[0-9]*\.?[0-9]+)", QRegularExpression::CaseInsensitiveOption), "opacity:1");
-	s.replace(QRegularExpression(R"(fill-opacity\s*:\s*[0-9]*\.?[0-9]+)", QRegularExpression::CaseInsensitiveOption), "fill-opacity:1");
-	s.replace(QRegularExpression(R"(stroke-opacity\s*:\s*[0-9]*\.?[0-9]+)", QRegularExpression::CaseInsensitiveOption), "stroke-opacity:1");
-
-	// rgba(...) -> rgb(...)
-	s.replace(QRegularExpression(R"(rgba\s*\(\s*([0-9.\s,]+)\s*,\s*[0-9.]+\s*\))", QRegularExpression::CaseInsensitiveOption), "rgb(\\1)");
-
-	// #RRGGBBAA -> #RRGGBB
-	s.replace(QRegularExpression(R"(#([0-9a-fA-F]{6})([0-9a-fA-F]{2}))"), "#\\1");
-
-	return s.toUtf8();
-}

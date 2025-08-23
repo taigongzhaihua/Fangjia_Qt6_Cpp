@@ -135,7 +135,7 @@ namespace Ui {
 	// 顶部“展开/收起”按钮区域：与左右留白 8px，对齐顶边下方 8px，尺寸 32x32
 	QRectF NavRail::toggleRectF() const
 	{
-		constexpr int size = 32;
+		constexpr int size = 36;
 		constexpr int margin = 8;
 		qreal x = static_cast<qreal>(m_rect.left()) + margin;
 		qreal y = static_cast<qreal>(m_rect.top()) + margin;
@@ -321,8 +321,7 @@ namespace Ui {
 
 				// 图标纹理
 				const QString path = m_isDark ? vitems[i].svgDark : vitems[i].svgLight;
-				QByteArray raw = svgDataCached(path);
-				QByteArray svg = IconLoader::scrubSvgAlpha(raw);
+				QByteArray svg = svgDataCached(path);
 				const QString key = iconCacheKey(vitems[i].id, iconPx, m_isDark);
 
 				const int tex = m_loader->ensureSvgPx(key, svg, QSize(iconPx, iconPx), QColor(255, 255, 255, 255), m_gl);
@@ -407,8 +406,7 @@ namespace Ui {
 
 				// 图标纹理
 				const QString path = m_isDark ? m_items[i].svgDark : m_items[i].svgLight;
-				QByteArray raw = svgDataCached(path);
-				QByteArray svg = IconLoader::scrubSvgAlpha(raw);
+				QByteArray svg = svgDataCached(path);
 				const QString key = iconCacheKey(m_items[i].id, iconPx, m_isDark);
 
 				const int tex = m_loader->ensureSvgPx(key, svg, QSize(iconPx, iconPx), QColor(255, 255, 255, 255), m_gl);
@@ -479,7 +477,7 @@ namespace Ui {
 		const QColor tglBg = m_togglePressed ? m_pal.itemPressed
 			: (m_toggleHovered ? m_pal.itemHover : QColor(0, 0, 0, 0));
 		if (tglBg.alpha() > 0) {
-			fd.roundedRects.push_back(Render::RoundedRectCmd{ .rect = tgl, .radiusPx = 8.0f, .color = tglBg });
+			fd.roundedRects.push_back(Render::RoundedRectCmd{ .rect = tgl, .radiusPx = 6.0f, .color = tglBg });
 		}
 
 		// 选择 SVG：展开时显示“向左收起”，收起时显示“向右展开”
@@ -487,10 +485,9 @@ namespace Ui {
 		const QString svgPath = isOpen ? m_svgToggleCollapse : m_svgToggleExpand;
 		const QString baseKey = isOpen ? QStringLiteral("nav_toggle_collapse") : QStringLiteral("nav_toggle_expand");
 
-		constexpr int iconLogical = 18; // 视觉大小
+		constexpr int iconLogical = 24; // 视觉大小
 		const int px = std::lround(static_cast<float>(iconLogical) * m_dpr);
-		QByteArray raw = svgDataCached(svgPath);
-		QByteArray svg = IconLoader::scrubSvgAlpha(raw);
+		QByteArray svg = svgDataCached(svgPath);
 		const QString key = iconCacheKey(baseKey, px, false);
 
 		const int tex = m_loader->ensureSvgPx(key, svg, QSize(px, px), QColor(255, 255, 255, 255), m_gl);

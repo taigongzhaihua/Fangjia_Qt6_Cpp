@@ -34,8 +34,6 @@ public:
 	// 释放所有纹理（窗口销毁时调用）
 	void releaseAll(QOpenGLFunctions* gl);
 
-	// 工具：移除 SVG 文本中的 alpha（opacity/fill-opacity/stroke-opacity、rgba 的 a、#RRGGBBAA 的 AA）
-	static QByteArray scrubSvgAlpha(const QByteArray& svgUtf8);
 
 private:
 	struct Tex {

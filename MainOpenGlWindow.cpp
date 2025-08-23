@@ -74,7 +74,7 @@ MainOpenGlWindow::MainOpenGlWindow(const UpdateBehavior updateBehavior)
 	m_animClock.start();
 
 	m_navCollapsedW = 48;
-	m_navExpandedW = 180;
+	m_navExpandedW = 200;
 
 	m_topBar.setCornerRadius(8.0f);
 }
