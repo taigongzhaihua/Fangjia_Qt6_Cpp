@@ -8,24 +8,20 @@
 #include <qtmetamacros.h>
 #include <qvariant.h>
 
-AppConfig* AppConfig::s_instance = nullptr;
-
 AppConfig::AppConfig(QObject* parent)
 	: QObject(parent)
 {
-	// 使用组织名和应用名创建设置
 	m_settings = std::make_unique<QSettings>(
 		QCoreApplication::organizationName(),
 		QCoreApplication::applicationName()
 	);
 
 	initDefaults();
-	s_instance = this;
 }
 
-AppConfig* AppConfig::instance()
+AppConfig::~AppConfig()
 {
-	return s_instance;
+	save();  // 析构时自动保存
 }
 
 void AppConfig::initDefaults()
@@ -37,6 +33,10 @@ void AppConfig::initDefaults()
 
 	if (!m_settings->contains(Keys::NAV_EXPANDED)) {
 		m_settings->setValue(Keys::NAV_EXPANDED, false);
+	}
+
+	if (!m_settings->contains(Keys::NAV_SELECTED)) {
+		m_settings->setValue(Keys::NAV_SELECTED, 0);
 	}
 }
 
@@ -68,6 +68,20 @@ void AppConfig::setNavExpanded(bool expanded)
 	}
 }
 
+int AppConfig::navSelectedIndex() const
+{
+	return m_settings->value(Keys::NAV_SELECTED, 0).toInt();
+}
+
+void AppConfig::setNavSelectedIndex(int index)
+{
+	if (navSelectedIndex() != index) {
+		m_settings->setValue(Keys::NAV_SELECTED, index);
+		emit navSelectedIndexChanged(index);
+		emit configChanged(Keys::NAV_SELECTED);
+	}
+}
+
 QByteArray AppConfig::windowGeometry() const
 {
 	return m_settings->value(Keys::WINDOW_GEOMETRY).toByteArray();
@@ -88,6 +102,28 @@ void AppConfig::setWindowState(const QByteArray& state)
 {
 	m_settings->setValue(Keys::WINDOW_STATE, state);
 	emit configChanged(Keys::WINDOW_STATE);
+}
+
+QString AppConfig::recentTab() const
+{
+	return m_settings->value(Keys::RECENT_TAB).toString();
+}
+
+void AppConfig::setRecentTab(const QString& tabId)
+{
+	m_settings->setValue(Keys::RECENT_TAB, tabId);
+	emit configChanged(Keys::RECENT_TAB);
+}
+
+QString AppConfig::recentFormula() const
+{
+	return m_settings->value(Keys::RECENT_FORMULA).toString();
+}
+
+void AppConfig::setRecentFormula(const QString& formulaId)
+{
+	m_settings->setValue(Keys::RECENT_FORMULA, formulaId);
+	emit configChanged(Keys::RECENT_FORMULA);
 }
 
 QVariant AppConfig::value(const QString& key, const QVariant& defaultValue) const

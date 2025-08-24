@@ -4,28 +4,34 @@
 #include <qobject.h>
 #include <qsettings.h>
 #include <qstring.h>
-#include <qtmetamacros.h>
 #include <qvariant.h>
 
 // 应用配置管理器
 class AppConfig final : public QObject
 {
-	Q_OBJECT  // 添加 Q_OBJECT 宏
+	Q_OBJECT
 
 public:
 	// 配置键定义
 	struct Keys {
+		// 主题
 		static constexpr auto THEME_MODE = "Theme/Mode";
+
+		// 导航
 		static constexpr auto NAV_EXPANDED = "Navigation/Expanded";
+		static constexpr auto NAV_SELECTED = "Navigation/SelectedIndex";
+
+		// 窗口
 		static constexpr auto WINDOW_GEOMETRY = "Window/Geometry";
 		static constexpr auto WINDOW_STATE = "Window/State";
+
+		// 最近使用
+		static constexpr auto RECENT_TAB = "Recent/LastTab";
+		static constexpr auto RECENT_FORMULA = "Recent/LastFormula";
 	};
 
 	explicit AppConfig(QObject* parent = nullptr);
-	~AppConfig() override = default;
-
-	// 单例访问
-	static AppConfig* instance();
+	~AppConfig() override;
 
 	// 主题配置
 	QString themeMode() const;
@@ -35,12 +41,22 @@ public:
 	bool navExpanded() const;
 	void setNavExpanded(bool expanded);
 
+	int navSelectedIndex() const;
+	void setNavSelectedIndex(int index);
+
 	// 窗口配置
 	QByteArray windowGeometry() const;
 	void setWindowGeometry(const QByteArray& geometry);
 
 	QByteArray windowState() const;
 	void setWindowState(const QByteArray& state);
+
+	// 最近使用
+	QString recentTab() const;
+	void setRecentTab(const QString& tabId);
+
+	QString recentFormula() const;
+	void setRecentFormula(const QString& formulaId);
 
 	// 通用配置访问
 	QVariant value(const QString& key, const QVariant& defaultValue = QVariant()) const;
@@ -54,11 +70,11 @@ public:
 signals:
 	void themeModeChanged(const QString& mode);
 	void navExpandedChanged(bool expanded);
+	void navSelectedIndexChanged(int index);
 	void configChanged(const QString& key);
 
 private:
 	std::unique_ptr<QSettings> m_settings;
-	static AppConfig* s_instance;
 
 	void initDefaults();
 };
