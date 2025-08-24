@@ -6,7 +6,6 @@
 
 #include "IconLoader.h"
 #include "RenderData.hpp"
-#include <qrect.h>
 
 // 负责：GL 资源（Program / VAO / VBO）与 FrameData 绘制
 class Renderer

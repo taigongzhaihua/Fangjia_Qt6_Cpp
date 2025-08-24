@@ -81,12 +81,18 @@ QImage IconLoader::renderTextToImage(const QFont& fontPx, const QString& text, c
 	img.fill(Qt::transparent);
 
 	QPainter p(&img);
+	// 添加更多渲染提示
 	p.setRenderHint(QPainter::TextAntialiasing, true);
 	p.setRenderHint(QPainter::Antialiasing, true);
-	p.setFont(f);
-	p.setPen(color);
+	p.setRenderHint(QPainter::SmoothPixmapTransform, true);  // 新增
 
-	// 基线绘制：让文本在垂直方向完整显示
+	// 可以尝试不同的字体渲染策略
+	QFont renderFont = f;
+	renderFont.setHintingPreference(QFont::PreferVerticalHinting);  // 新增
+	renderFont.setStyleStrategy(QFont::PreferAntialias);  // 新增
+	p.setFont(renderFont);
+
+	p.setPen(color);
 	p.drawText(0, fm.ascent(), text);
 
 	p.end();

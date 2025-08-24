@@ -79,6 +79,7 @@ private:
 	void applyTopBarPalette();
 	void applyNavPalette();
 	void applyPagePalette();
+	void applyTabViewPalette();
 
 	// 根据导航选中项更新页面标题与内容
 	void updatePageFromSelection(int idx);

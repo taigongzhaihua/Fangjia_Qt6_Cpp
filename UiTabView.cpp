@@ -1,12 +1,13 @@
-#include "UiTabView.h"
-#include "TabViewModel.h"
 #include "RenderData.hpp"
+#include "TabViewModel.h"
+#include "UiTabView.h"
 
 #include <algorithm>
 #include <cmath>
 #include <qcolor.h>
 #include <qcontainerfwd.h>
 #include <qfont.h>
+#include <qlogging.h>
 #include <qpoint.h>
 #include <qrect.h>
 #include <qsize.h>
@@ -17,11 +18,11 @@ void UiTabView::setViewModel(TabViewModel* vm)
 {
 	if (m_vm == vm) return;
 	m_vm = vm;
-	
+
 	// 清理交互状态
 	m_hover = -1;
 	m_pressed = -1;
-	
+
 	// 同步视图状态（无动画）
 	syncFromVmInstant();
 }
@@ -29,10 +30,10 @@ void UiTabView::setViewModel(TabViewModel* vm)
 void UiTabView::syncFromVmInstant()
 {
 	if (!m_vm) return;
-	
+
 	const int sel = m_vm->selectedIndex();
 	m_viewSelected = sel;
-	
+
 	if (sel >= 0 && sel < m_vm->count()) {
 		const QRectF r = tabRectF(sel);
 		m_highlightCenterX = r.isValid() ? static_cast<float>(r.center().x()) : -1.0f;
@@ -66,7 +67,7 @@ QString UiTabView::tabLabel(int i) const
 void UiTabView::setTabs(const QStringList& labels)
 {
 	if (m_vm) return; // VM 模式下忽略
-	
+
 	m_fallbackTabs = labels;
 	if (m_fallbackSelected < 0 && !m_fallbackTabs.isEmpty()) {
 		m_fallbackSelected = 0;
@@ -74,7 +75,7 @@ void UiTabView::setTabs(const QStringList& labels)
 	if (m_fallbackSelected >= m_fallbackTabs.size()) {
 		m_fallbackSelected = std::max(0, static_cast<int>(m_fallbackTabs.size() - 1));
 	}
-	
+
 	m_hover = -1;
 	m_pressed = -1;
 	m_viewSelected = m_fallbackSelected;
@@ -94,7 +95,7 @@ void UiTabView::setSelectedIndex(const int idx)
 		m_vm->setSelectedIndex(idx);
 		return;
 	}
-	
+
 	// 兼容模式
 	if (idx < 0 || idx >= m_fallbackTabs.size()) return;
 	if (m_fallbackSelected == idx && m_highlightCenterX >= 0.0f) return;
@@ -156,14 +157,14 @@ void UiTabView::append(Render::FrameData& fd) const
 	if (!m_loader || !m_gl) return;
 
 	const QRectF bar = tabBarRectF();
-	
+
 	// TabBar 背景
 	if (m_pal.barBg.alpha() > 0) {
 		fd.roundedRects.push_back(Render::RoundedRectCmd{
 			.rect = bar.adjusted(-4, -3, 4, 3),
 			.radiusPx = 8.0f,
 			.color = m_pal.barBg
-		});
+			});
 	}
 
 	// 整体高亮单元
@@ -181,20 +182,20 @@ void UiTabView::append(Render::FrameData& fd) const
 			bgW,
 			bgH
 		);
-		
+
 		if (m_indicatorStyle == IndicatorStyle::Full || m_pal.tabSelectedBg.alpha() > 0) {
 			fd.roundedRects.push_back(Render::RoundedRectCmd{
 				.rect = bgRect,
 				.radiusPx = 6.0f,
 				.color = m_pal.tabSelectedBg
-			});
+				});
 		}
 
 		// 指示条
 		if (m_indicatorStyle != IndicatorStyle::Full) {
 			const float indW = std::clamp(bgW * 0.5f, 24.0f, std::max(24.0f, bgW - 10.0f));
 			constexpr float indH = 3.0f;
-			
+
 			QRectF indRect;
 			if (m_indicatorStyle == IndicatorStyle::Bottom) {
 				constexpr float indOffsetUp = 6.0f;
@@ -214,12 +215,12 @@ void UiTabView::append(Render::FrameData& fd) const
 					indH
 				);
 			}
-			
+
 			fd.roundedRects.push_back(Render::RoundedRectCmd{
 				.rect = indRect,
 				.radiusPx = indH * 0.5f,
 				.color = m_pal.indicator
-			});
+				});
 		}
 	}
 
@@ -227,21 +228,21 @@ void UiTabView::append(Render::FrameData& fd) const
 	const int n = tabCount();
 	for (int i = 0; i < n; ++i) {
 		if (i == m_viewSelected) continue;
-		
+
 		const QRectF r = tabRectF(i);
 		if (i == m_pressed) {
 			fd.roundedRects.push_back(Render::RoundedRectCmd{
 				.rect = r.adjusted(6, 4, -6, -4),
 				.radiusPx = 6.0f,
 				.color = m_pal.tabHover.darker(115)
-			});
+				});
 		}
 		else if (i == m_hover) {
 			fd.roundedRects.push_back(Render::RoundedRectCmd{
 				.rect = r.adjusted(6, 4, -6, -4),
 				.radiusPx = 6.0f,
 				.color = m_pal.tabHover
-			});
+				});
 		}
 	}
 
@@ -249,14 +250,19 @@ void UiTabView::append(Render::FrameData& fd) const
 	const int fontPx = std::lround(14.0f * m_dpr);
 	QFont font;
 	font.setPixelSize(fontPx);
-	font.setWeight(QFont::Medium);
+	font.setStyleStrategy(QFont::PreferAntialias);
 
 	for (int i = 0; i < n; ++i) {
 		const QRectF r = tabRectF(i);
 		const QString label = tabLabel(i);
 		if (label.isEmpty()) continue;
-		
+
 		const QColor textColor = (i == m_viewSelected ? m_pal.labelSelected : m_pal.label);
+
+		// 调试输出
+		qDebug() << "Tab" << i << "color:" << textColor.name()
+			<< "selected:" << (i == m_viewSelected);
+
 		const QString key = textCacheKey(QString("tab|%1").arg(label), fontPx, textColor);
 		const int tex = m_loader->ensureTextPx(key, font, label, textColor, m_gl);
 		const QSize ts = m_loader->textureSizePx(tex);
@@ -264,26 +270,27 @@ void UiTabView::append(Render::FrameData& fd) const
 		const float wLogical = static_cast<float>(ts.width()) / m_dpr;
 		const float hLogical = static_cast<float>(ts.height()) / m_dpr;
 
-		const QRectF textDst(
-			r.center().x() - wLogical * 0.5f,
-			r.center().y() - hLogical * 0.5f,
-			wLogical,
-			hLogical
-		);
-		
+		// 对齐到整数像素边界
+		const float centerX = std::round(r.center().x());
+		const float centerY = std::round(r.center().y());
+		const float textX = std::round(centerX - wLogical * 0.5f);
+		const float textY = std::round(centerY - hLogical * 0.5f);
+
+		const QRectF textDst(textX, textY, wLogical, hLogical);
+
 		fd.images.push_back(Render::ImageCmd{
 			.dstRect = textDst,
 			.textureId = tex,
 			.srcRectPx = QRectF(0, 0, ts.width(), ts.height()),
 			.tint = QColor(255,255,255,255)
-		});
+			});
 	}
 }
 
 bool UiTabView::onMousePress(const QPoint& pos)
 {
 	if (!m_viewport.contains(pos)) return false;
-	
+
 	for (int i = 0; i < tabCount(); ++i) {
 		if (tabRectF(i).toRect().contains(pos)) {
 			m_pressed = i;
@@ -317,7 +324,7 @@ bool UiTabView::onMouseRelease(const QPoint& pos)
 	if (!m_viewport.contains(pos)) {
 		return (wasPressed >= 0);
 	}
-	
+
 	int hit = -1;
 	for (int i = 0; i < tabCount(); ++i) {
 		if (tabRectF(i).toRect().contains(pos)) {
@@ -325,7 +332,7 @@ bool UiTabView::onMouseRelease(const QPoint& pos)
 			break;
 		}
 	}
-	
+
 	if (hit >= 0 && hit == wasPressed) {
 		if (m_vm) {
 			m_vm->setSelectedIndex(hit);
@@ -341,7 +348,7 @@ bool UiTabView::onMouseRelease(const QPoint& pos)
 bool UiTabView::tick()
 {
 	if (!m_clock.isValid()) m_clock.start();
-	
+
 	// VM 模式：检查并同步变化
 	if (m_vm) {
 		const int vmSel = m_vm->selectedIndex();
@@ -357,15 +364,15 @@ bool UiTabView::tick()
 			m_viewSelected = vmSel;
 		}
 	}
-	
+
 	// 处理动画
 	if (m_animHighlight.active) {
 		const qint64 now = m_clock.elapsed();
 		const float t = easeInOut(
-			static_cast<float>(now - m_animHighlight.startMs) / 
+			static_cast<float>(now - m_animHighlight.startMs) /
 			static_cast<float>(std::max(1, m_animHighlight.durationMs))
 		);
-		m_highlightCenterX = m_animHighlight.start + 
+		m_highlightCenterX = m_animHighlight.start +
 			(m_animHighlight.end - m_animHighlight.start) * std::clamp(t, 0.0f, 1.0f);
 		if (t >= 1.0f) m_animHighlight.active = false;
 		return true;
@@ -385,7 +392,7 @@ void UiTabView::startHighlightAnim(const float toCenterX)
 
 QString UiTabView::textCacheKey(const QString& baseKey, int px, const QColor& color)
 {
-	const QString colorKey = color.name(QColor::HexArgb);
+	const QString colorKey = color.name(QColor::HexArgb);  // 包含 alpha 通道
 	return QString("tabview:%1@%2px@%3").arg(baseKey).arg(px).arg(colorKey);
 }
 

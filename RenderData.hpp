@@ -37,7 +37,7 @@ namespace Render {
 			roundedRects.clear();
 			images.clear();
 		}
-		[[nodiscard]] bool empty() const {
+		bool empty() const {
 			return roundedRects.empty() && images.empty();
 		}
 	};

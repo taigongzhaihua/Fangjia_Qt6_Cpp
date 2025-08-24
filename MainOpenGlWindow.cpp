@@ -138,8 +138,7 @@ void MainOpenGlWindow::initializeGL()
 	// 组件加入顺序决定绘制层级：先 Page（底层），后 Nav，再 TopBar（最上层）
 	m_uiRoot.add(&m_page);
 
-	// 初始化数据页内容组件（UiPage 会在需要时插入/清空）
-// 初始化数据页 TabViewModel
+	// 初始化数据页 TabViewModel
 	m_dataTabsVm.setItems(QVector<TabViewModel::TabItem>{
 		{.id = "formula", .label = "方剂", .tooltip = "中医方剂数据库"},
 		{ .id = "herb",       .label = "中药", .tooltip = "中药材信息" },
@@ -241,9 +240,11 @@ void MainOpenGlWindow::initializeGL()
 	setTheme(schemeToTheme(m_themeMgr.effectiveColorScheme()));
 	m_topBar.setFollowSystem(m_themeMgr.mode() == ThemeManager::ThemeMode::FollowSystem, /*animate=*/false);
 
+	// 在设置主题后应用所有调色板
 	applyThemeColors();
 	applyNavPalette();
 	applyPagePalette();
+	applyTabViewPalette();
 
 	// 初始页面标题与布局
 	updatePageFromSelection(m_navVm.selectedIndex());
@@ -349,6 +350,7 @@ void MainOpenGlWindow::setTheme(const Theme t)
 	applyTopBarPalette();
 	applyNavPalette();
 	applyPagePalette();
+	applyTabViewPalette();  // 添加这一行
 
 	m_nav.setDarkTheme(m_theme == Theme::Dark);
 	m_topBar.setDarkTheme(m_theme == Theme::Dark);
@@ -473,6 +475,30 @@ void MainOpenGlWindow::applyPagePalette()
 			.bodyColor = QColor(70, 76, 84, 220)
 			});
 
+	}
+}
+
+void MainOpenGlWindow::applyTabViewPalette()
+{
+	if (m_theme == Theme::Dark) {
+		m_dataTabView.setPalette(UiTabView::Palette{
+			.barBg = QColor(255,255,255,10),
+			.tabHover = QColor(255,255,255,20),
+			.tabSelectedBg = QColor(100,100,100,128),
+			.indicator = QColor(0,122,255,220),
+			.label = QColor(230,240,250,255),
+			.labelSelected = QColor(255,255,255,255)
+			});
+	}
+	else {
+		m_dataTabView.setPalette(UiTabView::Palette{
+			.barBg = QColor(0,0,0,6),
+			.tabHover = QColor(0,0,0,10),
+			.tabSelectedBg = QColor(0,0,0,14),
+			.indicator = QColor(0,102,204,220),
+			.label = QColor(70,76,84,255),
+			.labelSelected = QColor(40,46,54,255)
+			});
 	}
 }
 

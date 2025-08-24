@@ -305,7 +305,7 @@ namespace Ui {
 
 			// 左侧指示条：贴合在高亮胶囊底部内部，随同移动
 			constexpr float indW = 3.0f;
-			const float indH = std::clamp(static_cast<float>(bgRect.height()) * 0.5f, 24.0f, static_cast<float>(bgRect.height()) - 10.0f);
+			const float indH = std::clamp(static_cast<float>(bgRect.height()) * 0.5f, 16.0f, static_cast<float>(bgRect.height()) - 10.0f);
 			constexpr float indOffsetLeft = 3.0f; // 离左边一点距离
 			const QRectF indRect(
 				bgRect.left() + indOffsetLeft,
@@ -326,7 +326,7 @@ namespace Ui {
 		const int iconPx = std::lround(static_cast<float>(m_iconLogical) * m_dpr);
 		const bool isExpanded = expanded();
 
-		const float iconLeftExpanded = static_cast<float>(m_rect.left()) + 12.0f;
+		const float iconLeftExpanded = static_cast<float>(m_rect.left()) + 13.0f;
 
 		if (m_vm) {
 			const auto& vitems = m_vm->items();
@@ -335,7 +335,6 @@ namespace Ui {
 
 				// 背景态（仅 hover/pressed；选中背景由“整体高亮单元”承担）
 				if (i == m_selected) {
-					// 视图层高亮索引与 VM 选中项不一致时，使用“整体高亮单元”代替
 				}
 				else if (i == m_pressed) {
 					fd.roundedRects.push_back(Render::RoundedRectCmd{ .rect = r.adjusted(5, 5, -5, -5), .radiusPx = 6.0f,
@@ -360,7 +359,7 @@ namespace Ui {
 				}
 				else {
 					// 居中
-					iconDst = QRectF(r.center().x() - static_cast<float>(m_iconLogical) * 0.5f, r.center().y() - static_cast<float>(m_iconLogical) * 0.5f, m_iconLogical, m_iconLogical);
+					iconDst = QRectF(r.left() + 13, r.center().y() - static_cast<float>(m_iconLogical) * 0.5f, m_iconLogical, m_iconLogical);
 				}
 
 				fd.images.push_back(Render::ImageCmd{
