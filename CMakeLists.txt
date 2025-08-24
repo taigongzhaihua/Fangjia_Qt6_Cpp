@@ -38,6 +38,7 @@ include_directories(
     ${SRC_DIR}/framework/widgets
     ${SRC_DIR}/models
     ${SRC_DIR}/views
+    ${SRC_DIR}/views/pages
     ${SRC_DIR}/views/formula
     ${SRC_DIR}/app
 )
@@ -145,6 +146,16 @@ target_link_libraries(models PUBLIC Qt6::Core Qt6::Gui)
 file(GLOB VIEW_SOURCES
     "${SRC_DIR}/views/formula/*.cpp"
     "${SRC_DIR}/views/formula/*.h"
+)
+file(GLOB PAGE_SOURCES
+    "${SRC_DIR}/views/pages/*.cpp"
+    "${SRC_DIR}/views/pages/*.h"
+)
+
+# 将页面源文件添加到 business_views
+set(VIEW_SOURCES
+    ${VIEW_SOURCES}
+    ${PAGE_SOURCES}
 )
 
 add_library(business_views STATIC ${VIEW_SOURCES})

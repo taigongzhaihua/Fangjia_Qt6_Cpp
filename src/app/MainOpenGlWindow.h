@@ -1,64 +1,49 @@
 #pragma once
-#include <cstdint>
 #include <memory>
+#include <qcolor.h>
+#include <qelapsedtimer.h>
+#include <qopenglfunctions.h>
+#include <qopenglwindow.h>
+#include <qtimer.h>
 
 #include "IconLoader.h"
 #include "NavViewModel.h"
-#include "RenderData.hpp"
+#include "PageManager.h"
 #include "Renderer.h"
-#include "TabViewModel.h"
 #include "ThemeManager.h"
-#include "UiFormulaView.h"
 #include "UiNav.h"
-#include "UiPage.h"
 #include "UiRoot.h"
-#include "UiTabView.h"
 #include "UiTopBar.h"
-
-#include <qcolor.h>
-#include <qelapsedtimer.h>
-#include <qevent.h>
-#include <qopenglfunctions.h>
-#include <qopenglwindow.h>
-#include <qstring.h>
-#include <qtimer.h>
 
 #ifdef Q_OS_WIN
 class WinWindowChrome;
 #endif
 #include <qsystemdetection.h>
+#include <qevent.h>
 #include <qrect.h>
 
 // 前向声明
 class AppConfig;
 
-// 主窗口：左侧导航 + 右上角两个图标按钮 + 主内容页面
+// 简化后的主窗口
 class MainOpenGlWindow final : public QOpenGLWindow, protected QOpenGLFunctions
 {
 public:
-	enum class Theme : uint8_t { Light, Dark };
+	enum class Theme { Light, Dark };
 
-public:
 	explicit MainOpenGlWindow(UpdateBehavior updateBehavior = NoPartialUpdate);
 	~MainOpenGlWindow() override;
 
+	// 主题管理
 	void setTheme(Theme t);
 	Theme theme() const noexcept { return m_theme; }
 
-	void setFollowSystem(bool on);
-	bool followSystem() const noexcept {
-		return m_themeMgr && m_themeMgr->mode() == ThemeManager::ThemeMode::FollowSystem;
-	}
+	void setFollowSystem(bool on) const;
+	bool followSystem() const noexcept;
 
-	void submitFrame(const Render::FrameData& fd, bool scheduleUpdate = true);
-
-	// 命中测试辅助（Windows 下自定义 Chrome 使用）
+	// Windows Chrome 命中测试辅助
 	QRect navBounds() const { return m_nav.bounds(); }
-	QRect topBarThemeRect() const { return m_topBar.themeButtonRect(); }
-	QRect topBarFollowRect() const { return m_topBar.followButtonRect(); }
-	QRect topBarSysMinRect() const { return m_topBar.sysMinRect(); }
-	QRect topBarSysMaxRect() const { return m_topBar.sysMaxRect(); }
-	QRect topBarSysCloseRect() const { return m_topBar.sysCloseRect(); }
+	QRect topBarBounds() const { return m_topBar.bounds(); }
 
 protected:
 	void initializeGL() override;
@@ -71,73 +56,53 @@ protected:
 	void mouseDoubleClickEvent(QMouseEvent* e) override;
 
 private:
+	// 初始化
+	void initializeServices();
+	void initializeNavigation();
+	void initializePages();
+	void initializeTopBar();
+	void initializeTheme();
+	void setupThemeListeners();
+
+	// 布局和渲染
 	void updateLayout();
-	void updateTitle();
-	void toggleTheme();
-	void toggleFollowSystem();
-	void toggleNavExpanded();
-	void applyThemeColors();
+	void applyTheme();
 
-	void appendUiOverlay(Render::FrameData& fd) const;
-	void onAnimTick();
-
-	void applyTopBarPalette();
-	void applyNavPalette();
-	void applyPagePalette();
-	void applyTabViewPalette();
-
-	// 根据导航选中项更新页面标题与内容
-	void updatePageFromSelection(int idx);
-
-	bool isDataPageIndex(int idx) const;
+	// 事件处理
+	void onNavSelectionChanged(int index);
+	void onThemeToggle() const;
+	void onFollowSystemToggle() const;
+	void onAnimationTick();
 
 private:
+	// 主题
 	Theme m_theme{ Theme::Dark };
-	QColor m_clearColor{ 25, 38, 51 };
+	QColor m_clearColor;
 
-	// 从 DI 获取的服务
+	// 服务
 	std::shared_ptr<ThemeManager> m_themeMgr;
 	std::shared_ptr<AppConfig> m_config;
 
-	// 本地实例（如果 DI 没有提供）
-	std::shared_ptr<ThemeManager> m_localThemeMgr;
+	// 数据模型
+	NavViewModel m_navVm;
 
+	// UI组件
+	Ui::NavRail m_nav;
+	UiTopBar m_topBar;
+	UiRoot m_uiRoot;
+
+	// 页面管理
+	PageManager m_pageManager;
+
+	// 渲染
+	Renderer m_renderer;
+	IconLoader m_iconLoader;
 	int m_fbWpx{ 0 };
 	int m_fbHpx{ 0 };
 
-	// 启动阶段标记：用于抑制首次动画
-	bool m_booting{ true };
-
-	// 导航 VM
-	NavViewModel m_navVm;
-
-	// 页面（主内容）
-	UiPage m_page;
-	TabViewModel m_dataTabsVm;  // 新增：数据页 TabViewModel
-	UiTabView m_dataTabView;    // 新增：通用 TabView
-	std::unique_ptr<UiFormulaView> m_formulaView;
-
-	// 导航视图
-	Ui::NavRail m_nav;
-	int m_navCollapsedW{ 48 };
-	int m_navExpandedW{ 220 };
-
-	UiTopBar m_topBar;
-	UiRoot   m_uiRoot;
-
-	Renderer  m_renderer;
-	IconLoader m_iconLoader;
-
-	Render::DataBus   m_renderBus;
-	Render::FrameData m_baseFrameData;
-
+	// 动画
+	QTimer m_animTimer;
 	QElapsedTimer m_animClock;
-	QTimer        m_animTimer;
-
-	QString m_svgThemeWhenDark{ ":/icons/sun.svg" };
-	QString m_svgThemeWhenLight{ ":/icons/moon.svg" };
-	QString m_svgFollowOn{ ":/icons/follow_on.svg" };
-	QString m_svgFollowOff{ ":/icons/follow_off.svg" };
 
 #ifdef Q_OS_WIN
 	WinWindowChrome* m_winChrome{ nullptr };

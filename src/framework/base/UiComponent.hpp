@@ -1,12 +1,13 @@
 #pragma once
+#include "IThemeAware.hpp"
 #include "RenderData.hpp"
 class IconLoader;
 class QOpenGLFunctions;
 
 #include <qrect.h>
 
-// 通用 UI 组件接口：负责布局、资源上下文、输入、绘制命令与动画推进
-class IUiComponent {
+// 通用 UI 组件接口：继承主题感知接口
+class IUiComponent : public IThemeAware {
 public:
 	virtual ~IUiComponent() = default;
 
@@ -29,4 +30,9 @@ public:
 
 	// 组件边界（逻辑像素）
 	virtual QRect bounds() const = 0;
+
+	// 默认实现：调用 applyTheme
+	void onThemeChanged(bool isDark) override {
+		applyTheme(isDark);
+	}
 };

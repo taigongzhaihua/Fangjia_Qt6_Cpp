@@ -3,8 +3,11 @@
 #include "UiComponent.hpp"
 #include "UiRoot.h"
 
+#include <algorithm>
 #include <qopenglfunctions.h>
+#include <qpoint.h>
 #include <qrect.h>
+#include <qsize.h>
 #include <ranges>
 #include <vector>
 
@@ -100,4 +103,13 @@ QRect UiRoot::boundsUnion() const
 		u = u.united(m_children[i]->bounds());
 	}
 	return u;
+}
+
+void UiRoot::propagateThemeChange(bool isDark) const
+{
+	for (auto* c : m_children) {
+		if (c) {
+			c->onThemeChanged(isDark);
+		}
+	}
 }

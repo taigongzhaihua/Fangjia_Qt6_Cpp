@@ -7,7 +7,7 @@
 #include <qrect.h>
 #include <vector>
 
-// 组件根：统一驱动布局/资源上下文、事件分发、绘制收集、动画推进
+// 组件根：统一驱动布局/资源上下文、事件分发、绘制收集、动画推进、主题传播
 class UiRoot
 {
 public:
@@ -28,6 +28,9 @@ public:
 
 	// 简单聚合边界（union）
 	[[nodiscard]] QRect boundsUnion() const;
+
+	// 新增：传播主题变化到所有子组件
+	void propagateThemeChange(bool isDark) const;
 
 private:
 	std::vector<IUiComponent*> m_children; // 不拥有生命周期

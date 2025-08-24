@@ -81,12 +81,13 @@ void UiPage::append(Render::FrameData& fd) const
 
 	// 放在卡片左上角，四周 24px 内边距
 	constexpr float pad = static_cast<float>(kCardPad);
-	const QRectF dst(
-		card.left() + pad,
-		card.top() + pad,
-		wLogical,
-		hLogical
-	);
+
+	const float centerX = std::round(card.left() + pad);
+	const float centerY = std::round(card.top() + pad);
+	const float textX = std::round(wLogical);
+	const float textY = std::round(hLogical);
+
+	const QRectF dst(centerX, centerY, textX, textY);
 
 	fd.images.push_back(Render::ImageCmd{
 		.dstRect = dst,
@@ -99,6 +100,39 @@ void UiPage::append(Render::FrameData& fd) const
 	if (m_content) {
 		m_content->append(fd);
 	}
+}
+void UiPage::onThemeChanged(bool isDark)
+{
+	m_isDark = isDark;
+
+	// 应用基础主题调色板
+	if (isDark) {
+		m_pal = Palette{
+			.cardBg = QColor(28, 38, 50, 200),
+			.headingColor = QColor(235, 240, 245, 255),
+			.bodyColor = QColor(210, 220, 230, 220)
+		};
+	}
+	else {
+		m_pal = Palette{
+			.cardBg = QColor(255, 255, 255, 245),
+			.headingColor = QColor(40, 46, 54, 255),
+			.bodyColor = QColor(70, 76, 84, 220)
+		};
+	}
+
+	// 让子类应用特定的主题设置
+	applyPageTheme(isDark);
+
+	// 传播主题变化到内容组件
+	if (m_content) {
+		m_content->onThemeChanged(isDark);
+	}
+}
+
+void UiPage::applyPageTheme(bool isDark)
+{
+	// 基类默认实现为空，子类可以重写
 }
 
 bool UiPage::onMousePress(const QPoint& pos)

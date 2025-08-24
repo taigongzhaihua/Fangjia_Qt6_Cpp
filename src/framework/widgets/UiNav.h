@@ -89,6 +89,11 @@ namespace Ui {
 		bool onMouseRelease(const QPoint& pos) override; // 激活在内部处理动画/或驱动 VM
 		bool tick() override;
 
+		void onThemeChanged(bool isDark) override {
+			setDarkTheme(isDark);
+			setPalette(isDark ? getDarkPalette() : getLightPalette());
+		}
+
 		QRect bounds() const override { return m_rect; }
 
 		// 动画是否活跃（供外部检测）
@@ -140,6 +145,30 @@ namespace Ui {
 		void syncFromVmInstant();
 		// VM 存在时的项目数
 		int vmCount() const noexcept;
+
+		static Ui::NavPalette getDarkPalette() {
+			return Ui::NavPalette{
+				.railBg = QColor(21, 28, 36, 0),
+				.itemHover = QColor(255,255,255,18),
+				.itemPressed = QColor(255,255,255,30),
+				.itemSelected = QColor(255,255,255,36),
+				.iconColor = QColor(242,245,255,198),
+				.labelColor = QColor(255,255,255,255),
+				.indicator = QColor(0,122,255,200)
+			};
+		}
+
+		static Ui::NavPalette getLightPalette() {
+			return Ui::NavPalette{
+				.railBg = QColor(246,248,250,0),
+				.itemHover = QColor(0,0,0,14),
+				.itemPressed = QColor(0,0,0,26),
+				.itemSelected = QColor(0,0,0,32),
+				.iconColor = QColor(70,76,84,255),
+				.labelColor = QColor(70,76,84,255),
+				.indicator = QColor(0,102,204,220)
+			};
+		}
 
 	private:
 		QRect m_rect;                      // 导航栏矩形（逻辑像素，宽度由 currentWidth() 决定）

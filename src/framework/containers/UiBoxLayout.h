@@ -12,7 +12,7 @@
 #include <qrect.h>
 #include <vector>
 
-// 通用盒式布局容器：支持水平/垂直排列子控件
+// 通用盒式布局容器：支持水平/垂直排列子控件和主题传播
 class UiBoxLayout : public IUiComponent, public IUiContent
 {
 public:
@@ -84,7 +84,12 @@ public:
 	UiBoxLayout& withMargins(const QMargins& margins);
 	UiBoxLayout& withBackground(const QColor& color, float radius);
 	QRect bounds() const override { return m_viewport; }
+	// IUiComponent - 添加主题支持
+	void onThemeChanged(bool isDark) override;
 
+	// 设置是否为深色主题
+	void setDarkTheme(bool dark) { m_isDark = dark; }
+	bool isDarkTheme() const { return m_isDark; }
 	// 子控件可见性
 	void setChildVisible(size_t index, bool visible);
 	bool isChildVisible(size_t index) const;
@@ -102,6 +107,8 @@ private:
 	QRect m_viewport;
 	QMargins m_margins{ 0, 0, 0, 0 };
 	int m_spacing{ 0 };
+
+	bool m_isDark{ false };  // 添加主题状态
 
 	QColor m_bgColor{ Qt::transparent };
 	float m_cornerRadius{ 0.0f };

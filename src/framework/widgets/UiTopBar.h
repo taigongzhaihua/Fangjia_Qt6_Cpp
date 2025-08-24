@@ -58,6 +58,13 @@ public:
 	bool onMouseMove(const QPoint& pos) override;
 	bool onMouseRelease(const QPoint& pos) override;
 	bool tick() override;
+
+	// IUiComponent - 主题支持
+	void onThemeChanged(bool isDark) override {
+		setDarkTheme(isDark);
+		setPalette(isDark ? getDarkPalette() : getLightPalette());
+	}
+
 	QRect bounds() const override { return m_bounds; }
 
 	// 供上层查询一次性动作（释放后清零）
@@ -103,6 +110,24 @@ private:
 
 	QString iconCacheKey(const QString& baseKey, int logicalPx, float dpr) const;
 	QByteArray svgDataCached(const QString& path) const;
+
+	static Palette getDarkPalette() {
+		return Palette{
+			.bg = QColor(52,63,76,120),
+			.bgHover = QColor(66,78,92,200),
+			.bgPressed = QColor(58,70,84,220),
+			.icon = QColor(255,255,255,255)
+		};
+	}
+
+	static Palette getLightPalette() {
+		return Palette{
+			.bg = QColor(240,243,247,200),
+			.bgHover = QColor(232,237,242,220),
+			.bgPressed = QColor(225,230,236,230),
+			.icon = QColor(60,64,72,255)
+		};
+	}
 
 private:
 	// 状态

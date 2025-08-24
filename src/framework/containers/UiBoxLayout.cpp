@@ -1,7 +1,9 @@
 #include "UiBoxLayout.h"
 #include <algorithm>
 #include <IconLoader.h>
+#include <qcolor.h>
 #include <qlogging.h>
+#include <qmargins.h>
 #include <qopenglfunctions.h>
 #include <qpoint.h>
 #include <qrect.h>
@@ -374,6 +376,20 @@ void UiBoxLayout::setChildAlignment(size_t index, Alignment align)
 		m_children[index].alignment = align;
 		calculateLayout();
 	}
+}
+void UiBoxLayout::onThemeChanged(bool isDark)
+{
+	m_isDark = isDark;
+
+	// 传播主题变化到所有子控件
+	for (const auto& child : m_children) {
+		if (child.component) {
+			child.component->onThemeChanged(isDark);
+		}
+	}
+
+	// 可以在这里根据主题调整自己的颜色
+	// 例如：updatePalette(isDark);
 }
 
 UiBoxLayout::Alignment UiBoxLayout::childAlignment(size_t index) const
