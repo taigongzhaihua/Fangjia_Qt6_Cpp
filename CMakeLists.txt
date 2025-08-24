@@ -22,33 +22,16 @@ find_package(Qt6 REQUIRED COMPONENTS Core Gui OpenGL Widgets Svg)
 set(PROJECT_ROOT ${CMAKE_CURRENT_SOURCE_DIR})
 set(SRC_DIR ${PROJECT_ROOT}/src)
 
-# 检查文件是否存在的函数
-function(check_source_files)
-    set(REQUIRED_FILES
-        "${SRC_DIR}/core/rendering/RenderData.hpp"
-        "${SRC_DIR}/core/rendering/Renderer.h"
-        "${SRC_DIR}/framework/base/UiComponent.hpp"
-        "${SRC_DIR}/app/main.cpp"
-    )
-    
-    foreach(FILE ${REQUIRED_FILES})
-        if(NOT EXISTS ${FILE})
-            message(WARNING "Missing file: ${FILE}")
-        endif()
-    endforeach()
-endfunction()
-
-# 检查文件
-check_source_files()
-
 # ========================================
-# 全局包含目录（重要！）
+# 全局包含目录
 # ========================================
 include_directories(
     ${SRC_DIR}
     ${SRC_DIR}/core
     ${SRC_DIR}/core/rendering
     ${SRC_DIR}/core/platform/windows
+    ${SRC_DIR}/core/config
+    ${SRC_DIR}/core/di
     ${SRC_DIR}/framework
     ${SRC_DIR}/framework/base
     ${SRC_DIR}/framework/containers
@@ -68,24 +51,45 @@ file(GLOB CORE_RENDERING_SOURCES
     "${SRC_DIR}/core/rendering/*.hpp"
 )
 
-if(CORE_RENDERING_SOURCES)
-    add_library(core_rendering STATIC ${CORE_RENDERING_SOURCES})
-else()
-    # 如果文件还在旧位置，使用旧路径
-    add_library(core_rendering STATIC
-        RenderData.hpp
-        Renderer.h Renderer.cpp
-        IconLoader.h IconLoader.cpp
-    )
-    target_include_directories(core_rendering PUBLIC ${PROJECT_ROOT})
-endif()
-
+add_library(core_rendering STATIC ${CORE_RENDERING_SOURCES})
 target_link_libraries(core_rendering PUBLIC 
     Qt6::Core 
     Qt6::Gui 
     Qt6::OpenGL 
     Qt6::Svg
 )
+
+# ========================================
+# 配置管理库（如果存在）
+# ========================================
+if(EXISTS "${SRC_DIR}/core/config/AppConfig.h")
+    file(GLOB CONFIG_SOURCES
+        "${SRC_DIR}/core/config/*.cpp"
+        "${SRC_DIR}/core/config/*.h"
+    )
+    
+    add_library(core_config STATIC ${CONFIG_SOURCES})
+    target_link_libraries(core_config PUBLIC 
+        Qt6::Core
+        Qt6::Widgets
+    )
+endif()
+
+# ========================================
+# 依赖注入库（如果存在）
+# ========================================
+if(EXISTS "${SRC_DIR}/core/di")
+    file(GLOB DI_SOURCES
+        "${SRC_DIR}/core/di/*.cpp"
+        "${SRC_DIR}/core/di/*.h"
+        "${SRC_DIR}/core/di/*.hpp"
+    )
+    
+    if(DI_SOURCES)
+        add_library(core_di STATIC ${DI_SOURCES})
+        target_link_libraries(core_di PUBLIC Qt6::Core)
+    endif()
+endif()
 
 # ========================================
 # 平台特定库
@@ -98,18 +102,6 @@ if(WIN32)
     
     if(PLATFORM_SOURCES)
         add_library(platform_windows STATIC ${PLATFORM_SOURCES})
-    else()
-        # 使用旧路径
-        if(EXISTS "${PROJECT_ROOT}/WinWindowChrome.cpp")
-            add_library(platform_windows STATIC
-                WinWindowChrome.h
-                WinWindowChrome.cpp
-            )
-            target_include_directories(platform_windows PUBLIC ${PROJECT_ROOT})
-        endif()
-    endif()
-    
-    if(TARGET platform_windows)
         target_link_libraries(platform_windows PUBLIC Qt6::Core Qt6::Gui Dwmapi)
         target_compile_definitions(platform_windows PUBLIC WIN32_LEAN_AND_MEAN NOMINMAX)
     endif()
@@ -126,37 +118,7 @@ file(GLOB UI_FRAMEWORK_SOURCES
     "${SRC_DIR}/framework/widgets/*.h"
 )
 
-if(UI_FRAMEWORK_SOURCES)
-    add_library(ui_framework STATIC ${UI_FRAMEWORK_SOURCES})
-else()
-    # 使用旧路径
-    add_library(ui_framework STATIC
-        components/base/UiComponent.hpp
-        components/base/UiContent.hpp
-        components/base/UiButton.hpp
-        components/containers/UiRoot.h
-        components/containers/UiRoot.cpp
-        components/containers/UiBoxLayout.h
-        components/containers/UiBoxLayout.cpp
-        components/containers/UiPage.h
-        components/containers/UiPage.cpp
-        components/widgets/UiTopBar.h
-        components/widgets/UiTopBar.cpp
-        components/widgets/UiNav.h
-        components/widgets/UiNav.cpp
-        components/widgets/UiTabView.h
-        components/widgets/UiTabView.cpp
-        components/widgets/UiTreeList.h
-        components/widgets/UiTreeList.cpp
-    )
-    target_include_directories(ui_framework PUBLIC 
-        ${PROJECT_ROOT}
-        ${PROJECT_ROOT}/components/base
-        ${PROJECT_ROOT}/components/containers
-        ${PROJECT_ROOT}/components/widgets
-    )
-endif()
-
+add_library(ui_framework STATIC ${UI_FRAMEWORK_SOURCES})
 target_link_libraries(ui_framework PUBLIC 
     core_rendering 
     Qt6::Core 
@@ -172,19 +134,7 @@ file(GLOB MODEL_SOURCES
     "${SRC_DIR}/models/*.h"
 )
 
-if(MODEL_SOURCES)
-    add_library(models STATIC ${MODEL_SOURCES})
-else()
-    # 使用旧路径
-    add_library(models STATIC
-        ThemeManager.h ThemeManager.cpp
-        NavViewModel.h NavViewModel.cpp
-        TabViewModel.h TabViewModel.cpp
-        FormulaViewModel.h FormulaViewModel.cpp
-    )
-    target_include_directories(models PUBLIC ${PROJECT_ROOT})
-endif()
-
+add_library(models STATIC ${MODEL_SOURCES})
 target_link_libraries(models PUBLIC Qt6::Core Qt6::Gui)
 
 # ========================================
@@ -195,22 +145,7 @@ file(GLOB VIEW_SOURCES
     "${SRC_DIR}/views/formula/*.h"
 )
 
-if(VIEW_SOURCES)
-    add_library(business_views STATIC ${VIEW_SOURCES})
-else()
-    # 使用旧路径
-    add_library(business_views STATIC
-        views/UiFormulaView.h
-        views/UiFormulaView.cpp
-        views/UiFormulaDetail.h
-        views/UiFormulaDetail.cpp
-    )
-    target_include_directories(business_views PUBLIC 
-        ${PROJECT_ROOT}
-        ${PROJECT_ROOT}/views
-    )
-endif()
-
+add_library(business_views STATIC ${VIEW_SOURCES})
 target_link_libraries(business_views PUBLIC 
     ui_framework 
     models 
@@ -220,31 +155,21 @@ target_link_libraries(business_views PUBLIC
 # ========================================
 # 主应用程序
 # ========================================
-# 检查新旧路径
-if(EXISTS "${SRC_DIR}/app/main.cpp")
-    set(APP_SOURCES
-        ${SRC_DIR}/app/main.cpp
-        ${SRC_DIR}/app/MainOpenGlWindow.h
-        ${SRC_DIR}/app/MainOpenGlWindow.cpp
-    )
-else()
-    set(APP_SOURCES
-        main.cpp
-        MainOpenGlWindow.h
-        MainOpenGlWindow.cpp
-    )
-endif()
+set(APP_SOURCES
+    ${SRC_DIR}/app/main.cpp
+    ${SRC_DIR}/app/MainOpenGlWindow.h
+    ${SRC_DIR}/app/MainOpenGlWindow.cpp
+)
 
 # 资源文件
 if(EXISTS "${PROJECT_ROOT}/resources/resources.qrc")
     list(APPEND APP_SOURCES ${PROJECT_ROOT}/resources/resources.qrc)
-else()
-    list(APPEND APP_SOURCES resources.qrc)
 endif()
 
 add_executable(FangJia WIN32 ${APP_SOURCES})
 
-target_link_libraries(FangJia PRIVATE
+# 链接库
+set(APP_LIBS
     business_views
     ui_framework
     models
@@ -256,11 +181,20 @@ target_link_libraries(FangJia PRIVATE
     Qt6::Svg
 )
 
-if(WIN32 AND TARGET platform_windows)
-    target_link_libraries(FangJia PRIVATE platform_windows)
+# 条件链接
+if(TARGET core_config)
+    list(APPEND APP_LIBS core_config)
 endif()
 
-target_include_directories(FangJia PRIVATE ${PROJECT_ROOT})
+if(TARGET core_di)
+    list(APPEND APP_LIBS core_di)
+endif()
+
+if(WIN32 AND TARGET platform_windows)
+    list(APPEND APP_LIBS platform_windows)
+endif()
+
+target_link_libraries(FangJia PRIVATE ${APP_LIBS})
 
 # ========================================
 # 输出配置信息

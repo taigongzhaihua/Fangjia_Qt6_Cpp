@@ -76,6 +76,13 @@ public:
 	bool onMouseMove(const QPoint& pos) override;
 	bool onMouseRelease(const QPoint& pos) override;
 	bool tick() override;
+	void setChildWeight(size_t index, float weight);
+	float childWeight(size_t index) const;
+	void setChildAlignment(size_t index, Alignment align);
+	Alignment childAlignment(size_t index) const;
+	UiBoxLayout& withSpacing(int spacing);
+	UiBoxLayout& withMargins(const QMargins& margins);
+	UiBoxLayout& withBackground(const QColor& color, float radius);
 	QRect bounds() const override { return m_viewport; }
 
 	// 子控件可见性

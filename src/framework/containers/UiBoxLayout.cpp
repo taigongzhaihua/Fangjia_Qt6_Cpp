@@ -351,3 +351,55 @@ bool UiBoxLayout::tick()
 	}
 	return active;
 }
+
+void UiBoxLayout::setChildWeight(size_t index, float weight)
+{
+	if (index < m_children.size()) {
+		m_children[index].weight = std::max(0.0f, weight);
+		calculateLayout();
+	}
+}
+
+float UiBoxLayout::childWeight(size_t index) const
+{
+	if (index < m_children.size()) {
+		return m_children[index].weight;
+	}
+	return 0.0f;
+}
+
+void UiBoxLayout::setChildAlignment(size_t index, Alignment align)
+{
+	if (index < m_children.size()) {
+		m_children[index].alignment = align;
+		calculateLayout();
+	}
+}
+
+UiBoxLayout::Alignment UiBoxLayout::childAlignment(size_t index) const
+{
+	if (index < m_children.size()) {
+		return m_children[index].alignment;
+	}
+	return Alignment::Start;
+}
+
+// 添加便捷的构建器模式
+UiBoxLayout& UiBoxLayout::withSpacing(int spacing)
+{
+	setSpacing(spacing);
+	return *this;
+}
+
+UiBoxLayout& UiBoxLayout::withMargins(const QMargins& margins)
+{
+	setMargins(margins);
+	return *this;
+}
+
+UiBoxLayout& UiBoxLayout::withBackground(const QColor& color, float radius)
+{
+	setBackgroundColor(color);
+	setCornerRadius(radius);
+	return *this;
+}
