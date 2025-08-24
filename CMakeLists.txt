@@ -76,19 +76,21 @@ if(EXISTS "${SRC_DIR}/core/config/AppConfig.h")
 endif()
 
 # ========================================
-# 依赖注入库（如果存在）
+# 依赖注入库
 # ========================================
-if(EXISTS "${SRC_DIR}/core/di")
-    file(GLOB DI_SOURCES
-        "${SRC_DIR}/core/di/*.cpp"
-        "${SRC_DIR}/core/di/*.h"
-        "${SRC_DIR}/core/di/*.hpp"
+file(GLOB DI_SOURCES
+    "${SRC_DIR}/core/di/*.cpp"
+    "${SRC_DIR}/core/di/*.h"
+    "${SRC_DIR}/core/di/*.hpp"
+)
+
+if(DI_SOURCES)
+    add_library(core_di STATIC ${DI_SOURCES})
+    target_link_libraries(core_di PUBLIC 
+        Qt6::Core
+        models  # 需要链接 models 因为 ServiceRegistry 使用了 ViewModels
+        core_config  # 需要链接 config
     )
-    
-    if(DI_SOURCES)
-        add_library(core_di STATIC ${DI_SOURCES})
-        target_link_libraries(core_di PUBLIC Qt6::Core)
-    endif()
 endif()
 
 # ========================================

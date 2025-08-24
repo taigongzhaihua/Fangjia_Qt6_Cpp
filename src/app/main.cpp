@@ -1,10 +1,12 @@
+#include "AppConfig.h"
 #include "MainOpenGlWindow.h"
+#include "ServiceRegistry.h"
 #include <qapplication.h>
+#include <qbytearray.h>
 #include <qcoreapplication.h>
 #include <qstringliteral.h>
 #include <qsurfaceformat.h>
-
-// 新增：演示注入
+#include <ServiceLocator.h>
 
 int main(int argc, char* argv[])
 {
@@ -14,7 +16,7 @@ int main(int argc, char* argv[])
 	QCoreApplication::setOrganizationDomain(QStringLiteral("example.com"));
 	QCoreApplication::setApplicationName(QStringLiteral("Fangjia_Qt6_Cpp"));
 
-	// 设置默认的 OpenGL 上下文参数（可按需调整）
+	// 设置默认的 OpenGL 上下文参数
 	QSurfaceFormat fmt;
 	fmt.setDepthBufferSize(24);
 	fmt.setStencilBufferSize(16);
@@ -22,9 +24,36 @@ int main(int argc, char* argv[])
 	fmt.setProfile(QSurfaceFormat::CoreProfile);
 	QSurfaceFormat::setDefaultFormat(fmt);
 
+	// 注册所有服务（DI）
+	ServiceRegistry::registerAll();
+
+	// 创建主窗口
 	MainOpenGlWindow window;
-	window.resize(1200, 760);
+
+	// 从配置恢复窗口大小
+	if (auto config = DI.get<AppConfig>()) {
+		// QOpenGLWindow 没有 restoreGeometry，我们只恢复大小
+		// 可以保存 x, y, width, height 分别
+		QByteArray geo = config->windowGeometry();
+		if (!geo.isEmpty() && geo.size() == sizeof(int) * 4) {
+			const int* data = reinterpret_cast<const int*>(geo.data());
+			window.setPosition(data[0], data[1]);
+			window.resize(data[2], data[3]);
+		}
+		else {
+			window.resize(1200, 760);
+		}
+	}
+	else {
+		window.resize(1200, 760);
+	}
+
 	window.show();
 
-	return QApplication::exec();
+	int result = QApplication::exec();
+
+	// 清理服务
+	ServiceRegistry::cleanup();
+
+	return result;
 }

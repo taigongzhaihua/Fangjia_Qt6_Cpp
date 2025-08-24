@@ -1,5 +1,6 @@
 #pragma once
 #include <cstdint>
+#include <memory>
 
 #include "IconLoader.h"
 #include "NavViewModel.h"
@@ -7,12 +8,12 @@
 #include "Renderer.h"
 #include "TabViewModel.h"
 #include "ThemeManager.h"
+#include "UiFormulaView.h"
 #include "UiNav.h"
 #include "UiPage.h"
 #include "UiRoot.h"
 #include "UiTabView.h"
 #include "UiTopBar.h"
-#include "UiFormulaView.h"
 
 #include <qcolor.h>
 #include <qelapsedtimer.h>
@@ -27,6 +28,9 @@ class WinWindowChrome;
 #endif
 #include <qsystemdetection.h>
 #include <qrect.h>
+
+// 前向声明
+class AppConfig;
 
 // 主窗口：左侧导航 + 右上角两个图标按钮 + 主内容页面
 class MainOpenGlWindow final : public QOpenGLWindow, protected QOpenGLFunctions
@@ -43,7 +47,7 @@ public:
 
 	void setFollowSystem(bool on);
 	bool followSystem() const noexcept {
-		return m_themeMgr.mode() == ThemeManager::ThemeMode::FollowSystem;
+		return m_themeMgr && m_themeMgr->mode() == ThemeManager::ThemeMode::FollowSystem;
 	}
 
 	void submitFrame(const Render::FrameData& fd, bool scheduleUpdate = true);
@@ -91,7 +95,12 @@ private:
 	Theme m_theme{ Theme::Dark };
 	QColor m_clearColor{ 25, 38, 51 };
 
-	ThemeManager m_themeMgr;
+	// 从 DI 获取的服务
+	std::shared_ptr<ThemeManager> m_themeMgr;
+	std::shared_ptr<AppConfig> m_config;
+
+	// 本地实例（如果 DI 没有提供）
+	std::shared_ptr<ThemeManager> m_localThemeMgr;
 
 	int m_fbWpx{ 0 };
 	int m_fbHpx{ 0 };
@@ -118,7 +127,6 @@ private:
 
 	Renderer  m_renderer;
 	IconLoader m_iconLoader;
-
 
 	Render::DataBus   m_renderBus;
 	Render::FrameData m_baseFrameData;

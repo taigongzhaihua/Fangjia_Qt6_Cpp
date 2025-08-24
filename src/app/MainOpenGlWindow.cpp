@@ -1,7 +1,9 @@
 #include "MainOpenGlWindow.h"
 
+#include "AppConfig.h"
 #include "NavViewModel.h"
 #include "RenderData.hpp"
+#include "ServiceLocator.h"
 #include "ThemeManager.h"
 #include "UiNav.h"
 #include "UiPage.h"
@@ -24,12 +26,15 @@
 #include <qstring.h>
 #include <qstringliteral.h>
 #include <qtimer.h>
-#include <utility>
 #include <qlogging.h>
 #include "TabViewModel.h"
 #include "UiTabView.h"
 #include <memory>
 #include "UiFormulaView.h"
+#include <utility>
+#include <qbytearray.h>
+#include <qwindow.h>
+
 namespace {
 	struct PaletteBtn { QColor btnBg, btnBgHover, btnBgPressed, iconColor; };
 	PaletteBtn paletteBtnForTheme(const MainOpenGlWindow::Theme t) {
@@ -68,10 +73,33 @@ namespace {
 	inline MainOpenGlWindow::Theme schemeToTheme(const Qt::ColorScheme s) {
 		return s == Qt::ColorScheme::Dark ? MainOpenGlWindow::Theme::Dark : MainOpenGlWindow::Theme::Light;
 	}
+
+	// 辅助函数：保存窗口几何信息
+	QByteArray saveWindowGeometry(QWindow* window) {
+		QByteArray data;
+		data.resize(sizeof(int) * 4);
+		int* ptr = reinterpret_cast<int*>(data.data());
+		ptr[0] = window->x();
+		ptr[1] = window->y();
+		ptr[2] = window->width();
+		ptr[3] = window->height();
+		return data;
+	}
 }
+
 MainOpenGlWindow::MainOpenGlWindow(const UpdateBehavior updateBehavior)
 	: QOpenGLWindow(updateBehavior)
 {
+	// 从 DI 获取服务
+	m_config = DI.get<AppConfig>();
+	m_themeMgr = DI.get<ThemeManager>();
+
+	// 如果没有从 DI 获取到，创建本地实例（回退方案）
+	if (!m_themeMgr) {
+		m_localThemeMgr = std::make_shared<ThemeManager>();
+		m_themeMgr = m_localThemeMgr;
+	}
+
 	connect(&m_animTimer, &QTimer::timeout, this, &MainOpenGlWindow::onAnimTick);
 	m_animTimer.setTimerType(Qt::PreciseTimer);
 	m_animTimer.setInterval(16);
@@ -85,11 +113,29 @@ MainOpenGlWindow::MainOpenGlWindow(const UpdateBehavior updateBehavior)
 
 MainOpenGlWindow::~MainOpenGlWindow()
 {
+	// 保存窗口状态到配置
+	if (m_config) {
+		// 保存窗口几何信息
+		m_config->setWindowGeometry(saveWindowGeometry(this));
+
+		// 保存导航状态
+		m_config->setNavSelectedIndex(m_navVm.selectedIndex());
+		m_config->setNavExpanded(m_navVm.expanded());
+
+		// 保存最近的 Tab
+		if (!m_dataTabsVm.selectedId().isEmpty()) {
+			m_config->setRecentTab(m_dataTabsVm.selectedId());
+		}
+
+		// 显式保存
+		m_config->save();
+	}
+
 #ifdef Q_OS_WIN
 	// 先卸载原生事件过滤器，避免窗口销毁期间回调到已失效对象
 	if (m_winChrome) {
 		m_winChrome->detach();
-		m_winChrome = nullptr; // attach 时也会在窗口 destroyed 中 delete
+		m_winChrome = nullptr;
 	}
 #endif
 
@@ -107,13 +153,11 @@ void MainOpenGlWindow::initializeGL()
 
 	m_renderer.initializeGL(this);
 
-	// Windows: 安装自定义 WindowChrome，使顶部成为可拖拽区域、保留系统边框/阴影
+	// Windows: 安装自定义 WindowChrome
 #ifdef Q_OS_WIN
 	if (!m_winChrome) {
-		// 顶部认为 56 逻辑像素作为“标题栏拖动”高度（与 UiTopBar 的 margin + 按钮大小接近）
 		constexpr int dragHeight = 56;
 		m_winChrome = WinWindowChrome::attach(this, dragHeight, [this]() {
-			// 返回不允许拖拽的区域（例如导航栏、右上角按钮），均为逻辑像素坐标
 			QVector<QRect> out;
 			out.push_back(this->navBounds());
 			out.push_back(this->topBarThemeRect());
@@ -126,7 +170,7 @@ void MainOpenGlWindow::initializeGL()
 	}
 #endif
 
-	// 初始化导航 VM 与 View：新增“数据”项
+	// 初始化导航 VM 与 View
 	m_navVm.setItems(QVector<NavViewModel::Item>{
 		{.id = "home", .svgLight = ":/icons/home_light.svg", .svgDark = ":/icons/home_dark.svg", .label = "首页" },
 		{ .id = "data",    .svgLight = ":/icons/data_light.svg",  .svgDark = ":/icons/data_dark.svg",  .label = "数据" },
@@ -134,12 +178,40 @@ void MainOpenGlWindow::initializeGL()
 		{ .id = "favorites", .svgLight = ":/icons/fav_light.svg", .svgDark = ":/icons/fav_dark.svg",   .label = "收藏" },
 		{ .id = "settings",  .svgLight = ":/icons/settings_light.svg", .svgDark = ":/icons/settings_dark.svg", .label = "设置" },
 	});
-	m_navVm.setSelectedIndex(0);
-	m_navVm.setExpanded(false);
+
+	// 从配置恢复导航状态
+	if (m_config) {
+		int savedNavIndex = m_config->navSelectedIndex();
+		if (savedNavIndex >= 0 && savedNavIndex < m_navVm.count()) {
+			m_navVm.setSelectedIndex(savedNavIndex);
+		}
+		else {
+			m_navVm.setSelectedIndex(0);
+		}
+		m_navVm.setExpanded(m_config->navExpanded());
+
+		// 连接导航变化到配置保存
+		connect(&m_navVm, &NavViewModel::selectedIndexChanged, this, [this](int idx) {
+			if (m_config) {
+				m_config->setNavSelectedIndex(idx);
+			}
+			});
+
+		connect(&m_navVm, &NavViewModel::expandedChanged, this, [this](bool expanded) {
+			if (m_config) {
+				m_config->setNavExpanded(expanded);
+			}
+			});
+	}
+	else {
+		m_navVm.setSelectedIndex(0);
+		m_navVm.setExpanded(false);
+	}
+
 	m_formulaView = std::make_unique<UiFormulaView>();
 	m_formulaView->setDarkTheme(m_theme == Theme::Dark);
 
-	// 组件加入顺序决定绘制层级：先 Page（底层），后 Nav，再 TopBar（最上层）
+	// 修正：UiRoot 添加组件，不是 UiPage
 	m_uiRoot.add(&m_page);
 
 	// 初始化数据页 TabViewModel
@@ -151,7 +223,27 @@ void MainOpenGlWindow::initializeGL()
 		{ .id = "internal",   .label = "内科", .tooltip = "内科诊疗" },
 		{ .id = "diagnosis",  .label = "诊断", .tooltip = "诊断方法" }
 	});
-	m_dataTabsVm.setSelectedIndex(0);
+
+	// 从配置恢复最近的 Tab
+	if (m_config && !m_config->recentTab().isEmpty()) {
+		int tabIdx = m_dataTabsVm.findById(m_config->recentTab());
+		if (tabIdx >= 0) {
+			m_dataTabsVm.setSelectedIndex(tabIdx);
+		}
+		else {
+			m_dataTabsVm.setSelectedIndex(0);
+		}
+	}
+	else {
+		m_dataTabsVm.setSelectedIndex(0);
+	}
+
+	// 连接 Tab 变化到配置保存
+	connect(&m_dataTabsVm, &TabViewModel::selectedIndexChanged, this, [this](int) {
+		if (m_config) {
+			m_config->setRecentTab(m_dataTabsVm.selectedId());
+		}
+		});
 
 	// 设置 TabView
 	m_dataTabView.setViewModel(&m_dataTabsVm);
@@ -159,9 +251,8 @@ void MainOpenGlWindow::initializeGL()
 	m_dataTabView.setTabHeight(43);
 	m_dataTabView.setAnimationDuration(220);
 	m_dataTabView.setContent(0, m_formulaView.get());
-	// qDebug() << "Formula view created and set to tab 0\n";
 
-	// 在 applyPagePalette 中
+	// 应用调色板
 	if (m_theme == Theme::Dark) {
 		m_dataTabView.setPalette(UiTabView::Palette{
 			.barBg = QColor(255,255,255,10),
@@ -193,58 +284,53 @@ void MainOpenGlWindow::initializeGL()
 
 	applyTopBarPalette();
 	m_topBar.setSvgPaths(m_svgThemeWhenDark, m_svgThemeWhenLight, m_svgFollowOn, m_svgFollowOff);
-	// 新增：为系统三大键指定 SVG（也可不调用，UiTopBar 有默认值）
 	m_topBar.setSystemButtonSvgPaths(":/icons/sys_min.svg", ":/icons/sys_max.svg", ":/icons/sys_close.svg");
 
 	m_uiRoot.add(&m_nav);
 	m_uiRoot.add(&m_topBar);
 
 	// 订阅 ThemeManager
-	connect(&m_themeMgr, &ThemeManager::effectiveColorSchemeChanged, this,
-		[this](const Qt::ColorScheme s) { setTheme(schemeToTheme(s)); });
+	if (m_themeMgr) {
+		connect(m_themeMgr.get(), &ThemeManager::effectiveColorSchemeChanged, this,
+			[this](const Qt::ColorScheme s) { setTheme(schemeToTheme(s)); });
 
-	connect(&m_themeMgr, &ThemeManager::modeChanged, this,
-		[this](const ThemeManager::ThemeMode mode) {
-			const bool follow = (mode == ThemeManager::ThemeMode::FollowSystem);
+		connect(m_themeMgr.get(), &ThemeManager::modeChanged, this,
+			[this](const ThemeManager::ThemeMode mode) {
+				const bool follow = (mode == ThemeManager::ThemeMode::FollowSystem);
 
-			// 启动阶段：无动画就位；运行阶段：开启动画
-			m_topBar.setFollowSystem(follow, /*animate=*/!m_booting);
+				m_topBar.setFollowSystem(follow, /*animate=*/!m_booting);
 
-			if (!m_booting) {
-				if (!m_animTimer.isActive()) {
-					m_animClock.start();
-					m_animTimer.start();
+				if (!m_booting) {
+					if (!m_animTimer.isActive()) {
+						m_animClock.start();
+						m_animTimer.start();
+					}
 				}
-			}
-			// 跟随图标切换需要刷新资源上下文
-			m_uiRoot.updateResourceContext(m_iconLoader, this, static_cast<float>(devicePixelRatio()));
-			updateTitle();
-			update();
+				m_uiRoot.updateResourceContext(m_iconLoader, this, static_cast<float>(devicePixelRatio()));
+				updateTitle();
+				update();
 #ifdef Q_OS_WIN
-			if (m_winChrome) m_winChrome->notifyLayoutChanged();
+				if (m_winChrome) m_winChrome->notifyLayoutChanged();
 #endif
-		});
+			});
 
-	// 监听导航选中项变化 -> 更新页面标题/内容
+		// 加载/同步主题（但不需要再次 load，ServiceRegistry 已经加载过了）
+		// m_themeMgr->load();  // 注释掉，避免重复加载
+	}
+
+	// 监听导航选中项变化
 	connect(&m_navVm, &NavViewModel::selectedIndexChanged, this, &MainOpenGlWindow::updatePageFromSelection);
 
-	// 监听 Tab 切换（可选）
+	// 监听 Tab 切换
 	connect(&m_dataTabsVm, &TabViewModel::selectedIndexChanged, this, [this](int idx) {
-		// 可以根据选中的 Tab 更新内容区域
 		const QString selectedId = m_dataTabsVm.selectedId();
 		qDebug() << "Tab selected:" << selectedId << "at index" << idx << "\n";
-
-		// 这里可以切换不同的内容组件
-		// 例如：updateDataContent(selectedId);
-
 		update();
 		});
-	// 加载/同步主题（可能触发上述两个信号）
-	m_themeMgr.load();
 
-	// 兜底同步（若未触发，或确保首帧无动画）
-	setTheme(schemeToTheme(m_themeMgr.effectiveColorScheme()));
-	m_topBar.setFollowSystem(m_themeMgr.mode() == ThemeManager::ThemeMode::FollowSystem, /*animate=*/false);
+	// 兜底同步
+	setTheme(schemeToTheme(m_themeMgr ? m_themeMgr->effectiveColorScheme() : Qt::ColorScheme::Light));
+	m_topBar.setFollowSystem(m_themeMgr && m_themeMgr->mode() == ThemeManager::ThemeMode::FollowSystem, /*animate=*/false);
 
 	// 在设置主题后应用所有调色板
 	applyThemeColors();
@@ -257,7 +343,7 @@ void MainOpenGlWindow::initializeGL()
 	updateLayout();
 	updateTitle();
 
-	// 启动完成，后续切换再走动画
+	// 启动完成
 	m_booting = false;
 }
 
@@ -316,7 +402,6 @@ void MainOpenGlWindow::mouseReleaseEvent(QMouseEvent* e)
 				if (cMax) { if (visibility() == Maximized) showNormal(); else showMaximized(); }
 			}
 
-			// 关键修改：任一组件消费点击后，若计时器未启动，则启动动画计时器
 			if (!m_animTimer.isActive()) {
 				m_animClock.start();
 				m_animTimer.start();
@@ -356,8 +441,7 @@ void MainOpenGlWindow::setTheme(const Theme t)
 	applyTopBarPalette();
 	applyNavPalette();
 	applyPagePalette();
-	applyTabViewPalette();  // 添加这一行
-
+	applyTabViewPalette();
 
 	m_nav.setDarkTheme(m_theme == Theme::Dark);
 	m_topBar.setDarkTheme(m_theme == Theme::Dark);
@@ -370,23 +454,28 @@ void MainOpenGlWindow::setTheme(const Theme t)
 
 void MainOpenGlWindow::setFollowSystem(const bool on)
 {
-	if (on) m_themeMgr.setMode(ThemeManager::ThemeMode::FollowSystem);
+	if (!m_themeMgr) return;
+
+	if (on) m_themeMgr->setMode(ThemeManager::ThemeMode::FollowSystem);
 	else {
-		const Theme cur = schemeToTheme(m_themeMgr.effectiveColorScheme());
-		m_themeMgr.setMode(cur == Theme::Dark ? ThemeManager::ThemeMode::Dark : ThemeManager::ThemeMode::Light);
+		const Theme cur = schemeToTheme(m_themeMgr->effectiveColorScheme());
+		m_themeMgr->setMode(cur == Theme::Dark ? ThemeManager::ThemeMode::Dark : ThemeManager::ThemeMode::Light);
 	}
 }
 
 void MainOpenGlWindow::toggleTheme()
 {
-	const Theme cur = schemeToTheme(m_themeMgr.effectiveColorScheme());
+	if (!m_themeMgr) return;
+
+	const Theme cur = schemeToTheme(m_themeMgr->effectiveColorScheme());
 	const Theme next = (cur == Theme::Dark ? Theme::Light : Theme::Dark);
-	m_themeMgr.setMode(next == Theme::Dark ? ThemeManager::ThemeMode::Dark : ThemeManager::ThemeMode::Light);
+	m_themeMgr->setMode(next == Theme::Dark ? ThemeManager::ThemeMode::Dark : ThemeManager::ThemeMode::Light);
 }
 
 void MainOpenGlWindow::toggleFollowSystem()
 {
-	setFollowSystem(m_themeMgr.mode() != ThemeManager::ThemeMode::FollowSystem);
+	if (!m_themeMgr) return;
+	setFollowSystem(m_themeMgr->mode() != ThemeManager::ThemeMode::FollowSystem);
 }
 
 void MainOpenGlWindow::toggleNavExpanded()
@@ -408,13 +497,11 @@ void MainOpenGlWindow::applyThemeColors()
 
 void MainOpenGlWindow::updateLayout()
 {
-	// 计算页面 viewport，使其不与导航重叠
 	const int left = m_nav.currentWidth();
 	const QSize winSz = size();
 	const QRect vp(left, 0, std::max(0, winSz.width() - left), winSz.height());
 	m_page.setViewportRect(vp);
 
-	// 同步各组件布局与资源上下文
 	m_uiRoot.updateLayout(winSz);
 	const float dpr = static_cast<float>(devicePixelRatio());
 	m_uiRoot.updateResourceContext(m_iconLoader, this, dpr);
@@ -427,7 +514,7 @@ void MainOpenGlWindow::updateLayout()
 void MainOpenGlWindow::updateTitle()
 {
 	const QString themeText = m_theme == Theme::Dark ? QStringLiteral("暗色") : QStringLiteral("浅色");
-	const bool follow = (m_themeMgr.mode() == ThemeManager::ThemeMode::FollowSystem);
+	const bool follow = m_themeMgr && (m_themeMgr->mode() == ThemeManager::ThemeMode::FollowSystem);
 	const QString followText = follow ? QStringLiteral("（跟随系统）") : QStringLiteral("（自定义）");
 	setTitle(QStringLiteral("Qt6 QOpenGLWindow 示例 - %1 %2").arg(themeText, followText));
 }
@@ -448,7 +535,6 @@ void MainOpenGlWindow::submitFrame(const Render::FrameData& fd, const bool sched
 void MainOpenGlWindow::onAnimTick()
 {
 	const bool any = m_uiRoot.tick();
-	// 导航展开/指示条动画进行时，实时更新布局（会推动 Page viewport 左侧随之变化）
 	if (m_nav.hasActiveAnimation()) updateLayout();
 	if (!any) m_animTimer.stop();
 	update();
@@ -474,7 +560,6 @@ void MainOpenGlWindow::applyPagePalette()
 			.headingColor = QColor(235, 240, 245, 255),
 			.bodyColor = QColor(210, 220, 230, 220)
 			});
-
 	}
 	else {
 		m_page.setPalette(UiPage::Palette{
@@ -482,7 +567,6 @@ void MainOpenGlWindow::applyPagePalette()
 			.headingColor = QColor(40, 46, 54, 255),
 			.bodyColor = QColor(70, 76, 84, 220)
 			});
-
 	}
 }
 
@@ -520,20 +604,16 @@ bool MainOpenGlWindow::isDataPageIndex(const int idx) const
 void MainOpenGlWindow::updatePageFromSelection(const int idx)
 {
 	if (const auto& items = m_navVm.items(); idx >= 0 && idx < items.size()) {
-		// 标题
 		m_page.setTitle(items[idx].label);
 	}
 
-	// 内容：仅“数据”页使用 UiDataTabs
 	if (isDataPageIndex(idx)) {
-		// 检查当前选中的 Tab
 		const QString tabId = m_dataTabsVm.selectedId();
-
 		m_page.setContent(&m_dataTabView);
 	}
 	else {
 		m_page.setContent(nullptr);
 	}
 
-	update(); // 触发重绘
+	update();
 }
