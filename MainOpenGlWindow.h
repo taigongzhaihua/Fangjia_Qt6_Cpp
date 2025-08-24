@@ -12,6 +12,7 @@
 #include "UiRoot.h"
 #include "UiTabView.h"
 #include "UiTopBar.h"
+#include "UiFormulaView.h"
 
 #include <qcolor.h>
 #include <qelapsedtimer.h>
@@ -105,6 +106,7 @@ private:
 	UiPage m_page;
 	TabViewModel m_dataTabsVm;  // 新增：数据页 TabViewModel
 	UiTabView m_dataTabView;    // 新增：通用 TabView
+	std::unique_ptr<UiFormulaView> m_formulaView;
 
 	// 导航视图
 	Ui::NavRail m_nav;

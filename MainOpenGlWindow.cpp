@@ -28,6 +28,8 @@
 #include <qlogging.h>
 #include "TabViewModel.h"
 #include "UiTabView.h"
+#include <memory>
+#include "UiFormulaView.h"
 namespace {
 	struct PaletteBtn { QColor btnBg, btnBgHover, btnBgPressed, iconColor; };
 	PaletteBtn paletteBtnForTheme(const MainOpenGlWindow::Theme t) {
@@ -134,6 +136,9 @@ void MainOpenGlWindow::initializeGL()
 	});
 	m_navVm.setSelectedIndex(0);
 	m_navVm.setExpanded(false);
+	m_formulaView = std::make_unique<UiFormulaView>();
+
+	m_dataTabView.setContent(0, m_formulaView.get());
 
 	// 组件加入顺序决定绘制层级：先 Page（底层），后 Nav，再 TopBar（最上层）
 	m_uiRoot.add(&m_page);
@@ -518,7 +523,13 @@ void MainOpenGlWindow::updatePageFromSelection(const int idx)
 
 	// 内容：仅“数据”页使用 UiDataTabs
 	if (isDataPageIndex(idx)) {
+		// 检查当前选中的 Tab
+		const QString tabId = m_dataTabsVm.selectedId();
+
 		m_page.setContent(&m_dataTabView);
+
+
+
 	}
 	else {
 		m_page.setContent(nullptr);

@@ -14,6 +14,8 @@
 #include <qsize.h>
 #include <qstring.h>
 #include <qtypes.h>
+#include <unordered_map>
+#include <vector>
 
 // 前向声明
 class TabViewModel;
@@ -58,11 +60,15 @@ public:
 	void setTabHeight(int h) { m_tabHeight = std::max(24, h); }
 	void setAnimationDuration(int ms) { m_animDuration = std::max(50, ms); }
 
+	// Tab内容管理接口
+	void setContent(int tabIdx, IUiComponent* content);
+	void setContents(const std::vector<IUiComponent*>& contents);
+	IUiComponent* content(int tabIdx) const;
+
+
 	// IUiComponent
 	void updateLayout(const QSize& windowSize) override;
-	void updateResourceContext(IconLoader& loader, QOpenGLFunctions* gl, float devicePixelRatio) override {
-		m_loader = &loader; m_gl = gl; m_dpr = std::max(0.5f, devicePixelRatio);
-	}
+	void updateResourceContext(IconLoader& loader, QOpenGLFunctions* gl, float devicePixelRatio) override;
 	void append(Render::FrameData& fd) const override;
 	bool onMousePress(const QPoint& pos) override;
 	bool onMouseMove(const QPoint& pos) override;
@@ -76,24 +82,25 @@ public:
 private:
 	QRectF tabBarRectF() const;
 	QRectF tabRectF(int i) const;
-	
+	QRectF contentRectF();
+
 	int tabCount() const;
 	QString tabLabel(int i) const;
-	
+
 	void syncFromVmInstant();
 	void startHighlightAnim(float toCenterX);
-	
+
 	static QString textCacheKey(const QString& baseKey, int px, const QColor& color);
 	static float easeInOut(float t);
 
 private:
 	QRect m_viewport;
 	TabViewModel* m_vm{ nullptr };
-	
+
 	// 兼容模式数据（未接 VM 时使用）
 	QStringList m_fallbackTabs;
 	int m_fallbackSelected{ 0 };
-	
+
 	// 交互状态
 	int m_hover{ -1 };
 	int m_pressed{ -1 };
@@ -120,7 +127,7 @@ private:
 		.label = QColor(50,60,70,255),
 		.labelSelected = QColor(20,32,48,255)
 	};
-	
+
 	IndicatorStyle m_indicatorStyle{ IndicatorStyle::Bottom };
 	int m_tabHeight{ 43 };
 	int m_animDuration{ 220 };
@@ -129,4 +136,5 @@ private:
 	IconLoader* m_loader{ nullptr };
 	QOpenGLFunctions* m_gl{ nullptr };
 	float m_dpr{ 1.0f };
+	std::unordered_map<int, IUiComponent*> m_tabContents;
 };

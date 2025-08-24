@@ -33,14 +33,18 @@ add_library(ui_components STATIC
   UiNav.h UiNav.cpp
   UiPage.h UiPage.cpp
   UiContent.hpp
-  UiTabView.h UiTabView.cpp)  # 替换 UiDataTabs
+  UiTabView.h UiTabView.cpp
+  UiTreeList.h UiTreeList.cpp
+  UiFormulaDetail.h UiFormulaDetail.cpp
+  UiFormulaView.h UiFormulaView.cpp)
 target_link_libraries(ui_components PUBLIC core_render Qt6::Gui)
 target_include_directories(ui_components PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 
 add_library(viewmodels STATIC
   ThemeManager.h ThemeManager.cpp
   NavViewModel.h NavViewModel.cpp
-  TabViewModel.h TabViewModel.cpp)  # 新增
+  TabViewModel.h TabViewModel.cpp
+  FormulaViewModel.h FormulaViewModel.cpp)
 target_link_libraries(viewmodels PUBLIC Qt6::Gui Qt6::Core)
 target_include_directories(viewmodels PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 
