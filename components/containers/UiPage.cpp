@@ -1,15 +1,18 @@
+#include "RenderData.hpp"
+#include "UiContent.hpp"
 #include "UiPage.h"
 
-#include "RenderData.hpp"
 #include <algorithm>
 #include <cmath>
+#include <IconLoader.h>
 #include <qcolor.h>
 #include <qfont.h>
+#include <qopenglfunctions.h>
+#include <qpoint.h>
 #include <qrect.h>
 #include <qsize.h>
 #include <qstring.h>
 #include <qstringliteral.h>
-#include <type_traits>
 
 QRectF UiPage::cardRectF() const
 {

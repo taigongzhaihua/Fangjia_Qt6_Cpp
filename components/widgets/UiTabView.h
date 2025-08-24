@@ -82,7 +82,7 @@ public:
 private:
 	QRectF tabBarRectF() const;
 	QRectF tabRectF(int i) const;
-	QRectF contentRectF();
+	QRectF contentRectF() const;
 
 	int tabCount() const;
 	QString tabLabel(int i) const;

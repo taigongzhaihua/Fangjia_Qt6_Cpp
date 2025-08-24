@@ -2,12 +2,12 @@
 #include "IconLoader.h"
 #include "RenderData.hpp"
 #include "UiComponent.hpp"
-#include "UiContent.hpp" // 新增
 
-#include <algorithm>
 #include <qcolor.h>
 #include <qopenglfunctions.h>
+#include <qpoint.h>
 #include <qrect.h>
+#include <qsize.h>
 #include <qstring.h>
 #include <qstringliteral.h>
 #include <utility>

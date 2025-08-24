@@ -10,7 +10,6 @@
 #include <qcolor.h>
 #include <qcontainerfwd.h>
 #include <qfont.h>
-#include <qlogging.h>
 #include <qopenglfunctions.h>
 #include <qpoint.h>
 #include <qrect.h>
@@ -55,19 +54,18 @@ int UiTabView::tabCount() const
 	return m_vm ? m_vm->count() : static_cast<int>(m_fallbackTabs.size());
 }
 
-QString UiTabView::tabLabel(int i) const
+QString UiTabView::tabLabel(const int i) const
 {
 	if (m_vm) {
-		const auto& items = m_vm->items();
-		if (i >= 0 && i < items.size()) {
+		if (const auto& items = m_vm->items(); i >= 0 && i < items.size()) {
 			return items[i].label;
 		}
-		return QString();
+		return {};
 	}
 	if (i >= 0 && i < m_fallbackTabs.size()) {
 		return m_fallbackTabs[i];
 	}
-	return QString();
+	return {};
 }
 
 void UiTabView::setTabs(const QStringList& labels)
@@ -122,14 +120,14 @@ void UiTabView::setSelectedIndex(const int idx)
 	}
 }
 
-QRectF UiTabView::contentRectF()
+QRectF UiTabView::contentRectF() const
 {
 	if (!m_viewport.isValid()) return {};
 	constexpr float pad = 8.0f;
-	const float left = static_cast<float>(m_viewport.left()) + pad;
-	const float top = static_cast<float>(m_viewport.top()) + pad + static_cast<float>(m_tabHeight) + 16.0f;
-	const float width = std::max(0.0f, static_cast<float>(m_viewport.width()) - pad * 2.0f);
-	const float height = std::max(0.0f, static_cast<float>(m_viewport.height()) - pad * 2.0f - static_cast<float>(m_tabHeight) - 16.0f);
+	const float left = static_cast<float>(m_viewport.left()) + pad + 8;
+	const float top = static_cast<float>(m_viewport.top()) + pad + static_cast<float>(m_tabHeight) + 16.0f + 8;
+	const float width = std::max(0.0f, static_cast<float>(m_viewport.width()) - (pad + 8) * 2.0f);
+	const float height = std::max(0.0f, static_cast<float>(m_viewport.height()) - (pad + 8) * 2.0f - static_cast<float>(m_tabHeight) - 8.0f);
 	return { left, top, width, height };
 
 }
@@ -138,27 +136,42 @@ int UiTabView::selectedIndex() const noexcept
 	return m_vm ? m_vm->selectedIndex() : m_fallbackSelected;
 }
 
-void UiTabView::updateLayout(const QSize& /*windowSize*/)
+void UiTabView::updateLayout(const QSize& windowSize)
 {
 	// 窗口尺寸变化时，确保高亮位置正确
 	if (!m_animHighlight.active && m_viewSelected >= 0 && m_viewSelected < tabCount()) {
 		const QRectF r = tabRectF(m_viewSelected);
 		m_highlightCenterX = r.isValid() ? static_cast<float>(r.center().x()) : -1.0f;
 	}
-	if (const auto content = m_tabContents[selectedIndex()]) {
-		if (auto* c = dynamic_cast<IUiContent*>(content)) {
-			c->setViewportRect(contentRectF().toRect());
+	// 更新当前内容的布局
+	int curIdx = selectedIndex();
+	if (IUiComponent* curContent = content(curIdx)) {
+		// 计算内容区域
+		QRect contentRect = contentRectF().toRect();
+
+		// qDebug() << "UiTabView updating content layout for tab" << curIdx
+		// 	<< "contentRect:" << contentRect << "\n";
+
+		// 如果内容实现了 IUiContent，设置视口
+		if (auto* c = dynamic_cast<IUiContent*>(curContent)) {
+			c->setViewportRect(contentRect);
 		}
-		// 让内容组件也有机会进行它自己的内部布局（传入窗口 size 对它用处不大，但保持调用流程一致）
-		content->updateLayout(m_viewport.size());
+
+		// 更新内容布局
+		curContent->updateLayout(windowSize);
 	}
 }
 
-void UiTabView::updateResourceContext(IconLoader& loader, QOpenGLFunctions* gl, float devicePixelRatio)
+void UiTabView::updateResourceContext(IconLoader& loader, QOpenGLFunctions* gl, const float devicePixelRatio)
 {
-	m_loader = &loader; m_gl = gl; m_dpr = std::max(0.5f, devicePixelRatio);
+	m_loader = &loader;
+	m_gl = gl;
+	m_dpr = std::max(0.5f, devicePixelRatio);
+
+	// 更新当前内容的资源上下文
 	int curIdx = selectedIndex();
 	if (IUiComponent* curContent = content(curIdx)) {
+		// qDebug() << "UiTabView updating resource context for tab" << curIdx << "\n";
 		curContent->updateResourceContext(loader, gl, devicePixelRatio);
 	}
 }
@@ -293,8 +306,8 @@ void UiTabView::append(Render::FrameData& fd) const
 		const QColor textColor = (i == m_viewSelected ? m_pal.labelSelected : m_pal.label);
 
 		// 调试输出
-		qDebug() << "Tab" << i << "color:" << textColor.name()
-			<< "selected:" << (i == m_viewSelected);
+		// qDebug() << "Tab" << i << "color:" << textColor.name()
+			// << "selected:" << (i == m_viewSelected);
 
 		const QString key = textCacheKey(QString("tab|%1").arg(label), fontPx, textColor);
 		const int tex = m_loader->ensureTextPx(key, font, label, textColor, m_gl);
@@ -320,9 +333,15 @@ void UiTabView::append(Render::FrameData& fd) const
 	}
 
 	int curIdx = selectedIndex();
+	// qDebug() << "UiTabView rendering content for tab:" << curIdx << "\n";
+
 	if (IUiComponent* curContent = content(curIdx)) {
+		// qDebug() << "Found content for tab" << curIdx << ", appending...\n";
 		curContent->append(fd);
 	}
+	// else {
+	// 	qDebug() << "No content found for tab" << curIdx << "\n";
+	// }
 }
 
 bool UiTabView::onMousePress(const QPoint& pos)
@@ -438,8 +457,7 @@ bool UiTabView::tick()
 	}
 
 	int curIdx = selectedIndex();
-	IUiComponent* curContent = content(curIdx);
-	if (curContent) any = curContent->tick() || any;
+	if (IUiComponent* curContent = content(curIdx)) any = curContent->tick() || any;
 	return any;
 }
 
@@ -453,7 +471,7 @@ void UiTabView::startHighlightAnim(const float toCenterX)
 	m_animHighlight.durationMs = m_animDuration;
 }
 
-QString UiTabView::textCacheKey(const QString& baseKey, int px, const QColor& color)
+QString UiTabView::textCacheKey(const QString& baseKey, const int px, const QColor& color)
 {
 	const QString colorKey = color.name(QColor::HexArgb);  // 包含 alpha 通道
 	return QString("tabview:%1@%2px@%3").arg(baseKey).arg(px).arg(colorKey);
@@ -465,7 +483,7 @@ float UiTabView::easeInOut(float t)
 	return t * t * (3.0f - 2.0f * t);
 }
 
-void UiTabView::setContent(int tabIdx, IUiComponent* content)
+void UiTabView::setContent(const int tabIdx, IUiComponent* content)
 {
 	if (tabIdx < 0) return;
 	m_tabContents[tabIdx] = content;
@@ -475,11 +493,11 @@ void UiTabView::setContents(const std::vector<IUiComponent*>& contents)
 {
 	m_tabContents.clear();
 	for (size_t i = 0; i < contents.size(); ++i) {
-		if (contents[i]) m_tabContents[(int)i] = contents[i];
+		if (contents[i]) m_tabContents[static_cast<int>(i)] = contents[i];
 	}
 }
 
-IUiComponent* UiTabView::content(int tabIdx) const
+IUiComponent* UiTabView::content(const int tabIdx) const
 {
 	auto it = m_tabContents.find(tabIdx);
 	return (it != m_tabContents.end()) ? it->second : nullptr;

@@ -17,6 +17,7 @@ set(CMAKE_AUTORCC ON)
 find_package(Qt6 REQUIRED COMPONENTS Gui OpenGL Widgets Svg)
 
 
+# 核心渲染库
 add_library(core_render STATIC
   RenderData.hpp
   Renderer.h Renderer.cpp
@@ -25,35 +26,73 @@ add_library(core_render STATIC
 target_link_libraries(core_render PUBLIC Qt6::OpenGL Qt6::Gui Qt6::Svg)
 target_include_directories(core_render PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 
+# 通用UI组件库
 add_library(ui_components STATIC
-  UiComponent.hpp
-  UiButton.hpp
-  UiRoot.h UiRoot.cpp
-  UiTopBar.h UiTopBar.cpp
-  UiNav.h UiNav.cpp
-  UiPage.h UiPage.cpp
-  UiContent.hpp
-  UiTabView.h UiTabView.cpp
-  UiTreeList.h UiTreeList.cpp
-  UiFormulaDetail.h UiFormulaDetail.cpp
-  UiFormulaView.h UiFormulaView.cpp)
-target_link_libraries(ui_components PUBLIC core_render Qt6::Gui)
-target_include_directories(ui_components PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
+  # 基础接口
+  components/base/UiComponent.hpp
+  components/base/UiContent.hpp
+  components/base/UiButton.hpp
+  
+  # 容器类
+  components/containers/UiRoot.h
+  components/containers/UiRoot.cpp
+  components/containers/UiBoxLayout.h
+  components/containers/UiBoxLayout.cpp
+  components/containers/UiPage.h
+  components/containers/UiPage.cpp
+  
+  # 复合控件
+  components/widgets/UiTopBar.h
+  components/widgets/UiTopBar.cpp
+  components/widgets/UiNav.h
+  components/widgets/UiNav.cpp
+  components/widgets/UiTabView.h
+  components/widgets/UiTabView.cpp
+  components/widgets/UiTreeList.h
+  components/widgets/UiTreeList.cpp
+)
 
+# 重要：设置包含目录，这样可以直接 #include "UiComponent.hpp" 而不需要路径
+target_include_directories(ui_components PUBLIC 
+  ${CMAKE_CURRENT_SOURCE_DIR}
+  ${CMAKE_CURRENT_SOURCE_DIR}/components/base
+  ${CMAKE_CURRENT_SOURCE_DIR}/components/containers
+  ${CMAKE_CURRENT_SOURCE_DIR}/components/widgets
+)
+
+target_link_libraries(ui_components PUBLIC core_render Qt6::Gui)
+
+# 视图模型库
 add_library(viewmodels STATIC
   ThemeManager.h ThemeManager.cpp
   NavViewModel.h NavViewModel.cpp
   TabViewModel.h TabViewModel.cpp
   FormulaViewModel.h FormulaViewModel.cpp)
+
 target_link_libraries(viewmodels PUBLIC Qt6::Gui Qt6::Core)
 target_include_directories(viewmodels PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 
+# 业务视图库
+add_library(ui_views STATIC
+  views/UiFormulaView.h
+  views/UiFormulaView.cpp
+  views/UiFormulaDetail.h
+  views/UiFormulaDetail.cpp
+)
+
+target_link_libraries(ui_views PUBLIC ui_components viewmodels core_render)
+target_include_directories(ui_views PUBLIC 
+  ${CMAKE_CURRENT_SOURCE_DIR}/views
+  ${CMAKE_CURRENT_SOURCE_DIR}  # 为了能找到 viewmodels
+)
+
+# 主程序
 set(app_sources
   main.cpp
   MainOpenGlWindow.h MainOpenGlWindow.cpp
   resources.qrc)
 
-# Windows 平台：加入自定义 WindowChrome
+# Windows 平台
 if (WIN32)
   list(APPEND app_sources
     WinWindowChrome.h
@@ -61,9 +100,24 @@ if (WIN32)
 endif()
 
 add_executable(FangJia WIN32 ${app_sources})
-target_link_libraries(FangJia PRIVATE ui_components viewmodels core_render Qt6::Widgets)
+target_link_libraries(FangJia PRIVATE 
+  ui_views        # 业务视图
+  ui_components   # 通用组件
+  viewmodels      # 视图模型
+  core_render     # 渲染核心
+  Qt6::Widgets
+)
 
-# Windows 下链接 dwmapi（DWM 扩展）
+# 确保主程序能找到所有头文件
+target_include_directories(FangJia PRIVATE
+  ${CMAKE_CURRENT_SOURCE_DIR}
+  ${CMAKE_CURRENT_SOURCE_DIR}/components/base
+  ${CMAKE_CURRENT_SOURCE_DIR}/components/containers
+  ${CMAKE_CURRENT_SOURCE_DIR}/components/widgets
+  ${CMAKE_CURRENT_SOURCE_DIR}/views
+)
+
+# Windows 下链接 dwmapi
 if (WIN32)
   target_link_libraries(FangJia PRIVATE Dwmapi)
   target_compile_definitions(FangJia PRIVATE WIN32_LEAN_AND_MEAN NOMINMAX)
@@ -73,4 +127,5 @@ endif()
 set_property(TARGET FangJia PROPERTY CXX_STANDARD 23)
 set_property(TARGET viewmodels PROPERTY CXX_STANDARD 23)
 set_property(TARGET ui_components PROPERTY CXX_STANDARD 23)
+set_property(TARGET ui_views PROPERTY CXX_STANDARD 23)
 set_property(TARGET core_render PROPERTY CXX_STANDARD 23)

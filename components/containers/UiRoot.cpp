@@ -5,6 +5,7 @@
 
 #include <qopenglfunctions.h>
 #include <qrect.h>
+#include <ranges>
 #include <vector>
 
 void UiRoot::add(IUiComponent* c)
@@ -38,15 +39,16 @@ void UiRoot::updateResourceContext(IconLoader& loader, QOpenGLFunctions* gl, con
 
 void UiRoot::append(Render::FrameData& fd) const
 {
-	for (auto* c : m_children) c->append(fd);
+	for (const auto* c : m_children) c->append(fd);
 }
 
 bool UiRoot::onMousePress(const QPoint& pos)
 {
 	// 从顶层到底层分发（后添加者优先）
-	for (auto it = m_children.rbegin(); it != m_children.rend(); ++it) {
-		if ((*it)->onMousePress(pos)) {
-			m_pointerCapture = *it; // 捕获
+	for (const auto& it : std::ranges::reverse_view(m_children))
+	{
+		if (it->onMousePress(pos)) {
+			m_pointerCapture = it; // 捕获
 			return true;
 		}
 	}
@@ -61,8 +63,9 @@ bool UiRoot::onMouseMove(const QPoint& pos)
 		return m_pointerCapture->onMouseMove(pos);
 	}
 	bool any = false;
-	for (auto it = m_children.rbegin(); it != m_children.rend(); ++it) {
-		any = (*it)->onMouseMove(pos) || any;
+	for (const auto& it : std::ranges::reverse_view(m_children))
+	{
+		any = it->onMouseMove(pos) || any;
 	}
 	return any;
 }
@@ -75,8 +78,9 @@ bool UiRoot::onMouseRelease(const QPoint& pos)
 		m_pointerCapture = nullptr;
 		return handled;
 	}
-	for (auto it = m_children.rbegin(); it != m_children.rend(); ++it) {
-		if ((*it)->onMouseRelease(pos)) return true;
+	for (const auto& it : std::ranges::reverse_view(m_children))
+	{
+		if (it->onMouseRelease(pos)) return true;
 	}
 	return false;
 }

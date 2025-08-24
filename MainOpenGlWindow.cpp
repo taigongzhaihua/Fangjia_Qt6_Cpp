@@ -137,8 +137,7 @@ void MainOpenGlWindow::initializeGL()
 	m_navVm.setSelectedIndex(0);
 	m_navVm.setExpanded(false);
 	m_formulaView = std::make_unique<UiFormulaView>();
-
-	m_dataTabView.setContent(0, m_formulaView.get());
+	m_formulaView->setDarkTheme(m_theme == Theme::Dark);
 
 	// 组件加入顺序决定绘制层级：先 Page（底层），后 Nav，再 TopBar（最上层）
 	m_uiRoot.add(&m_page);
@@ -159,6 +158,8 @@ void MainOpenGlWindow::initializeGL()
 	m_dataTabView.setIndicatorStyle(UiTabView::IndicatorStyle::Bottom);
 	m_dataTabView.setTabHeight(43);
 	m_dataTabView.setAnimationDuration(220);
+	m_dataTabView.setContent(0, m_formulaView.get());
+	// qDebug() << "Formula view created and set to tab 0\n";
 
 	// 在 applyPagePalette 中
 	if (m_theme == Theme::Dark) {
@@ -231,7 +232,7 @@ void MainOpenGlWindow::initializeGL()
 	connect(&m_dataTabsVm, &TabViewModel::selectedIndexChanged, this, [this](int idx) {
 		// 可以根据选中的 Tab 更新内容区域
 		const QString selectedId = m_dataTabsVm.selectedId();
-		qDebug() << "Tab selected:" << selectedId << "at index" << idx;
+		qDebug() << "Tab selected:" << selectedId << "at index" << idx << "\n";
 
 		// 这里可以切换不同的内容组件
 		// 例如：updateDataContent(selectedId);
@@ -357,8 +358,10 @@ void MainOpenGlWindow::setTheme(const Theme t)
 	applyPagePalette();
 	applyTabViewPalette();  // 添加这一行
 
+
 	m_nav.setDarkTheme(m_theme == Theme::Dark);
 	m_topBar.setDarkTheme(m_theme == Theme::Dark);
+	m_formulaView->setDarkTheme(m_theme == Theme::Dark);
 
 	m_uiRoot.updateResourceContext(m_iconLoader, this, static_cast<float>(devicePixelRatio()));
 	updateTitle();
@@ -527,9 +530,6 @@ void MainOpenGlWindow::updatePageFromSelection(const int idx)
 		const QString tabId = m_dataTabsVm.selectedId();
 
 		m_page.setContent(&m_dataTabView);
-
-
-
 	}
 	else {
 		m_page.setContent(nullptr);
