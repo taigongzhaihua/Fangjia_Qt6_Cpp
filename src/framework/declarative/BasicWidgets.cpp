@@ -16,16 +16,20 @@
 #include <qsize.h>
 #include <qstring.h>
 #include <UiComponent.hpp>
+#include <UiContent.hpp>
 #include <utility>
 
 namespace UI {
 
 	// 简单的文本组件实现
-	class TextComponent : public IUiComponent {
+	class TextComponent : public IUiComponent, public IUiContent { // 修改：实现 IUiContent
 	public:
 		TextComponent(const QString& text, const QColor& color, int fontSize, QFont::Weight weight, Qt::Alignment align)
 			: m_text(text), m_color(color), m_fontSize(fontSize), m_fontWeight(weight), m_alignment(align) {
 		}
+
+		// IUiContent
+		void setViewportRect(const QRect& r) override { m_bounds = r; } // 新增
 
 		void updateLayout(const QSize&) override {}
 
@@ -97,16 +101,18 @@ namespace UI {
 
 	std::unique_ptr<IUiComponent> Text::build() const {
 		auto comp = std::make_unique<TextComponent>(m_text, m_color, m_fontSize, m_fontWeight, m_alignment);
-		// applyDecorations(comp.get()); // 留给可直接改属性的场景
 		return decorate(std::move(comp));
 	}
 
 	// 图标组件实现
-	class IconComponent : public IUiComponent {
+	class IconComponent : public IUiComponent, public IUiContent { // 修改：实现 IUiContent
 	public:
 		IconComponent(const QString& path, const QColor& color, int size)
 			: m_path(path), m_color(color), m_size(size) {
 		}
+
+		// IUiContent
+		void setViewportRect(const QRect& r) override { m_bounds = r; } // 新增
 
 		void updateLayout(const QSize&) override {}
 
@@ -119,7 +125,6 @@ namespace UI {
 		void append(Render::FrameData& fd) const override {
 			if (!m_loader || !m_gl || m_path.isEmpty()) return;
 
-			// 简化处理：绘制一个彩色矩形代表图标
 			fd.roundedRects.push_back(Render::RoundedRectCmd{
 				.rect = QRectF(m_bounds.center().x() - m_size / 2.0f,
 							  m_bounds.center().y() - m_size / 2.0f,

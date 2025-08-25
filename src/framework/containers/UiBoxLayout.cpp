@@ -117,11 +117,9 @@ void UiBoxLayout::calculateLayout()
 
 	const QRect content = contentRect();
 
-	qDebug() << "UiBoxLayout::calculateLayout - viewport:" << m_viewport
-		<< "content:" << content << "children:" << m_children.size();
+	// 省略日志...
 
 	if (!content.isValid() || m_children.empty()) {
-		qDebug() << "UiBoxLayout::calculateLayout - invalid content or no children";
 		return;
 	}
 
@@ -141,48 +139,45 @@ void UiBoxLayout::calculateLayout()
 	const bool isHorizontal = (m_direction == Direction::Horizontal);
 	const int totalSpacing = m_spacing * std::max(0, static_cast<int>(visibleIndices.size()) - 1);
 
-	// 计算可用空间
+	// 可用空间
 	int availableSize = isHorizontal ? content.width() : content.height();
 	availableSize -= totalSpacing;
 
-	// 第一遍：计算固定大小的子控件
+	// 第一遍：固定大小
 	int usedSize = 0;
 	for (const size_t idx : visibleIndices) {
 		if (m_children[idx].weight == 0.0f) {
-			// 固定大小：使用子控件的首选大小
 			const QRect childBounds = m_children[idx].component->bounds();
 			const int preferredSize = isHorizontal ? childBounds.width() : childBounds.height();
 			usedSize += preferredSize;
 		}
 	}
 
-	// 第二遍：分配剩余空间给有权重的子控件
+	// 第二遍：分配弹性空间
 	const int flexibleSpace = std::max(0, availableSize - usedSize);
 
-	// 计算每个子控件的位置和大小
 	int currentPos = isHorizontal ? content.left() : content.top();
 
 	for (const size_t idx : visibleIndices) {
 		const auto& child = m_children[idx];
+		const QRect childBounds = child.component ? child.component->bounds() : QRect();
 		QRect childRect;
 
 		if (isHorizontal) {
-			// 水平布局
-			int width;
-			if (child.weight > 0.0f && totalWeight > 0.0f) {
-				width = static_cast<int>(flexibleSpace * (child.weight / totalWeight));
-			}
-			else {
-				width = child.component->bounds().width();
-			}
+			int width = (child.weight > 0.0f && totalWeight > 0.0f)
+				? static_cast<int>(flexibleSpace * (child.weight / totalWeight))
+				: childBounds.width();
 			width = std::min(width, content.width());
 
 			int height = content.height();
 			int y = content.top();
 
-			// 根据对齐方式调整
+			// 仅在子组件首选高度有效时才收缩
 			if (child.alignment != Alignment::Stretch) {
-				height = std::min(height, child.component->bounds().height());
+				const int prefH = childBounds.height();
+				if (prefH > 0) {
+					height = std::min(height, prefH);
+				}
 				switch (child.alignment) {
 				case Alignment::Center:
 					y = content.top() + (content.height() - height) / 2;
@@ -199,22 +194,20 @@ void UiBoxLayout::calculateLayout()
 			currentPos += width + m_spacing;
 		}
 		else {
-			// 垂直布局
-			int height;
-			if (child.weight > 0.0f && totalWeight > 0.0f) {
-				height = static_cast<int>(flexibleSpace * (child.weight / totalWeight));
-			}
-			else {
-				height = child.component->bounds().height();
-			}
+			int height = (child.weight > 0.0f && totalWeight > 0.0f)
+				? static_cast<int>(flexibleSpace * (child.weight / totalWeight))
+				: childBounds.height();
 			height = std::min(height, content.height());
 
 			int width = content.width();
 			int x = content.left();
 
-			// 根据对齐方式调整
+			// 仅在子组件首选宽度有效时才收缩
 			if (child.alignment != Alignment::Stretch) {
-				width = std::min(width, child.component->bounds().width());
+				const int prefW = childBounds.width();
+				if (prefW > 0) {
+					width = std::min(width, prefW);
+				}
 				switch (child.alignment) {
 				case Alignment::Center:
 					x = content.left() + (content.width() - width) / 2;
