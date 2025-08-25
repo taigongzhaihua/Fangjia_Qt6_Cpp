@@ -14,22 +14,22 @@ namespace UI {
 
 		std::shared_ptr<Text> color(QColor c) {
 			m_color = c;
-			return std::static_pointer_cast<Text>(shared_from_this());
+			return self<Text>();
 		}
 
 		std::shared_ptr<Text> fontSize(int size) {
 			m_fontSize = size;
-			return std::static_pointer_cast<Text>(shared_from_this());
+			return self<Text>();
 		}
 
 		std::shared_ptr<Text> fontWeight(QFont::Weight weight) {
 			m_fontWeight = weight;
-			return std::static_pointer_cast<Text>(shared_from_this());
+			return self<Text>();
 		}
 
 		std::shared_ptr<Text> align(Qt::Alignment align) {
 			m_alignment = align;
-			return std::static_pointer_cast<Text>(shared_from_this());
+			return self<Text>();
 		}
 
 		std::unique_ptr<IUiComponent> build() const override;
@@ -49,12 +49,12 @@ namespace UI {
 
 		std::shared_ptr<Icon> color(QColor c) {
 			m_color = c;
-			return std::static_pointer_cast<Icon>(shared_from_this());
+			return self<Icon>();
 		}
 
 		std::shared_ptr<Icon> size(int s) {
 			m_size = s;
-			return std::static_pointer_cast<Icon>(shared_from_this());
+			return self<Icon>();
 		}
 
 		std::unique_ptr<IUiComponent> build() const override;
@@ -78,12 +78,10 @@ namespace UI {
 
 		std::shared_ptr<Button> style(ButtonStyle s) {
 			m_style = s;
-			return std::static_pointer_cast<Button>(shared_from_this());
+			return self<Button>();
 		}
 
 		std::unique_ptr<IUiComponent> build() const override;
-
-
 
 	private:
 		WidgetPtr m_child;
@@ -97,12 +95,12 @@ namespace UI {
 
 		std::shared_ptr<Container> child(WidgetPtr c) {
 			m_child = std::move(c);
-			return std::static_pointer_cast<Container>(shared_from_this());
+			return self<Container>();
 		}
 
 		std::shared_ptr<Container> alignment(Alignment align) {
 			m_alignment = align;
-			return std::static_pointer_cast<Container>(shared_from_this());
+			return self<Container>();
 		}
 
 		std::unique_ptr<IUiComponent> build() const override;

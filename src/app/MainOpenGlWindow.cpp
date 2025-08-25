@@ -312,18 +312,31 @@ void MainOpenGlWindow::initializeNavigation()
 
 void MainOpenGlWindow::initializePages()
 {
-	// 创建并注册所有页面
-	m_pageManager.registerPage("home", std::make_unique<HomePage>());
-	m_pageManager.registerPage("data", std::make_unique<DataPage>());
-	m_pageManager.registerPage("explore", std::make_unique<ExplorePage>());
-	m_pageManager.registerPage("favorites", std::make_unique<FavoritesPage>());
-	m_pageManager.registerPage("settings", std::make_unique<SettingsPage>());
+	try
+	{
+		// 创建并注册所有页面
+		qDebug() << "registering home...\n";
+		m_pageManager.registerPage("home", std::make_unique<HomePage>());
+		qDebug() << "registering data...\n";
+		m_pageManager.registerPage("data", std::make_unique<DataPage>());
+		qDebug() << "registering explore...\n";
+		m_pageManager.registerPage("explore", std::make_unique<ExplorePage>());
+		qDebug() << "registering favorites...\n";
+		m_pageManager.registerPage("favorites", std::make_unique<FavoritesPage>());
+		qDebug() << "registering favorites...\n";
+		m_pageManager.registerPage("settings", std::make_unique<SettingsPage>());
 
-	// 切换到初始页面
-	const auto& items = m_navVm.items();
-	if (m_navVm.selectedIndex() >= 0 && m_navVm.selectedIndex() < items.size()) {
-		m_pageManager.switchToPage(items[m_navVm.selectedIndex()].id);
+		// 切换到初始页面
+		const auto& items = m_navVm.items();
+		if (m_navVm.selectedIndex() >= 0 && m_navVm.selectedIndex() < items.size()) {
+			m_pageManager.switchToPage(items[m_navVm.selectedIndex()].id);
+		}
 	}
+	catch (const std::exception& e) {
+		qCritical() << "Exception in initializePages:" << e.what();
+		throw;
+	}
+
 }
 void MainOpenGlWindow::initializeTopBar()
 {

@@ -16,7 +16,7 @@ namespace UI {
 	using WidgetList = std::vector<WidgetPtr>;
 	using WidgetBuilder = std::function<WidgetPtr()>;
 
-	// 基础Widget类 - 所有声明式组件的基类
+	// 基础Widget类 - 修改链式调用实现
 	class Widget : public std::enable_shared_from_this<Widget> {
 	public:
 		virtual ~Widget() = default;
@@ -24,7 +24,20 @@ namespace UI {
 		// 构建实际的UI组件
 		virtual std::unique_ptr<IUiComponent> build() const = 0;
 
-		// 链式调用的修饰器 - 修改为返回 shared_ptr
+		// 修改：链式调用时安全获取 shared_ptr
+		template<typename Derived>
+		std::shared_ptr<Derived> self() {
+			// 安全地尝试获取 shared_ptr
+			try {
+				return std::static_pointer_cast<Derived>(shared_from_this());
+			}
+			catch (const std::bad_weak_ptr&) {
+				// 如果失败，返回空指针（调用者需要检查）
+				return nullptr;
+			}
+		}
+
+		// 链式调用的修饰器 - 使用 self() 方法
 		std::shared_ptr<Widget> padding(int all);
 		std::shared_ptr<Widget> padding(int horizontal, int vertical);
 		std::shared_ptr<Widget> padding(int left, int top, int right, int bottom);
@@ -68,7 +81,7 @@ namespace UI {
 		void applyDecorations(IUiComponent* component) const;
 	};
 
-	// 便捷的智能指针创建 - 确保立即包装为 shared_ptr
+	// 修改工厂函数，确保立即包装为 shared_ptr
 	template<typename T, typename... Args>
 	std::shared_ptr<T> make_widget(Args&&... args) {
 		return std::make_shared<T>(std::forward<Args>(args)...);
