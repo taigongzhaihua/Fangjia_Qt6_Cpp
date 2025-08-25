@@ -1,23 +1,21 @@
 #pragma once
 #include "TabViewModel.h"
 #include "UiPage.h"
-#include "UiTabView.h"
 #include <memory>
 
 class DataPage : public UiPage
 {
 public:
-	DataPage();
-	~DataPage() override;
+    DataPage();
+    ~DataPage() override;
 
-	TabViewModel* tabViewModel() { return &m_tabsVm; }
+    TabViewModel* tabViewModel();
 
 protected:
-	void initializeContent() override;
-	void applyPageTheme(bool isDark) override;
+    void initializeContent() override;
+    void applyPageTheme(bool isDark) override;
 
 private:
-	TabViewModel m_tabsVm;
-	UiTabView m_tabView;
-	std::unique_ptr<class UiFormulaView> m_formulaView;
+    class Impl;
+    std::unique_ptr<Impl> m_impl;
 };

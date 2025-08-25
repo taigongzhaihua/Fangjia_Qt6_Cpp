@@ -26,24 +26,31 @@ WinWindowChrome* WinWindowChrome::attach(QWindow* win,
 	std::function<QList<QRect>()> noDragRectsProvider)
 {
 	if (!win) return nullptr;
-	win->winId(); // 确保原生句柄创建
 
-	auto* chrome = new WinWindowChrome(win, dragHeight, std::move(noDragRectsProvider));
-	qApp->installNativeEventFilter(chrome);
+	try {
+		win->winId(); // 确保原生句柄创建
 
-	// 窗口销毁时，自动卸载过滤器并删除自身，避免悬挂
-	// 使用 qApp 为接收者 + QueuedConnection，避免在回调栈中自删
-	QObject::connect(win, &QObject::destroyed, qApp, [chrome]() {
-		chrome->detach();
-		delete chrome;
-		}, Qt::QueuedConnection);
+		auto* chrome = new WinWindowChrome(win, dragHeight, std::move(noDragRectsProvider));
+		qApp->installNativeEventFilter(chrome);
 
-	if (const auto h = static_cast<HWND>(chrome->hwnd())) {
-		constexpr MARGINS m{ 0, 0, 0, 0 };
-		DwmExtendFrameIntoClientArea(h, &m); // 保持 DWM 阴影
+		// 窗口销毁时，自动卸载过滤器并删除自身，避免悬挂
+		// 使用 qApp 为接收者 + QueuedConnection，避免在回调栈中自删
+		QObject::connect(win, &QObject::destroyed, qApp, [chrome]() {
+			chrome->detach();
+			delete chrome;
+			}, Qt::QueuedConnection);
+
+		if (const auto h = static_cast<HWND>(chrome->hwnd())) {
+			constexpr MARGINS m{ 0, 0, 0, 0 };
+			DwmExtendFrameIntoClientArea(h, &m); // 保持 DWM 阴影
+		}
+		chrome->notifyLayoutChanged();
+		return chrome;
 	}
-	chrome->notifyLayoutChanged();
-	return chrome;
+	catch (const std::exception& e) {
+		qCritical() << "Exception in WinWindowChrome::attach:" << e.what();
+		return nullptr;
+	}
 }
 
 WinWindowChrome::WinWindowChrome(QWindow* win,
@@ -173,92 +180,102 @@ qintptr WinWindowChrome::hitTestNonClient(const QPoint& posLogical) const
 
 bool WinWindowChrome::nativeEventFilter(const QByteArray& eventType, void* message, qintptr* result)
 {
-	if (m_detached) return false;
-	if (eventType != "windows_generic_MSG" || !m_window) return false;
+	try {
+		if (m_detached) return false;
+		if (eventType != "windows_generic_MSG" || !m_window) return false;
 
-	const MSG* msg = static_cast<MSG*>(message);
+		const MSG* msg = static_cast<MSG*>(message);
 
-	// 使用缓存句柄进行匹配，避免调用 hwnd()/winId()
-	if (!m_hwnd || msg->hwnd != static_cast<HWND>(m_hwnd))
-		return false;
+		// 使用缓存句柄进行匹配，避免调用 hwnd()/winId()
+		if (!m_hwnd || msg->hwnd != static_cast<HWND>(m_hwnd))
+			return false;
 
-	const UINT uMsg = msg->message;
+		const UINT uMsg = msg->message;
 
-	// 窗口销毁：尽早放行，避免在销毁期调用任何 API
-	if (uMsg == WM_NCDESTROY) {
-		// 标记分离，确保后续过滤器不再处理
-		m_detached = true;
-		if (result) *result = 0;
-		return false;
-	}
+		// 窗口销毁：尽早放行，避免在销毁期调用任何 API
+		if (uMsg == WM_NCDESTROY) {
+			// 标记分离，确保后续过滤器不再处理
+			m_detached = true;
+			if (result) *result = 0;
+			return false;
+		}
 
-	LRESULT dwmResult = 0;
-	if (DwmDefWindowProc(msg->hwnd, uMsg, msg->wParam, msg->lParam, &dwmResult)) {
-		if (result) *result = dwmResult;
-		return true;
-	}
+		LRESULT dwmResult = 0;
+		if (DwmDefWindowProc(msg->hwnd, uMsg, msg->wParam, msg->lParam, &dwmResult)) {
+			if (result) *result = dwmResult;
+			return true;
+		}
 
-	switch (uMsg) {
-	case WM_NCCALCSIZE: {
-		if (msg->wParam) {
-			auto* p = reinterpret_cast<NCCALCSIZE_PARAMS*>(msg->lParam);
-			RECT& r = p->rgrc[0];
+		switch (uMsg) {
+		case WM_NCCALCSIZE: {
+			if (msg->wParam) {
+				auto* p = reinterpret_cast<NCCALCSIZE_PARAMS*>(msg->lParam);
+				RECT& r = p->rgrc[0];
 
-			if (isMaximized(msg->hwnd)) {
-				MONITORINFO mi{ sizeof(MONITORINFO) };
-				if (GetMonitorInfo(MonitorFromWindow(msg->hwnd, MONITOR_DEFAULTTONEAREST), &mi)) {
-					r = mi.rcWork;
+				if (isMaximized(msg->hwnd)) {
+					MONITORINFO mi{ sizeof(MONITORINFO) };
+					if (GetMonitorInfo(MonitorFromWindow(msg->hwnd, MONITOR_DEFAULTTONEAREST), &mi)) {
+						r = mi.rcWork;
+					}
 				}
+				else {
+					const int bx = resizeBorderThicknessX();
+					const int by = resizeBorderThicknessY();
+					r.left += bx;
+					r.right -= bx;
+					r.top += 1;
+					r.bottom -= by;
+				}
+				if (result) *result = 0;
+				return true;
 			}
-			else {
-				const int bx = resizeBorderThicknessX();
-				const int by = resizeBorderThicknessY();
-				r.left += bx;
-				r.right -= bx;
-				r.top += 1;
-				r.bottom -= by;
-			}
-			if (result) *result = 0;
+			break;
+		}
+		case WM_NCHITTEST: {
+			const POINT ptScreen{ GET_X_LPARAM(msg->lParam), GET_Y_LPARAM(msg->lParam) };
+			POINT ptClient = ptScreen;
+			ScreenToClient(msg->hwnd, &ptClient);
+			const QPoint posLogical(ptClient.x, ptClient.y);
+			if (result) *result = hitTestNonClient(posLogical);
 			return true;
 		}
-		break;
-	}
-	case WM_NCHITTEST: {
-		const POINT ptScreen{ GET_X_LPARAM(msg->lParam), GET_Y_LPARAM(msg->lParam) };
-		POINT ptClient = ptScreen;
-		ScreenToClient(msg->hwnd, &ptClient);
-		const QPoint posLogical(ptClient.x, ptClient.y);
-		if (result) *result = hitTestNonClient(posLogical);
-		return true;
-	}
-	case WM_GETMINMAXINFO: {
-		auto* mmi = reinterpret_cast<MINMAXINFO*>(msg->lParam);
-		const HMONITOR mon = MonitorFromWindow(msg->hwnd, MONITOR_DEFAULTTONEAREST);
-		MONITORINFO mi{ sizeof(MONITORINFO) };
-		if (GetMonitorInfo(mon, &mi)) {
-			const auto& [left, top, right, bottom] = mi.rcWork;
-			const RECT& rcMon = mi.rcMonitor;
-			mmi->ptMaxSize.x = right - left;
-			mmi->ptMaxSize.y = bottom - top;
-			mmi->ptMaxPosition.x = left - rcMon.left;
-			mmi->ptMaxPosition.y = top - rcMon.top;
-			if (result) *result = 0;
-			return true;
+		case WM_GETMINMAXINFO: {
+			auto* mmi = reinterpret_cast<MINMAXINFO*>(msg->lParam);
+			const HMONITOR mon = MonitorFromWindow(msg->hwnd, MONITOR_DEFAULTTONEAREST);
+			MONITORINFO mi{ sizeof(MONITORINFO) };
+			if (GetMonitorInfo(mon, &mi)) {
+				const auto& [left, top, right, bottom] = mi.rcWork;
+				const RECT& rcMon = mi.rcMonitor;
+				mmi->ptMaxSize.x = right - left;
+				mmi->ptMaxSize.y = bottom - top;
+				mmi->ptMaxPosition.x = left - rcMon.left;
+				mmi->ptMaxPosition.y = top - rcMon.top;
+				if (result) *result = 0;
+				return true;
+			}
+			break;
 		}
-		break;
-	}
-	case WM_ERASEBKGND:
-		if (result) *result = 1;
-		return true;
+		case WM_ERASEBKGND:
+			if (result) *result = 1;
+			return true;
 
-	case WM_NCACTIVATE:
+		case WM_NCACTIVATE:
+			return false;
+
+		default:
+			break;
+		}
+
 		return false;
-
-	default:
-		break;
 	}
-
-	return false;
+	catch (const std::exception& e) {
+		qCritical() << "Exception in WinWindowChrome::nativeEventFilter:" << e.what();
+		return false;
+	}
+	catch (...) {
+		qCritical() << "Unknown exception in WinWindowChrome::nativeEventFilter";
+		return false;
+	}
 }
 
 #endif // Q_OS_WIN || _WIN32

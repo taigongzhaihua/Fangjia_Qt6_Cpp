@@ -1,94 +1,164 @@
 #include "AppConfig.h"
 #include "DataPage.h"
 #include "ServiceLocator.h"
+#include "UI.h"
 #include "UiFormulaView.h"
+#include <BasicWidgets.h>
+#include <ComponentWrapper.h>
+#include <Layouts.h>
 #include <memory>
 #include <qcolor.h>
 #include <qcontainerfwd.h>
-#include <qobject.h>
+#include <qstring.h>
 #include <TabViewModel.h>
-#include <UiPage.h>
-#include <UiTabView.h>
+#include <UiComponent.hpp>
+#include <Widget.h>
 
-DataPage::DataPage()
-{
+// 内部实现类
+class DataPage::Impl {
+public:
+	TabViewModel tabsVm;
+	std::unique_ptr<UiFormulaView> formulaView;
+	std::unique_ptr<IUiComponent> builtComponent;
+	bool isDark = false;
+
+	Impl() {
+		// 初始化标签页
+		tabsVm.setItems(QVector<TabViewModel::TabItem>{
+			{.id = "formula", .label = "方剂", .tooltip = "中医方剂数据库"},
+			{ .id = "herb", .label = "中药", .tooltip = "中药材信息" },
+			{ .id = "classic", .label = "经典", .tooltip = "经典医籍" },
+			{ .id = "case", .label = "医案", .tooltip = "临床医案记录" },
+			{ .id = "internal", .label = "内科", .tooltip = "内科诊疗" },
+			{ .id = "diagnosis", .label = "诊断", .tooltip = "诊断方法" }
+		});
+
+		// 创建方剂视图
+		formulaView = std::make_unique<UiFormulaView>();
+
+		// 从配置恢复
+		if (auto config = DI.get<AppConfig>()) {
+			if (!config->recentTab().isEmpty()) {
+				int tabIdx = tabsVm.findById(config->recentTab());
+				if (tabIdx >= 0) {
+					tabsVm.setSelectedIndex(tabIdx);
+				}
+			}
+		}
+	}
+
+	WidgetPtr buildUI() {
+		return column({
+			// Tab栏容器
+			container(
+				buildTabBar()
+			)->height(43)->background(
+				isDark ? QColor(255,255,255,10) : QColor(0,0,0,6)
+			),
+
+				// 内容区域
+				expanded(
+					buildContent()
+				)
+			});
+	}
+
+private:
+	WidgetPtr buildTabBar() {
+		auto items = tabsVm.items();
+		WidgetList tabs;
+
+		for (int i = 0; i < items.size(); ++i) {
+			tabs.push_back(buildTab(items[i], i));
+		}
+
+		return row(tabs)->mainAxisAlignment(Alignment::Start);
+	}
+
+	WidgetPtr buildTab(const TabViewModel::TabItem& item, int index) {
+		const bool selected = (index == tabsVm.selectedIndex());
+
+		return button(
+			container(
+				text(item.label)
+				->fontSize(14)
+				->color(selected ?
+					(isDark ? QColor(255, 255, 255, 255) : QColor(40, 46, 54, 255)) :
+					(isDark ? QColor(230, 240, 250, 255) : QColor(70, 76, 84, 255))
+				)
+			)->padding(16, 10)
+		)
+			->style(Button::ButtonStyle::Text)
+			->onTap([this, index]() {
+			tabsVm.setSelectedIndex(index);
+			rebuildContent();
+				});
+	}
+
+	WidgetPtr buildContent() {
+		const QString selectedId = tabsVm.selectedId();
+
+		if (selectedId == "formula") {
+			return buildFormulaContent();
+		}
+
+		// 其他标签页的占位内容
+		return container(
+			column({
+				icon(":/icons/development.svg")->size(64)->color(QColor(150,150,150)),
+				spacer(16),
+				text("功能开发中...")
+					->fontSize(16)
+					->color(QColor(130,130,130))
+				})->mainAxisAlignment(Alignment::Center)
+		)->alignment(Alignment::Center);
+	}
+
+	WidgetPtr buildFormulaContent() {
+		// 使用新的 wrap 函数包装现有的 UiFormulaView
+		return wrap(formulaView.get());
+	}
+
+	void rebuildContent() {
+		// 这里需要通知父组件重新构建
+		// 暂时通过保存配置触发
+		if (auto config = DI.get<AppConfig>()) {
+			config->setRecentTab(tabsVm.selectedId());
+		}
+	}
+};
+
+// DataPage 实现
+DataPage::DataPage() : m_impl(std::make_unique<Impl>()) {
 	setTitle("数据");
-	DataPage::initializeContent();
+	initializeContent();
 }
 
 DataPage::~DataPage() = default;
 
-void DataPage::initializeContent()
-{
-	UiPage::initializeContent();
-	// 初始化标签页
-	m_tabsVm.setItems(QVector<TabViewModel::TabItem>{
-		{.id = "formula", .label = "方剂", .tooltip = "中医方剂数据库"},
-		{ .id = "herb", .label = "中药", .tooltip = "中药材信息" },
-		{ .id = "classic", .label = "经典", .tooltip = "经典医籍" },
-		{ .id = "case", .label = "医案", .tooltip = "临床医案记录" },
-		{ .id = "internal", .label = "内科", .tooltip = "内科诊疗" },
-		{ .id = "diagnosis", .label = "诊断", .tooltip = "诊断方法" }
-	});
+void DataPage::initializeContent() {
+	// 构建声明式UI
+	auto widget = m_impl->buildUI();
+	m_impl->builtComponent = widget->build();
 
-	// 从配置恢复最近的Tab
-	if (auto config = DI.get<AppConfig>()) {
-		if (!config->recentTab().isEmpty()) {
-			int tabIdx = m_tabsVm.findById(config->recentTab());
-			if (tabIdx >= 0) {
-				m_tabsVm.setSelectedIndex(tabIdx);
-			}
-		}
-
-		// 连接Tab变化到配置保存
-		QObject::connect(&m_tabsVm, &TabViewModel::selectedIndexChanged,
-			[config](int) {
-				config->setRecentTab(config->recentTab());
-				config->save();
-			});
-	}
-
-	// 创建方剂视图
-	m_formulaView = std::make_unique<UiFormulaView>();
-
-	// 设置TabView
-	m_tabView.setViewModel(&m_tabsVm);
-	m_tabView.setIndicatorStyle(UiTabView::IndicatorStyle::Bottom);
-	m_tabView.setTabHeight(43);
-	m_tabView.setAnimationDuration(220);
-	m_tabView.setContent(0, m_formulaView.get());
-
-	// 设置内容为TabView
-	setContent(&m_tabView);
+	// 设置为页面内容
+	setContent(m_impl->builtComponent.get());
 }
 
+void DataPage::applyPageTheme(bool isDark) {
+	m_impl->isDark = isDark;
 
-void DataPage::applyPageTheme(bool isDark)
-{
-	// 设置TabView的主题
-	if (isDark) {
-		m_tabView.setPalette(UiTabView::Palette{
-			.barBg = QColor(255,255,255,10),
-			.tabHover = QColor(255,255,255,20),
-			.tabSelectedBg = QColor(100,100,100,128),
-			.indicator = QColor(0,122,255,220),
-			.label = QColor(230,240,250,255),
-			.labelSelected = QColor(255,255,255,255)
-			});
-	}
-	else {
-		m_tabView.setPalette(UiTabView::Palette{
-			.barBg = QColor(0,0,0,6),
-			.tabHover = QColor(0,0,0,10),
-			.tabSelectedBg = QColor(0,0,0,14),
-			.indicator = QColor(0,102,204,220),
-			.label = QColor(70,76,84,255),
-			.labelSelected = QColor(40,46,54,255)
-			});
+	// 传递主题到方剂视图
+	if (m_impl->formulaView) {
+		m_impl->formulaView->setDarkTheme(isDark);
 	}
 
-	// 设置方剂视图的主题
-	if (m_formulaView) {
-		m_formulaView->setDarkTheme(isDark);
-	}
+	// 重新构建UI
+	auto widget = m_impl->buildUI();
+	m_impl->builtComponent = widget->build();
+	setContent(m_impl->builtComponent.get());
+}
+
+TabViewModel* DataPage::tabViewModel() {
+	return &m_impl->tabsVm;
 }

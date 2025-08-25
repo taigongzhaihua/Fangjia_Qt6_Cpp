@@ -33,6 +33,8 @@
 #include <qnamespace.h>
 #include <qrect.h>
 #include <qwindow.h>
+#include <exception>
+#include <qlogging.h>
 
 namespace {
 	inline MainOpenGlWindow::Theme schemeToTheme(const Qt::ColorScheme s) {
@@ -54,92 +56,122 @@ namespace {
 MainOpenGlWindow::MainOpenGlWindow(const UpdateBehavior updateBehavior)
 	: QOpenGLWindow(updateBehavior)
 {
-	initializeServices();
+	try {
+		qDebug() << "MainOpenGlWindow constructor start";
+		initializeServices();
 
-	// 设置动画定时器
-	connect(&m_animTimer, &QTimer::timeout, this, &MainOpenGlWindow::onAnimationTick);
-	m_animTimer.setTimerType(Qt::PreciseTimer);
-	m_animTimer.setInterval(16);
-	m_animClock.start();
+		// 设置动画定时器
+		connect(&m_animTimer, &QTimer::timeout, this, &MainOpenGlWindow::onAnimationTick);
+		m_animTimer.setTimerType(Qt::PreciseTimer);
+		m_animTimer.setInterval(16);
+		m_animClock.start();
+
+		qDebug() << "MainOpenGlWindow constructor end";
+	}
+	catch (const std::exception& e) {
+		qCritical() << "Exception in MainOpenGlWindow constructor:" << e.what();
+		throw;
+	}
 }
 
 MainOpenGlWindow::~MainOpenGlWindow()
 {
-	// 保存窗口状态
-	if (m_config) {
-		m_config->setWindowGeometry(saveWindowGeometry(this));
-		m_config->setNavSelectedIndex(m_navVm.selectedIndex());
-		m_config->setNavExpanded(m_navVm.expanded());
-		m_config->save();
-	}
+	try {
+		// 保存窗口状态
+		if (m_config) {
+			m_config->setWindowGeometry(saveWindowGeometry(this));
+			m_config->setNavSelectedIndex(m_navVm.selectedIndex());
+			m_config->setNavExpanded(m_navVm.expanded());
+			m_config->save();
+		}
 
 #ifdef Q_OS_WIN
-	if (m_winChrome) {
-		m_winChrome->detach();
-		m_winChrome = nullptr;
-	}
+		if (m_winChrome) {
+			m_winChrome->detach();
+			m_winChrome = nullptr;
+		}
 #endif
 
-	makeCurrent();
-	m_iconLoader.releaseAll(this);
-	m_renderer.releaseGL();
-	doneCurrent();
+		makeCurrent();
+		m_iconLoader.releaseAll(this);
+		m_renderer.releaseGL();
+		doneCurrent();
+	}
+	catch (const std::exception& e) {
+		qCritical() << "Exception in MainOpenGlWindow destructor:" << e.what();
+	}
 }
 
 void MainOpenGlWindow::initializeGL()
 {
-	initializeOpenGLFunctions();
-	glEnable(GL_BLEND);
-	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+	try {
+		qDebug() << "MainOpenGlWindow::initializeGL start";
 
-	m_renderer.initializeGL(this);
+		initializeOpenGLFunctions();
+		glEnable(GL_BLEND);
+		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+		m_renderer.initializeGL(this);
 
 #ifdef Q_OS_WIN
-	if (!m_winChrome) {
-		m_winChrome = WinWindowChrome::attach(this, 56, [this]() {
-			QVector<QRect> excludeRects;
-			excludeRects.push_back(navBounds());
-			excludeRects.push_back(topBarBounds());
-			return excludeRects;
-			});
-	}
+		if (!m_winChrome) {
+			qDebug() << "Attaching WinWindowChrome...";
+			m_winChrome = WinWindowChrome::attach(this, 56, [this]() {
+				QVector<QRect> excludeRects;
+				excludeRects.push_back(navBounds());
+				excludeRects.push_back(topBarBounds());
+				return excludeRects;
+				});
+		}
 #endif
 
-	// 先确定初始主题
-	if (m_themeMgr) {
-		m_theme = schemeToTheme(m_themeMgr->effectiveColorScheme());
+		// 先确定初始主题
+		if (m_themeMgr) {
+			m_theme = schemeToTheme(m_themeMgr->effectiveColorScheme());
+		}
+		else {
+			m_theme = Theme::Light;  // 默认浅色
+		}
+
+		// 设置清屏颜色
+		if (m_theme == Theme::Dark) {
+			m_clearColor = QColor::fromRgbF(0.05f, 0.10f, 0.15f);
+		}
+		else {
+			m_clearColor = QColor::fromRgbF(0.91f, 0.92f, 0.94f);
+		}
+
+		qDebug() << "Initializing navigation...";
+		initializeNavigation();
+
+		qDebug() << "Initializing pages...";
+		initializePages();
+
+		qDebug() << "Initializing top bar...";
+		initializeTopBar();
+
+		// 添加UI组件到根容器
+		m_uiRoot.add(&m_nav);
+		m_uiRoot.add(&m_topBar);
+		if (auto* currentPage = m_pageManager.currentPage()) {
+			m_uiRoot.add(currentPage);
+		}
+
+		// 在所有组件添加后，应用初始主题
+		const bool isDark = (m_theme == Theme::Dark);
+		m_uiRoot.propagateThemeChange(isDark);
+
+		updateLayout();
+
+		// 设置主题监听
+		setupThemeListeners();
+
+		qDebug() << "MainOpenGlWindow::initializeGL end";
 	}
-	else {
-		m_theme = Theme::Light;  // 默认浅色
+	catch (const std::exception& e) {
+		qCritical() << "Exception in initializeGL:" << e.what();
+		throw;
 	}
-
-	// 设置清屏颜色
-	if (m_theme == Theme::Dark) {
-		m_clearColor = QColor::fromRgbF(0.05f, 0.10f, 0.15f);
-	}
-	else {
-		m_clearColor = QColor::fromRgbF(0.91f, 0.92f, 0.94f);
-	}
-
-	initializeNavigation();
-	initializePages();
-	initializeTopBar();  // 改名，从 initializeTheme
-
-	// 添加UI组件到根容器
-	m_uiRoot.add(&m_nav);
-	m_uiRoot.add(&m_topBar);
-	if (auto* currentPage = m_pageManager.currentPage()) {
-		m_uiRoot.add(currentPage);
-	}
-
-	// 在所有组件添加后，应用初始主题
-	const bool isDark = (m_theme == Theme::Dark);
-	m_uiRoot.propagateThemeChange(isDark);
-
-	updateLayout();
-
-	// 设置主题监听
-	setupThemeListeners();
 }
 
 
