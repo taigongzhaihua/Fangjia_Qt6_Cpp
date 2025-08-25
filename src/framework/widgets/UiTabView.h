@@ -27,7 +27,7 @@ class UiTabView final : public IUiComponent, public IUiContent
 public:
 	struct Palette {
 		QColor barBg;            // 选项卡条背景
-		QColor contentBg;		 // 内容区背景
+		QColor contentBg;        // 内容区背景
 		QColor tabHover;         // 悬停背景
 		QColor tabSelectedBg;    // 选中背景
 		QColor indicator;        // 选中指示条颜色
@@ -103,6 +103,9 @@ private:
 
 	void syncFromVmInstant();
 	void startHighlightAnim(float toCenterX);
+
+	// 新增：确保当前选中内容拥有 viewport 与资源上下文
+	void ensureCurrentContentSynced() const;
 
 	static QString textCacheKey(const QString& baseKey, int px, const QColor& color);
 	static float easeInOut(float t);

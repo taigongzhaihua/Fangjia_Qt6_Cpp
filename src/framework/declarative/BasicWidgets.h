@@ -12,8 +12,10 @@ namespace UI {
 	public:
 		explicit Text(QString text) : m_text(std::move(text)) {}
 
+		// 显式设色：一旦调用则不再跟随主题自动变色
 		std::shared_ptr<Text> color(QColor c) {
 			m_color = c;
+			m_autoColor = false;
 			return self<Text>();
 		}
 
@@ -36,10 +38,11 @@ namespace UI {
 
 	private:
 		QString m_text;
-		QColor m_color{ 0, 0, 0 };
+		QColor m_color{ 0, 0, 0 };      // 若未显式设色，将在 onThemeChanged 中根据主题覆盖
 		int m_fontSize{ 14 };
 		QFont::Weight m_fontWeight{ QFont::Normal };
 		Qt::Alignment m_alignment{ Qt::AlignLeft };
+		bool m_autoColor{ true };       // 新增：自动跟随主题
 	};
 
 	// 图标组件
@@ -49,6 +52,7 @@ namespace UI {
 
 		std::shared_ptr<Icon> color(QColor c) {
 			m_color = c;
+			m_autoColor = false;
 			return self<Icon>();
 		}
 
@@ -63,6 +67,7 @@ namespace UI {
 		QString m_path;
 		QColor m_color{ 0, 0, 0 };
 		int m_size{ 24 };
+		bool m_autoColor{ true };       // 预留：如需可按主题自动变色
 	};
 
 	// 按钮组件

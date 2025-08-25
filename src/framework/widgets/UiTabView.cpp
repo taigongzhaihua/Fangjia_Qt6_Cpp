@@ -16,6 +16,7 @@
 #include <qsize.h>
 #include <qstring.h>
 #include <qtypes.h>
+#include <ranges>
 #include <unordered_map>
 #include <vector>
 
@@ -30,6 +31,9 @@ void UiTabView::setViewModel(TabViewModel* vm)
 
 	// 同步视图状态（无动画）
 	syncFromVmInstant();
+
+	// 确保当前内容拿到 viewport 与资源上下文
+	ensureCurrentContentSynced();
 }
 
 void UiTabView::syncFromVmInstant()
@@ -90,19 +94,27 @@ void UiTabView::setTabs(const QStringList& labels)
 		m_highlightCenterX = r.isValid() ? static_cast<float>(r.center().x()) : -1.0f;
 		m_animHighlight.active = false;
 	}
+
+	// 确保当前内容拿到 viewport 与资源上下文
+	ensureCurrentContentSynced();
 }
 
 void UiTabView::setSelectedIndex(const int idx)
 {
 	if (m_vm) {
-		// VM 模式：驱动 VM
+		// VM 模式：驱动 VM 并同步当前内容上下文
 		m_vm->setSelectedIndex(idx);
+		ensureCurrentContentSynced();
 		return;
 	}
 
 	// 兼容模式
 	if (idx < 0 || idx >= m_fallbackTabs.size()) return;
-	if (m_fallbackSelected == idx && m_highlightCenterX >= 0.0f) return;
+	if (m_fallbackSelected == idx && m_highlightCenterX >= 0.0f) {
+		// 仍要确保当前内容已经有上下文（首次构建可能没有）
+		ensureCurrentContentSynced();
+		return;
+	}
 
 	const int prev = m_fallbackSelected;
 	m_fallbackSelected = idx;
@@ -118,6 +130,9 @@ void UiTabView::setSelectedIndex(const int idx)
 	else {
 		startHighlightAnim(targetCX);
 	}
+
+	// 新选项的内容需要立即具备 viewport + 资源上下文
+	ensureCurrentContentSynced();
 }
 
 QRectF UiTabView::contentRectF() const
@@ -187,7 +202,6 @@ void UiTabView::updateResourceContext(IconLoader& loader, QOpenGLFunctions* gl, 
 	// 更新当前内容的资源上下文
 	const int curIdx = selectedIndex();
 	if (IUiComponent* curContent = content(curIdx)) {
-		// qDebug() << "UiTabView updating resource context for tab" << curIdx << "\n";
 		curContent->updateResourceContext(loader, gl, devicePixelRatio);
 	}
 }
@@ -428,9 +442,11 @@ bool UiTabView::onMouseRelease(const QPoint& pos)
 	if (hit >= 0 && hit == wasPressed) {
 		if (m_vm) {
 			m_vm->setSelectedIndex(hit);
+			// 立即保证新内容具备上下文与视口
+			ensureCurrentContentSynced();
 		}
 		else {
-			setSelectedIndex(hit);
+			setSelectedIndex(hit); // 兼容模式里内部会调用 ensureCurrentContentSynced()
 		}
 		return true;
 	}
@@ -462,6 +478,11 @@ bool UiTabView::tick()
 				m_animHighlight.active = false;
 			}
 			m_viewSelected = vmSel;
+
+			// 选中项变化后，确保当前内容上下文与视口同步
+			ensureCurrentContentSynced();
+
+			any = true;
 		}
 	}
 
@@ -508,6 +529,11 @@ void UiTabView::onThemeChanged(bool isDark)
 			.labelSelected = QColor(20,32,48,255)
 		};
 	}
+
+	// 新增：将主题变化传播给所有 tab 内容（不仅仅是当前内容）
+	for (const auto& val : m_tabContents | std::views::values) {
+		if (val) val->onThemeChanged(isDark);
+	}
 	// 不需要重建；下一帧按新配色渲染
 }
 
@@ -537,6 +563,10 @@ void UiTabView::setContent(const int tabIdx, IUiComponent* content)
 {
 	if (tabIdx < 0) return;
 	m_tabContents[tabIdx] = content;
+	// 如果刚好是当前选中的内容，保证其有上下文与视口
+	if (tabIdx == selectedIndex()) {
+		ensureCurrentContentSynced();
+	}
 }
 
 void UiTabView::setContents(const std::vector<IUiComponent*>& contents)
@@ -545,10 +575,31 @@ void UiTabView::setContents(const std::vector<IUiComponent*>& contents)
 	for (size_t i = 0; i < contents.size(); ++i) {
 		if (contents[i]) m_tabContents[static_cast<int>(i)] = contents[i];
 	}
+	// 同步当前内容上下文
+	ensureCurrentContentSynced();
 }
 
 IUiComponent* UiTabView::content(const int tabIdx) const
 {
 	const auto it = m_tabContents.find(tabIdx);
 	return (it != m_tabContents.end()) ? it->second : nullptr;
+}
+
+void UiTabView::ensureCurrentContentSynced() const
+{
+	const int curIdx = selectedIndex();
+	IUiComponent* cur = content(curIdx);
+	if (!cur) return;
+
+	// viewport
+	if (auto* c = dynamic_cast<IUiContent*>(cur)) {
+		const QRect contentRect = contentRectF().toRect();
+		// 仅在 viewport 合法时下发
+		if (contentRect.isValid()) c->setViewportRect(contentRect);
+	}
+
+	// 资源上下文（若 m_loader/m_gl 已可用）
+	if (m_loader && m_gl) {
+		cur->updateResourceContext(*m_loader, m_gl, m_dpr);
+	}
 }
