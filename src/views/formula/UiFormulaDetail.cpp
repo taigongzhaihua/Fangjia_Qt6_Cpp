@@ -56,8 +56,9 @@ void UiFormulaDetail::append(Render::FrameData& fd) const
 	// 始终绘制背景
 	fd.roundedRects.push_back(Render::RoundedRectCmd{
 		.rect = QRectF(m_viewport),
-		.radiusPx = 4.0f,  // 轻微圆角
-		.color = m_pal.bg
+		.radiusPx = 4.0f,
+		.color = m_pal.bg,
+		.clipRect = QRectF(m_viewport) // 新增
 		});
 
 	if (!m_formula) {
@@ -81,7 +82,6 @@ void UiFormulaDetail::append(Render::FrameData& fd) const
 		font.setPixelSize(titleFontPx);
 		font.setWeight(QFont::Bold);
 
-		// 包含颜色信息的缓存键
 		const QString key = QString("formula_title|%1|%2").arg(m_formula->name).arg(m_pal.titleColor.name());
 		const int tex = m_loader->ensureTextPx(key, font, m_formula->name, m_pal.titleColor, m_gl);
 		const QSize ts = m_loader->textureSizePx(tex);
@@ -89,18 +89,14 @@ void UiFormulaDetail::append(Render::FrameData& fd) const
 		const float wLogical = static_cast<float>(ts.width()) / m_dpr;
 		const float hLogical = static_cast<float>(ts.height()) / m_dpr;
 
-		const QRectF textDst(
-			m_viewport.left() + 24,
-			y,
-			wLogical,
-			hLogical
-		);
+		const QRectF textDst(m_viewport.left() + 24, y, wLogical, hLogical);
 
 		fd.images.push_back(Render::ImageCmd{
 			.dstRect = textDst,
 			.textureId = tex,
 			.srcRectPx = QRectF(0, 0, ts.width(), ts.height()),
-			.tint = QColor(255,255,255,255)
+			.tint = QColor(255,255,255,255),
+			.clipRect = QRectF(m_viewport) // 新增
 			});
 
 		y += static_cast<int>(hLogical) + 20;
@@ -125,7 +121,6 @@ void UiFormulaDetail::drawHintText(Render::FrameData& fd) const
 	QFont font;
 	font.setPixelSize(fontPx);
 
-	// 使用次级文字颜色
 	QColor hintColor = m_pal.textColor;
 	hintColor.setAlpha(150);
 
@@ -136,7 +131,6 @@ void UiFormulaDetail::drawHintText(Render::FrameData& fd) const
 	const float wLogical = static_cast<float>(ts.width()) / m_dpr;
 	const float hLogical = static_cast<float>(ts.height()) / m_dpr;
 
-	// 居中显示
 	const QRectF textDst(
 		m_viewport.center().x() - wLogical * 0.5f,
 		m_viewport.center().y() - hLogical * 0.5f,
@@ -148,7 +142,8 @@ void UiFormulaDetail::drawHintText(Render::FrameData& fd) const
 		.dstRect = textDst,
 		.textureId = tex,
 		.srcRectPx = QRectF(0, 0, ts.width(), ts.height()),
-		.tint = QColor(255,255,255,255)
+		.tint = QColor(255,255,255,255),
+		.clipRect = QRectF(m_viewport) // 新增
 		});
 }
 
@@ -159,13 +154,12 @@ void UiFormulaDetail::drawSection(Render::FrameData& fd, const QString& label, c
 	const int fontPx = std::lround(14.0f * m_dpr);
 	const int labelFontPx = std::lround(13.0f * m_dpr);
 
-	// 绘制标签
+	// 标签
 	{
 		QFont font;
 		font.setPixelSize(labelFontPx);
 		font.setWeight(QFont::DemiBold);
 
-		// 重要：缓存键必须包含颜色
 		const QString key = QString("label|%1|%2").arg(label).arg(m_pal.labelColor.name());
 		const int tex = m_loader->ensureTextPx(key, font, label + "：", m_pal.labelColor, m_gl);
 		const QSize ts = m_loader->textureSizePx(tex);
@@ -177,18 +171,18 @@ void UiFormulaDetail::drawSection(Render::FrameData& fd, const QString& label, c
 			.dstRect = QRectF(m_viewport.left() + 24, y, wLogical, hLogical),
 			.textureId = tex,
 			.srcRectPx = QRectF(0, 0, ts.width(), ts.height()),
-			.tint = QColor(255,255,255,255)
+			.tint = QColor(255,255,255,255),
+			.clipRect = QRectF(m_viewport) // 新增
 			});
 
 		y += static_cast<int>(hLogical) + 8;
 	}
 
-	// 绘制内容（简化处理，实际应该处理换行）
+	// 内容
 	{
 		QFont font;
 		font.setPixelSize(fontPx);
 
-		// 重要：缓存键必须包含颜色
 		const QString key = QString("content|%1|%2|%3").arg(label).arg(content.left(20)).arg(m_pal.textColor.name());
 		const int tex = m_loader->ensureTextPx(key, font, content, m_pal.textColor, m_gl);
 		const QSize ts = m_loader->textureSizePx(tex);
@@ -196,7 +190,6 @@ void UiFormulaDetail::drawSection(Render::FrameData& fd, const QString& label, c
 		const float wLogical = static_cast<float>(ts.width()) / m_dpr;
 		const float hLogical = static_cast<float>(ts.height()) / m_dpr;
 
-		// 限制最大宽度
 		const float maxWidth = m_viewport.width() - 48;
 		const float displayW = std::min(wLogical, maxWidth);
 
@@ -204,7 +197,8 @@ void UiFormulaDetail::drawSection(Render::FrameData& fd, const QString& label, c
 			.dstRect = QRectF(m_viewport.left() + 40, y, displayW, hLogical),
 			.textureId = tex,
 			.srcRectPx = QRectF(0, 0, ts.width(), ts.height()),
-			.tint = QColor(255,255,255,255)
+			.tint = QColor(255,255,255,255),
+			.clipRect = QRectF(m_viewport) // 新增
 			});
 
 		y += static_cast<int>(hLogical) + 16;

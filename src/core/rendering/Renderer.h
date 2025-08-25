@@ -26,8 +26,12 @@ public:
 	void drawFrame(const Render::FrameData& fd, const IconLoader& iconLoader, float devicePixelRatio);
 
 private:
-	void drawRoundedRectPx(const QRectF& r, float radiusPx, const QColor& color);
-	void drawImagePx(const Render::ImageCmd& img, const IconLoader& iconLoader);
+	void drawRoundedRect(const Render::RoundedRectCmd& cmd);
+	void drawImage(const Render::ImageCmd& img, const IconLoader& iconLoader);
+
+	// 设置/恢复剪裁（逻辑像素矩形；宽高<=0 则禁用）
+	void applyClip(const QRectF& clipLogical);
+	void restoreClip();
 
 private:
 	// GL 资源（圆角矩形）
@@ -57,4 +61,8 @@ private:
 
 	// 当前上下文的 GL 函数表
 	QOpenGLFunctions* m_gl{ nullptr };
+
+	// 剪裁状态
+	bool  m_clipActive{ false };
+	QRect m_clipPx{ 0,0,0,0 }; // 当前启用的剪裁矩形（像素坐标，原点左上）
 };

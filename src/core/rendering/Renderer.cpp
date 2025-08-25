@@ -4,6 +4,7 @@
 #include "RenderData.hpp"
 
 #include <algorithm>
+#include <cmath>
 #include <gl/GL.h>
 #include <qcolor.h>
 #include <qopenglext.h>
@@ -25,6 +26,27 @@ namespace {
 		const float ndcB = 1.f - yB / static_cast<float>(vpHpx) * 2.f;
 		out[0] = ndcL; out[1] = ndcT; out[2] = ndcR; out[3] = ndcT; out[4] = ndcR; out[5] = ndcB;
 		out[6] = ndcL; out[7] = ndcT; out[8] = ndcR; out[9] = ndcB; out[10] = ndcL; out[11] = ndcB;
+	}
+
+	inline QRect clipLogicalToPxTopLeft(const QRectF& logical, float dpr, int fbWpx, int fbHpx) {
+		if (logical.width() <= 0.0 || logical.height() <= 0.0) return QRect();
+		const int x = std::clamp(static_cast<int>(std::floor(logical.left() * dpr)), 0, fbWpx);
+		const int yTop = static_cast<int>(std::floor(logical.top() * dpr));
+		const int hPx = static_cast<int>(std::ceil(logical.height() * dpr));
+		const int y = std::clamp(yTop, 0, fbHpx);
+		const int w = std::clamp(static_cast<int>(std::ceil(logical.width() * dpr)), 0, fbWpx - x);
+		const int h = std::clamp(hPx, 0, fbHpx - y);
+		return QRect(x, y, w, h);
+	}
+
+	// OpenGL glScissor 以左下角为原点，我们这里统一使用“左上角原点”的像素坐标，因此需要转换
+	inline void glScissorTopLeft(QOpenGLFunctions* gl, const QRect& clipTopLeftPx, int fbHpx) {
+		const int x = clipTopLeftPx.x();
+		const int y = std::max(0, fbHpx - (clipTopLeftPx.y() + clipTopLeftPx.height()));
+		const int w = clipTopLeftPx.width();
+		const int h = clipTopLeftPx.height();
+		gl->glEnable(GL_SCISSOR_TEST);
+		gl->glScissor(x, y, w, h);
 	}
 }
 
@@ -144,12 +166,41 @@ void Renderer::resize(const int fbWpx, const int fbHpx)
 	if (m_gl) m_gl->glViewport(0, 0, m_fbWpx, m_fbHpx);
 }
 
-void Renderer::drawRoundedRectPx(const QRectF& r, const float radiusPx, const QColor& color)
+void Renderer::applyClip(const QRectF& clipLogical)
+{
+	// 若 clip 未启用，关闭剪裁
+	if (clipLogical.width() <= 0.0 || clipLogical.height() <= 0.0) {
+		restoreClip();
+		return;
+	}
+	// 计算像素空间并启用 glScissor（左上角原点）
+	m_clipPx = clipLogicalToPxTopLeft(clipLogical, m_currentDpr, m_fbWpx, m_fbHpx);
+	if (m_clipPx.width() <= 0 || m_clipPx.height() <= 0) {
+		restoreClip();
+		return;
+	}
+	m_clipActive = true;
+	glScissorTopLeft(m_gl, m_clipPx, m_fbHpx);
+}
+
+void Renderer::restoreClip()
+{
+	if (m_clipActive) {
+		m_gl->glDisable(GL_SCISSOR_TEST);
+		m_clipActive = false;
+		m_clipPx = QRect(0, 0, 0, 0);
+	}
+}
+
+void Renderer::drawRoundedRect(const Render::RoundedRectCmd& cmd)
 {
 	if (!m_progRect || !m_gl || m_fbWpx <= 0 || m_fbHpx <= 0) return;
 
-	const QRectF rp(r.x() * m_currentDpr, r.y() * m_currentDpr, r.width() * m_currentDpr, r.height() * m_currentDpr);
-	const float  rr = radiusPx * m_currentDpr;
+	// 应用裁剪
+	applyClip(cmd.clipRect);
+
+	const QRectF rp(cmd.rect.x() * m_currentDpr, cmd.rect.y() * m_currentDpr, cmd.rect.width() * m_currentDpr, cmd.rect.height() * m_currentDpr);
+	const float  rr = cmd.radiusPx * m_currentDpr;
 
 	float verts[12];
 	rectPxToNdcVerts(rp, m_fbWpx, m_fbHpx, verts);
@@ -162,15 +213,21 @@ void Renderer::drawRoundedRectPx(const QRectF& r, const float radiusPx, const QC
 	m_progRect->setUniformValue(m_locViewportSize, QVector2D(static_cast<float>(m_fbWpx), static_cast<float>(m_fbHpx)));
 	m_progRect->setUniformValue(m_locRectPx, QVector4D(static_cast<float>(rp.x()), static_cast<float>(rp.y()), static_cast<float>(rp.width()), static_cast<float>(rp.height())));
 	m_progRect->setUniformValue(m_locRadius, rr);
-	m_progRect->setUniformValue(m_locColor, QVector4D(color.redF(), color.greenF(), color.blueF(), color.alphaF()));
+	m_progRect->setUniformValue(m_locColor, QVector4D(cmd.color.redF(), cmd.color.greenF(), cmd.color.blueF(), cmd.color.alphaF()));
 	m_gl->glDrawArrays(GL_TRIANGLES, 0, 6);
 	m_progRect->release();
 	m_vao.release();
+
+	// 恢复裁剪
+	restoreClip();
 }
 
-void Renderer::drawImagePx(const Render::ImageCmd& img, const IconLoader& iconLoader)
+void Renderer::drawImage(const Render::ImageCmd& img, const IconLoader& iconLoader)
 {
 	if (!m_progTex || !m_gl || img.textureId == 0 || m_fbWpx <= 0 || m_fbHpx <= 0) return;
+
+	// 应用裁剪
+	applyClip(img.clipRect);
 
 	const QRectF dstPx(img.dstRect.x() * m_currentDpr, img.dstRect.y() * m_currentDpr, img.dstRect.width() * m_currentDpr, img.dstRect.height() * m_currentDpr);
 
@@ -198,11 +255,18 @@ void Renderer::drawImagePx(const Render::ImageCmd& img, const IconLoader& iconLo
 
 	m_progTex->release();
 	m_vao.release();
+
+	// 恢复裁剪
+	restoreClip();
 }
 
 void Renderer::drawFrame(const Render::FrameData& fd, const IconLoader& iconLoader, const float devicePixelRatio)
 {
 	m_currentDpr = std::max(0.5f, devicePixelRatio);
-	for (const auto& [rect, radiusPx, color] : fd.roundedRects) drawRoundedRectPx(rect, radiusPx, color);
-	for (const auto& im : fd.images)       drawImagePx(im, iconLoader);
+
+	// 圆角矩形
+	for (const auto& rr : fd.roundedRects) drawRoundedRect(rr);
+
+	// 纹理
+	for (const auto& im : fd.images)       drawImage(im, iconLoader);
 }

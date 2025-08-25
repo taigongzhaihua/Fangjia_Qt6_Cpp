@@ -18,6 +18,7 @@
 #include <qrect.h>
 #include <qsize.h>
 #include <qstring.h>
+#include <qtypes.h>
 #include <UiComponent.hpp>
 #include <UiContent.hpp>
 #include <utility>
@@ -160,7 +161,6 @@ namespace UI {
 						}
 						else { // Visible
 							lines.push_back(makeTex(seg));
-							// 继续，但 Visible 不限行的意义下 maxLines==INF；这里仍尊重 maxLines 约束
 							break;
 						}
 					}
@@ -179,7 +179,6 @@ namespace UI {
 					// 高度满了就停止（Clip/ Ellipsis 皆停止）
 					const int totalHpx = static_cast<int>(lines.size()) * lineHpx + static_cast<int>(lines.size() > 0 ? (lines.size() - 1) : 0) * lineGapPx;
 					if (totalHpx > availHpx && availHpx > 0) {
-						// 最后一行超过容器高度，直接停止（无需再添加更多）
 						break;
 					}
 				}
@@ -219,15 +218,12 @@ namespace UI {
 					x = m_bounds.right() - wLogical;
 				}
 
-				// 水平裁切（Clip 模式，或容器限制强制裁切）
+				// 水平裁切：已在 Renderer 用 glScissor 统一处理；这里仍保留像素级 srcRect 裁切（多行/clip 模式）
 				QRectF srcPx(0, 0, ln.texPx.width(), ln.texPx.height());
 				float drawW = wLogical;
 				if ((m_overflow == Text::Overflow::Clip || m_wrap) && m_bounds.width() > 0) {
-					// 可见左边界/右边界（逻辑）
 					const float leftVisible = static_cast<float>(m_bounds.left());
 					const float rightVisible = static_cast<float>(m_bounds.right());
-
-					// 左侧超出：移动 src 起点
 					if (x < leftVisible) {
 						const float cutL = std::min(leftVisible - x, drawW);
 						const float cutLpx = cutL * m_dpr;
@@ -236,7 +232,6 @@ namespace UI {
 						x += cutL;
 						drawW -= cutL;
 					}
-					// 右侧超出：缩短绘制宽度
 					if (x + drawW > rightVisible) {
 						const float cutR = std::max(0.0f, x + drawW - rightVisible);
 						const float newW = std::max(0.0f, drawW - cutR);
@@ -258,7 +253,8 @@ namespace UI {
 					.dstRect = dst,
 					.textureId = ln.tex,
 					.srcRectPx = srcPx,
-					.tint = QColor(255,255,255,255)
+					.tint = QColor(255,255,255,255),
+					.clipRect = QRectF(m_bounds) // 新增：对整段文本使用 m_bounds 作为裁剪区域
 					});
 			}
 		}
@@ -271,7 +267,6 @@ namespace UI {
 
 		void onThemeChanged(bool isDark) override {
 			if (m_autoColor) {
-				// 根据主题自动设色
 				m_color = isDark ? QColor(240, 245, 250) : QColor(30, 35, 40);
 			}
 		}
@@ -305,7 +300,7 @@ namespace UI {
 		return decorate(std::move(comp));
 	}
 
-	// 图标组件实现（与之前相同）
+	// 图标组件实现（与之前相同，补上裁剪）
 	class IconComponent : public IUiComponent, public IUiContent {
 	public:
 		IconComponent(const QString& path, const QColor& color, int size, bool /*autoColor*/)
@@ -329,9 +324,10 @@ namespace UI {
 			fd.roundedRects.push_back(Render::RoundedRectCmd{
 				.rect = QRectF(m_bounds.center().x() - m_size / 2.0f,
 							  m_bounds.center().y() - m_size / 2.0f,
-							  m_size, m_size),
+							  static_cast<qreal>(m_size), static_cast<qreal>(m_size)),
 				.radiusPx = m_size / 4.0f,
-				.color = m_color
+				.color = m_color,
+				.clipRect = QRectF(m_bounds) // 新增：裁剪到自身 bounds
 				});
 		}
 
@@ -358,7 +354,6 @@ namespace UI {
 		auto comp = std::make_unique<IconComponent>(m_path, m_color, m_size, m_autoColor);
 		return decorate(std::move(comp));
 	}
-
 
 	// 容器组件实现（保持与你当前版本一致）
 	std::unique_ptr<IUiComponent> Container::build() const {

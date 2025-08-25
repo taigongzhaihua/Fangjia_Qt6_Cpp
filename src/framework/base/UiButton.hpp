@@ -108,12 +108,14 @@ namespace Ui
 			if (m_opacity <= 0.001f) return; // 完全透明不绘制
 			const QRectF r = visualRectF();
 			const QColor bg = withOpacity(backgroundForState(), m_opacity);
-			fd.roundedRects.push_back(Render::RoundedRectCmd{ .rect = r, .radiusPx = m_corner, .color = bg });
+			fd.roundedRects.push_back(Render::RoundedRectCmd{
+				.rect = r, .radiusPx = m_corner, .color = bg, .clipRect = r // 新增：按钮背景裁剪
+				});
 
 			if (m_iconPainter)
 			{
 				const QColor ic = withOpacity(m_icon, m_opacity);
-				m_iconPainter(r, fd, ic, m_opacity);
+				m_iconPainter(r, fd, ic, m_opacity); // painter 内部也会使用 r 做 clipRect
 			}
 		}
 

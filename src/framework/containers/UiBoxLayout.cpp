@@ -312,6 +312,7 @@ void UiBoxLayout::updateResourceContext(IconLoader& loader, QOpenGLFunctions* gl
 	}
 }
 
+
 void UiBoxLayout::append(Render::FrameData& fd) const
 {
 	// 检查视口有效性
@@ -326,7 +327,8 @@ void UiBoxLayout::append(Render::FrameData& fd) const
 		fd.roundedRects.push_back(Render::RoundedRectCmd{
 			.rect = QRectF(m_viewport),
 			.radiusPx = m_cornerRadius,
-			.color = m_bgColor
+			.color = m_bgColor,
+			.clipRect = QRectF(m_viewport) // 新增：布局背景也裁剪到自身
 			});
 	}
 

@@ -1,8 +1,16 @@
 #include "UiTreeList.h"
 #include <algorithm>
 #include <cmath>
+#include <functional>
+#include <IconLoader.h>
+#include <qcolor.h>
 #include <qfont.h>
-#include <qlogging.h>
+#include <qopenglfunctions.h>
+#include <qpoint.h>
+#include <qrect.h>
+#include <qsize.h>
+#include <qstring.h>
+#include <RenderData.hpp>
 
 UiTreeList::UiTreeList() {}
 
@@ -107,7 +115,8 @@ void UiTreeList::append(Render::FrameData& fd) const
 		fd.roundedRects.push_back(Render::RoundedRectCmd{
 			.rect = QRectF(m_viewport),
 			.radiusPx = 0.0f,
-			.color = m_pal.bg
+			.color = m_pal.bg,
+			.clipRect = QRectF(m_viewport) // 新增
 			});
 	}
 
@@ -126,14 +135,16 @@ void UiTreeList::append(Render::FrameData& fd) const
 			fd.roundedRects.push_back(Render::RoundedRectCmd{
 				.rect = QRectF(vn.rect),
 				.radiusPx = 0.0f,
-				.color = m_pal.itemSelected
+				.color = m_pal.itemSelected,
+				.clipRect = QRectF(m_viewport)
 				});
 		}
 		else if (static_cast<int>(i) == m_hover) {
 			fd.roundedRects.push_back(Render::RoundedRectCmd{
 				.rect = QRectF(vn.rect),
 				.radiusPx = 0.0f,
-				.color = m_pal.itemHover
+				.color = m_pal.itemHover,
+				.clipRect = QRectF(m_viewport)
 				});
 		}
 
@@ -149,7 +160,8 @@ void UiTreeList::append(Render::FrameData& fd) const
 				fd.roundedRects.push_back(Render::RoundedRectCmd{
 					.rect = QRectF(cx - size / 2, cy - size / 4, size, size / 2),
 					.radiusPx = 1.0f,
-					.color = m_pal.expandIcon
+					.color = m_pal.expandIcon,
+					.clipRect = QRectF(m_viewport)
 					});
 			}
 			else {
@@ -157,7 +169,8 @@ void UiTreeList::append(Render::FrameData& fd) const
 				fd.roundedRects.push_back(Render::RoundedRectCmd{
 					.rect = QRectF(cx - size / 4, cy - size / 2, size / 2, size),
 					.radiusPx = 1.0f,
-					.color = m_pal.expandIcon
+					.color = m_pal.expandIcon,
+					.clipRect = QRectF(m_viewport)
 					});
 			}
 		}
@@ -189,15 +202,17 @@ void UiTreeList::append(Render::FrameData& fd) const
 			.dstRect = textDst,
 			.textureId = tex,
 			.srcRectPx = QRectF(0, 0, ts.width(), ts.height()),
-			.tint = QColor(255,255,255,255)
+			.tint = QColor(255,255,255,255),
+			.clipRect = QRectF(m_viewport) // 新增：所有项裁剪到列表 viewport
 			});
 
-		// 分类分隔线（示例：顶层节点下方）
+		// 分隔线
 		if (info.level == 0 && i < m_visibleNodes.size() - 1) {
 			fd.roundedRects.push_back(Render::RoundedRectCmd{
 				.rect = QRectF(vn.rect.left() + 8, vn.rect.bottom() - 1, vn.rect.width() - 16, 1),
 				.radiusPx = 0.0f,
-				.color = m_pal.separator
+				.color = m_pal.separator,
+				.clipRect = QRectF(m_viewport)
 				});
 		}
 	}

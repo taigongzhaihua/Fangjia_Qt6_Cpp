@@ -149,12 +149,14 @@ void UiTopBar::updateResourceContext(IconLoader& loader, QOpenGLFunctions* gl, c
 		const QString key = iconCacheKey(themeBaseKey, iconLogical, m_dpr); // 已带 @v2
 
 		QByteArray svg = svgDataCached(themePath);
-		const int tex = m_loader->ensureSvgPx(key, svg, QSize(px, px), QColor(255, 255, 255, 255), m_gl); // 统一白底
+		const int tex = m_loader->ensureSvgPx(key, svg, QSize(px, px), QColor(255, 255, 255, 255), m_gl);
 		const QSize texSz = m_loader->textureSizePx(tex);
 
 		const QRectF dst(r.center().x() - iconLogical * 0.5, r.center().y() - iconLogical * 0.5, iconLogical, iconLogical);
-		// 颜色/透明度仅通过 tint 控制
-		fd.images.push_back(Render::ImageCmd{ .dstRect = dst, .textureId = tex, .srcRectPx = QRectF(0, 0, texSz.width(), texSz.height()), .tint = iconColor });
+		fd.images.push_back(Render::ImageCmd{
+			.dstRect = dst, .textureId = tex, .srcRectPx = QRectF(0, 0, texSz.width(), texSz.height()),
+			.tint = iconColor, .clipRect = r // 新增：按钮图标裁剪到按钮矩形
+			});
 		});
 
 	m_btnFollow.setIconPainter([this, followPath, followBaseKey](const QRectF& r, Render::FrameData& fd, const QColor& iconColor, float) {
@@ -168,10 +170,13 @@ void UiTopBar::updateResourceContext(IconLoader& loader, QOpenGLFunctions* gl, c
 		const QSize texSz = m_loader->textureSizePx(tex);
 
 		const QRectF dst(r.center().x() - iconLogical * 0.5, r.center().y() - iconLogical * 0.5, iconLogical, iconLogical);
-		fd.images.push_back(Render::ImageCmd{ .dstRect = dst, .textureId = tex, .srcRectPx = QRectF(0, 0, texSz.width(), texSz.height()), .tint = iconColor });
+		fd.images.push_back(Render::ImageCmd{
+			.dstRect = dst, .textureId = tex, .srcRectPx = QRectF(0, 0, texSz.width(), texSz.height()),
+			.tint = iconColor, .clipRect = r
+			});
 		});
 
-	// 改为使用 SVG 图标的三大键（最小化/最大化/关闭）
+	// 三大键图标
 	auto setupSvgIcon = [this](Ui::Button& btn, const QString& baseKey, const QString& path, int logicalPx) {
 		btn.setIconPainter([this, baseKey, path, logicalPx](const QRectF& r, Render::FrameData& fd, const QColor& iconColor, float) {
 			if (!m_loader || !m_gl) return;
@@ -190,10 +195,8 @@ void UiTopBar::updateResourceContext(IconLoader& loader, QOpenGLFunctions* gl, c
 			);
 
 			fd.images.push_back(Render::ImageCmd{
-				.dstRect = dst,
-				.textureId = tex,
-				.srcRectPx = QRectF(0,0,texSz.width(), texSz.height()),
-				.tint = iconColor // 通过 tint 着色
+				.dstRect = dst, .textureId = tex, .srcRectPx = QRectF(0,0,texSz.width(), texSz.height()),
+				.tint = iconColor, .clipRect = r
 				});
 			});
 		};

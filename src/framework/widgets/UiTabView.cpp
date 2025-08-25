@@ -243,7 +243,8 @@ void UiTabView::append(Render::FrameData& fd) const
 		fd.roundedRects.push_back(Render::RoundedRectCmd{
 			.rect = bar.adjusted(m_tabBarMargin.left(), m_tabBarMargin.top(), -m_tabBarMargin.right(), -m_tabBarMargin.bottom()),
 			.radiusPx = 8.0f,
-			.color = m_pal.barBg
+			.color = m_pal.barBg,
+			.clipRect = QRectF(m_viewport) // 新增：裁剪到整个 TabView 区域
 			});
 	}
 
@@ -253,7 +254,8 @@ void UiTabView::append(Render::FrameData& fd) const
 		fd.roundedRects.push_back(Render::RoundedRectCmd{
 			.rect = contentR.adjusted(-m_contentPadding.left(), -m_contentPadding.top(), m_contentPadding.right(), m_contentPadding.bottom()),
 			.radiusPx = 8.0f,
-			.color = m_pal.contentBg
+			.color = m_pal.contentBg,
+			.clipRect = QRectF(m_viewport)
 			});
 	}
 
@@ -276,7 +278,8 @@ void UiTabView::append(Render::FrameData& fd) const
 			fd.roundedRects.push_back(Render::RoundedRectCmd{
 				.rect = bgRect,
 				.radiusPx = 6.0f,
-				.color = m_pal.tabSelectedBg
+				.color = m_pal.tabSelectedBg,
+				.clipRect = bgRect
 				});
 		}
 
@@ -308,7 +311,8 @@ void UiTabView::append(Render::FrameData& fd) const
 			fd.roundedRects.push_back(Render::RoundedRectCmd{
 				.rect = indRect,
 				.radiusPx = indH * 0.5f,
-				.color = m_pal.indicator
+				.color = m_pal.indicator,
+				.clipRect = bgRect
 				});
 		}
 	}
@@ -335,7 +339,6 @@ void UiTabView::append(Render::FrameData& fd) const
 		}
 	}
 
-	// 文本
 	const int fontPx = std::lround(14.0f * m_dpr);
 	QFont font;
 	font.setPixelSize(fontPx);
@@ -355,7 +358,6 @@ void UiTabView::append(Render::FrameData& fd) const
 		const float wLogical = static_cast<float>(ts.width()) / m_dpr;
 		const float hLogical = static_cast<float>(ts.height()) / m_dpr;
 
-		// 对齐到整数像素边界
 		const float centerX = std::round(r.center().x());
 		const float centerY = std::round(r.center().y());
 		const float textX = std::round(centerX - wLogical * 0.5f);
@@ -367,17 +369,15 @@ void UiTabView::append(Render::FrameData& fd) const
 			.dstRect = textDst,
 			.textureId = tex,
 			.srcRectPx = QRectF(0, 0, ts.width(), ts.height()),
-			.tint = QColor(255,255,255,255)
+			.tint = QColor(255,255,255,255),
+			.clipRect = r
 			});
 	}
 
 	int curIdx = selectedIndex();
-
 	if (IUiComponent* curContent = content(curIdx)) {
-
-		curContent->append(fd);
+		curContent->append(fd); // 子内容自身会裁剪
 	}
-
 }
 
 bool UiTabView::onMousePress(const QPoint& pos)

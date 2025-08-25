@@ -62,7 +62,8 @@ void UiPage::append(Render::FrameData& fd) const
 	fd.roundedRects.push_back(Render::RoundedRectCmd{
 		.rect = card,
 		.radiusPx = m_cornerRadius,
-		.color = m_pal.cardBg
+		.color = m_pal.cardBg,
+		.clipRect = QRectF(m_viewport) // 新增：裁剪到页面 viewport
 		});
 
 	// 标题文字
@@ -76,11 +77,9 @@ void UiPage::append(Render::FrameData& fd) const
 	const int tex = m_loader->ensureTextPx(key, font, m_title, m_pal.headingColor, m_gl);
 	const QSize ts = m_loader->textureSizePx(tex);
 
-	// 将像素尺寸换成逻辑像素
+	// 逻辑尺寸
 	const float wLogical = static_cast<float>(ts.width()) / m_dpr;
 	const float hLogical = static_cast<float>(ts.height()) / m_dpr;
-
-	// 放在卡片左上角，四周 24px 内边距
 
 	const float centerX = std::round(card.left() + 24);
 	const float centerY = std::round(card.top() + 36);
@@ -93,7 +92,8 @@ void UiPage::append(Render::FrameData& fd) const
 		.dstRect = dst,
 		.textureId = tex,
 		.srcRectPx = QRectF(0, 0, ts.width(), ts.height()),
-		.tint = QColor(255,255,255,255) // 文字已在纹理阶段着色
+		.tint = QColor(255,255,255,255),
+		.clipRect = card // 新增：标题裁剪到卡片
 		});
 
 	// 让内容组件在卡片内绘制自身内容（它已知道自己的 viewport）
@@ -101,6 +101,7 @@ void UiPage::append(Render::FrameData& fd) const
 		m_content->append(fd);
 	}
 }
+
 void UiPage::onThemeChanged(bool isDark)
 {
 	m_isDark = isDark;

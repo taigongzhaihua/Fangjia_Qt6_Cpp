@@ -14,6 +14,9 @@ namespace Render {
 		QRectF rect;      // 逻辑像素矩形（后续乘以 DPR，再传给 shader 的像素空间）
 		float  radiusPx;  // 圆角半径（逻辑像素）
 		QColor color;     // 颜色（含 alpha）
+
+		// 新增：可选的裁剪矩形（逻辑像素；宽高<=0表示不启用）
+		QRectF clipRect;
 	};
 
 	// 一条绘制纹理图像的命令
@@ -26,6 +29,9 @@ namespace Render {
 		int    textureId{ 0 };
 		QRectF srcRectPx;     // 以像素为单位
 		QColor tint{ 255,255,255,255 };
+
+		// 新增：可选的裁剪矩形（逻辑像素；宽高<=0表示不启用）
+		QRectF clipRect;
 	};
 
 	// 一帧的图形数据（可扩展更多图元类型）
@@ -48,7 +54,7 @@ namespace Render {
 		// 提交一帧数据（覆盖旧的等待消费的数据）
 		void submit(const FrameData& fd) {
 			std::scoped_lock lk(m_mtx);
-			m_front = fd;                   // 拷贝（小型数据量足够；后续可用对象池/持久化缓冲优化）
+			m_front = fd;
 			m_hasNew.store(true, std::memory_order_release);
 		}
 
@@ -58,7 +64,7 @@ namespace Render {
 				return false;
 			}
 			std::scoped_lock lk(m_mtx);
-			out = std::move(m_front);       // 移出，减少拷贝
+			out = std::move(m_front);
 			m_hasNew.store(false, std::memory_order_release);
 			return true;
 		}
