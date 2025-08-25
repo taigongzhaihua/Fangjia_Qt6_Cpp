@@ -228,6 +228,23 @@ void UiBoxLayout::calculateLayout()
 	}
 }
 
+void UiBoxLayout::setViewportRect(const QRect& r)
+{
+	m_viewport = r;
+	calculateLayout();  // 重新计算布局
+
+	// 关键修复：在这里就把子项的 viewport 下发，不用等到 updateLayout
+	if (!m_childRects.empty()) {
+		for (size_t i = 0; i < m_children.size(); ++i) {
+			if (!m_children[i].visible || !m_children[i].component) continue;
+			if (auto* content = dynamic_cast<IUiContent*>(m_children[i].component)) {
+				const QRect cr = (i < m_childRects.size() ? m_childRects[i] : QRect());
+				content->setViewportRect(cr);
+			}
+		}
+	}
+}
+
 void UiBoxLayout::updateLayout(const QSize& windowSize)
 {
 	qDebug() << "UiBoxLayout::updateLayout, viewport:" << m_viewport

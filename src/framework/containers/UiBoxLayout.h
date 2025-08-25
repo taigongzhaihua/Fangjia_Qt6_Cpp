@@ -63,10 +63,7 @@ public:
 	void setCornerRadius(float radius) { m_cornerRadius = std::max(0.0f, radius); }
 
 	// IUiContent
-	void setViewportRect(const QRect& r) override {
-		m_viewport = r;
-		calculateLayout();  // 重新计算布局
-	}
+	void setViewportRect(const QRect& r) override;
 
 	// IUiComponent
 	void updateLayout(const QSize& windowSize) override;

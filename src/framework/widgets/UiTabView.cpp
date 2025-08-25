@@ -591,14 +591,16 @@ void UiTabView::ensureCurrentContentSynced() const
 	IUiComponent* cur = content(curIdx);
 	if (!cur) return;
 
-	// viewport
+	// 先下发 viewport 给顶层内容
 	if (auto* c = dynamic_cast<IUiContent*>(cur)) {
 		const QRect contentRect = contentRectF().toRect();
-		// 仅在 viewport 合法时下发
 		if (contentRect.isValid()) c->setViewportRect(contentRect);
 	}
 
-	// 资源上下文（若 m_loader/m_gl 已可用）
+	// 关键补充：推进一轮布局，让容器把 viewport 继续传播给子孙
+	cur->updateLayout(m_viewport.size());
+
+	// 再补资源上下文（如可用）
 	if (m_loader && m_gl) {
 		cur->updateResourceContext(*m_loader, m_gl, m_dpr);
 	}
