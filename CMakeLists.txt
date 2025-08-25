@@ -36,6 +36,7 @@ include_directories(
     ${SRC_DIR}/framework/base
     ${SRC_DIR}/framework/containers
     ${SRC_DIR}/framework/widgets
+    ${SRC_DIR}/framework/declarative
     ${SRC_DIR}/models
     ${SRC_DIR}/views
     ${SRC_DIR}/views/pages
@@ -111,6 +112,23 @@ if(WIN32)
 endif()
 
 # ========================================
+# 添加声明式UI库
+# ========================================
+file(GLOB DECLARATIVE_SOURCES
+    "${SRC_DIR}/framework/declarative/*.cpp"
+    "${SRC_DIR}/framework/declarative/*.h"
+)
+
+add_library(declarative_ui STATIC ${DECLARATIVE_SOURCES})
+target_link_libraries(declarative_ui PUBLIC 
+    ui_framework
+    core_rendering
+    Qt6::Core 
+    Qt6::Gui 
+    Qt6::Widgets
+)
+
+# ========================================
 # UI 框架库
 # ========================================
 file(GLOB UI_FRAMEWORK_SOURCES
@@ -160,6 +178,7 @@ set(VIEW_SOURCES
 
 add_library(business_views STATIC ${VIEW_SOURCES})
 target_link_libraries(business_views PUBLIC 
+    declarative_ui
     ui_framework 
     models 
     core_rendering

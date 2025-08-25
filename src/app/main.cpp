@@ -12,9 +12,9 @@ int main(int argc, char* argv[])
 {
 	QApplication app(argc, argv);
 
-	QCoreApplication::setOrganizationName(QStringLiteral("Fangjia"));
-	QCoreApplication::setOrganizationDomain(QStringLiteral("example.com"));
-	QCoreApplication::setApplicationName(QStringLiteral("Fangjia_Qt6_Cpp"));
+	QCoreApplication::setOrganizationName(QStringLiteral("TaiGongZhaiHua"));
+	QCoreApplication::setOrganizationDomain(QStringLiteral("Fangjia.com"));
+	QCoreApplication::setApplicationName(QStringLiteral("Fangjia"));
 
 	// 设置默认的 OpenGL 上下文参数
 	QSurfaceFormat fmt;

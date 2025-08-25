@@ -258,8 +258,7 @@ void MainOpenGlWindow::initializeNavigation()
 
 	// 从配置恢复状态
 	if (m_config) {
-		const int savedIndex = m_config->navSelectedIndex();
-		if (savedIndex >= 0 && savedIndex < m_navVm.count()) {
+		if (const int savedIndex = m_config->navSelectedIndex(); savedIndex >= 0 && savedIndex < m_navVm.count()) {
 			m_navVm.setSelectedIndex(savedIndex);
 		}
 		else {
