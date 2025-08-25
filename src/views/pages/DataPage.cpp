@@ -9,9 +9,11 @@
 #include <memory>
 #include <qcolor.h>
 #include <qcontainerfwd.h>
+#include <qlogging.h>
 #include <qstring.h>
 #include <TabViewModel.h>
 #include <UiComponent.hpp>
+#include <UiTabView.h>
 #include <Widget.h>
 
 // 内部实现类
@@ -48,19 +50,22 @@ public:
 	}
 
 	WidgetPtr buildUI() {
-		return column({
-			// Tab栏容器
-			container(
-				buildTabBar()
-			)->height(43)->background(
-				isDark ? QColor(255,255,255,10) : QColor(0,0,0,6)
-			),
-
-				// 内容区域
-				expanded(
-					buildContent()
-				)
-			});
+		auto tv = tabView()
+			->tabs(QStringList({ "方剂","中药","经典", "医案","内科", "诊断" }))
+			->selectedIndex(0)
+			->indicatorStyle(UiTabView::IndicatorStyle::Bottom)
+			->tabHeight(43)
+			->animationDuration(220)
+			->contents(WidgetList{
+				wrap(formulaView.get()),
+				container(text("中药功能开发中")->fontSize(16))->alignment(Alignment::Center),
+				container(text("经典功能开发中")->fontSize(16))->alignment(Alignment::Center)
+				})
+			->onChanged([this](int idx) {
+			// 非 VM 模式的回调
+			qDebug() << "Tab changed to" << idx;
+				});
+		return tv;
 	}
 
 private:

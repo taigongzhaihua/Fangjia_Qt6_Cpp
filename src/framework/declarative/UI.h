@@ -1,8 +1,9 @@
 #pragma once
 #include "AdvancedWidgets.h"
 #include "BasicWidgets.h"
-#include "ComponentWrapper.h"  // 新增
+#include "ComponentWrapper.h"
 #include "Layouts.h"
+#include "TabView.h"  // 新增
 #include "Theme.h"
 #include "Widget.h"
 
@@ -19,13 +20,14 @@ namespace UI {
 	inline auto row(WidgetList children = {}) { return make_widget<Row>(children); }
 	inline auto stack(WidgetList children = {}) { return make_widget<Stack>(children); }
 
-	inline auto expanded(WidgetPtr child, float flex = 1.0f) {
-		return make_widget<Expanded>(child, flex);
-	}
+	inline auto expanded(WidgetPtr child, float flex = 1.0f) { return make_widget<Expanded>(child, flex); }
 	inline auto spacer(int size = 0) { return make_widget<Spacer>(size); }
 
 	inline auto listTile() { return make_widget<ListTile>(); }
 	inline auto tabBar(std::vector<TabBar::Tab> tabs) { return make_widget<TabBar>(tabs); }
+
+	// 新增：声明式 TabView 包装器
+	inline auto tabView() { return make_widget<TabView>(); }
 
 	// 条件渲染
 	inline auto when(bool condition, WidgetPtr ifTrue, WidgetPtr ifFalse = nullptr) {
@@ -33,16 +35,9 @@ namespace UI {
 	}
 
 	// 主题
-	inline auto theme(ThemeData data, WidgetPtr child) {
-		return make_widget<Theme>(data, child);
-	}
-
-	inline auto themed(std::function<WidgetPtr(const ThemeData&)> builder) {
-		return make_widget<ThemedBuilder>(builder);
-	}
-
+	inline auto theme(ThemeData data, WidgetPtr child) { return make_widget<Theme>(data, child); }
+	inline auto themed(std::function<WidgetPtr(const ThemeData&)> builder) { return make_widget<ThemedBuilder>(builder); }
 
 } // namespace UI
 
-// 简化命名空间使用
 using namespace UI;
