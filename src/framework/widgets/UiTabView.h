@@ -26,6 +26,7 @@ class UiTabView final : public IUiComponent, public IUiContent
 public:
 	struct Palette {
 		QColor barBg;            // 选项卡条背景
+		QColor contentBg;		 // 内容区背景
 		QColor tabHover;         // 悬停背景
 		QColor tabSelectedBg;    // 选中背景
 		QColor indicator;        // 选中指示条颜色
@@ -65,7 +66,6 @@ public:
 	void setContents(const std::vector<IUiComponent*>& contents);
 	IUiComponent* content(int tabIdx) const;
 
-
 	// IUiComponent
 	void updateLayout(const QSize& windowSize) override;
 	void updateResourceContext(IconLoader& loader, QOpenGLFunctions* gl, float devicePixelRatio) override;
@@ -75,6 +75,9 @@ public:
 	bool onMouseRelease(const QPoint& pos) override;
 	bool tick() override;
 	QRect bounds() const override { return m_viewport; }
+
+	// 新增：主题自动下发
+	void onThemeChanged(bool isDark) override;
 
 	// 供外部查询动画状态
 	[[nodiscard]] bool hasActiveAnimation() const { return m_animHighlight.active; }
@@ -97,6 +100,15 @@ private:
 	QRect m_viewport;
 	TabViewModel* m_vm{ nullptr };
 
+	QMargins m_margin{ 0,0,0,0 };
+	QMargins m_padding{ 0,0,0,0 };
+	QMargins m_tabBarMargin{ 0,0,0,0 };
+	QMargins m_tabBarPadding{ 8,6,8,6 };
+	QMargins m_contentMargin{ 0,0,0,0 };
+	QMargins m_contentPadding{ 4,4,4,4 };
+	qreal m_tabBarSpacing{ 4 };
+	qreal m_spacing{ 8 };
+
 	// 兼容模式数据（未接 VM 时使用）
 	QStringList m_fallbackTabs;
 	int m_fallbackSelected{ 0 };
@@ -118,7 +130,7 @@ private:
 	} m_animHighlight;
 	QElapsedTimer m_clock;
 
-	// 外观配置
+	// 外观配置（默认浅色）
 	Palette m_pal{
 		.barBg = QColor(0,0,0,0),
 		.tabHover = QColor(0,0,0,16),
@@ -129,8 +141,8 @@ private:
 	};
 
 	IndicatorStyle m_indicatorStyle{ IndicatorStyle::Bottom };
-	int m_tabHeight{ 43 };
-	int m_animDuration{ 220 };
+	int m_tabHeight{ 46 };
+	int m_animDuration{ 150 };
 
 	// 资源上下文
 	IconLoader* m_loader{ nullptr };

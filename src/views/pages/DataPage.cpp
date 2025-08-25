@@ -7,7 +7,6 @@
 #include <ComponentWrapper.h>
 #include <Layouts.h>
 #include <memory>
-#include <qcolor.h>
 #include <qcontainerfwd.h>
 #include <qlogging.h>
 #include <qstring.h>
@@ -69,60 +68,7 @@ public:
 	}
 
 private:
-	WidgetPtr buildTabBar() {
-		auto items = tabsVm.items();
-		WidgetList tabs;
 
-		for (int i = 0; i < items.size(); ++i) {
-			tabs.push_back(buildTab(items[i], i));
-		}
-
-		return row(tabs)->mainAxisAlignment(Alignment::Start);
-	}
-
-	WidgetPtr buildTab(const TabViewModel::TabItem& item, int index) {
-		const bool selected = (index == tabsVm.selectedIndex());
-
-		return button(
-			container(
-				text(item.label)
-				->fontSize(14)
-				->color(selected ?
-					(isDark ? QColor(255, 255, 255, 255) : QColor(40, 46, 54, 255)) :
-					(isDark ? QColor(230, 240, 250, 255) : QColor(70, 76, 84, 255))
-				)
-			)->padding(16, 10)
-		)
-			->style(Button::ButtonStyle::Text)
-			->onTap([this, index]() {
-			tabsVm.setSelectedIndex(index);
-			rebuildContent();
-				});
-	}
-
-	WidgetPtr buildContent() {
-		const QString selectedId = tabsVm.selectedId();
-
-		if (selectedId == "formula") {
-			return buildFormulaContent();
-		}
-
-		// 其他标签页的占位内容
-		return container(
-			column({
-				icon(":/icons/development.svg")->size(64)->color(QColor(150,150,150)),
-				spacer(16),
-				text("功能开发中...")
-					->fontSize(16)
-					->color(QColor(130,130,130))
-				})->mainAxisAlignment(Alignment::Center)
-		)->alignment(Alignment::Center);
-	}
-
-	WidgetPtr buildFormulaContent() {
-		// 使用新的 wrap 函数包装现有的 UiFormulaView
-		return wrap(formulaView.get());
-	}
 
 	void rebuildContent() {
 		// 这里需要通知父组件重新构建
@@ -136,7 +82,7 @@ private:
 // DataPage 实现
 DataPage::DataPage() : m_impl(std::make_unique<Impl>()) {
 	setTitle("数据");
-	initializeContent();
+	DataPage::initializeContent();
 }
 
 DataPage::~DataPage() = default;
@@ -158,10 +104,10 @@ void DataPage::applyPageTheme(bool isDark) {
 		m_impl->formulaView->setDarkTheme(isDark);
 	}
 
-	// 重新构建UI
-	auto widget = m_impl->buildUI();
-	m_impl->builtComponent = widget->build();
-	setContent(m_impl->builtComponent.get());
+	// // 重新构建UI
+	// auto widget = m_impl->buildUI();
+	// m_impl->builtComponent = widget->build();
+	// setContent(m_impl->builtComponent.get());
 }
 
 TabViewModel* DataPage::tabViewModel() {

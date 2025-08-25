@@ -88,7 +88,7 @@ public:
 	void onThemeChanged(bool isDark) override;
 
 	// 设置是否为深色主题
-	void setDarkTheme(bool dark) { m_isDark = dark; }
+	void applyTheme(bool dark) override { m_isDark = dark; IUiComponent::applyTheme(dark); }
 	bool isDarkTheme() const { return m_isDark; }
 	// 子控件可见性
 	void setChildVisible(size_t index, bool visible);

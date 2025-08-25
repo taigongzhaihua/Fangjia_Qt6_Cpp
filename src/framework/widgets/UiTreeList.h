@@ -73,7 +73,7 @@ private:
 	FormulaViewModel* m_vm{ nullptr };
 	QRect m_viewport;
 	Palette m_pal{
-		.bg = QColor(255,255,255,245),
+		.bg = QColor(255,255,255,0),
 		.itemHover = QColor(0,0,0,8),
 		.itemSelected = QColor(0,122,255,20),
 		.expandIcon = QColor(100,100,100,200),

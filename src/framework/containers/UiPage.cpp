@@ -13,23 +13,24 @@
 #include <qsize.h>
 #include <qstring.h>
 #include <qstringliteral.h>
+#include <qtypes.h>
 
 QRectF UiPage::cardRectF() const
 {
 	if (!m_viewport.isValid()) return {};
-	return QRectF(
-		m_viewport.left() + kMargin,
-		m_viewport.top() + kMarginTop,
-		std::max(0, m_viewport.width() - kMargin * 2),
-		std::max(0, m_viewport.height() - kMargin - kMarginTop)
-	);
+	return {
+		static_cast<qreal>(m_viewport.left() + m_margins.left()),
+		static_cast<qreal>(m_viewport.top() + m_margins.top()),
+		static_cast<qreal>(std::max(0, m_viewport.width() - m_margins.left() - m_margins.right())),
+		static_cast<qreal>(std::max(0, m_viewport.height() - m_margins.top() - m_margins.bottom()))
+	};
 }
 
 QRectF UiPage::contentRectF() const
 {
 	const QRectF card = cardRectF();
 	// 内容区域：卡片内部，预留标题区域与内边距
-	return card.adjusted(kCardPad, kCardPad + kTitleAreaH, -kCardPad, -kCardPad);
+	return card.adjusted(m_padding.left(), m_padding.top() + kTitleAreaH, -m_padding.right(), -m_padding.bottom());
 }
 
 void UiPage::updateLayout(const QSize& /*windowSize*/)
@@ -60,7 +61,7 @@ void UiPage::append(Render::FrameData& fd) const
 	// 背景卡片
 	fd.roundedRects.push_back(Render::RoundedRectCmd{
 		.rect = card,
-		.radiusPx = 8.0f,
+		.radiusPx = m_cornerRadius,
 		.color = m_pal.cardBg
 		});
 
@@ -80,10 +81,9 @@ void UiPage::append(Render::FrameData& fd) const
 	const float hLogical = static_cast<float>(ts.height()) / m_dpr;
 
 	// 放在卡片左上角，四周 24px 内边距
-	constexpr float pad = static_cast<float>(kCardPad);
 
-	const float centerX = std::round(card.left() + pad);
-	const float centerY = std::round(card.top() + pad);
+	const float centerX = std::round(card.left() + 24);
+	const float centerY = std::round(card.top() + 36);
 	const float textX = std::round(wLogical);
 	const float textY = std::round(hLogical);
 

@@ -123,11 +123,30 @@ void UiTabView::setSelectedIndex(const int idx)
 QRectF UiTabView::contentRectF() const
 {
 	if (!m_viewport.isValid()) return {};
-	constexpr float pad = 8.0f;
-	const float left = static_cast<float>(m_viewport.left()) + pad + 8;
-	const float top = static_cast<float>(m_viewport.top()) + pad + static_cast<float>(m_tabHeight) + 16.0f + 8;
-	const float width = std::max(0.0f, static_cast<float>(m_viewport.width()) - (pad + 8) * 2.0f);
-	const float height = std::max(0.0f, static_cast<float>(m_viewport.height()) - (pad + 8) * 2.0f - static_cast<float>(m_tabHeight) - 8.0f);
+	const float left = static_cast<float>(m_viewport.left() + m_margin.left() + m_padding.left() + m_contentMargin.left() + m_contentPadding.left());
+	const float top = static_cast<float>(
+		m_viewport.top() +
+		m_margin.top() + m_padding.top() +
+		m_tabBarMargin.top() + m_tabHeight + m_tabBarMargin.bottom() +
+		m_contentMargin.top() + m_contentPadding.top()) + m_spacing;
+	const float width =
+		std::max(
+			0.0f,
+			static_cast<float>(
+				m_viewport.width() -
+				m_margin.left() - m_margin.right() -
+				m_padding.left() - m_padding.right() -
+				m_contentMargin.left() - m_contentMargin.right() -
+				m_contentPadding.left() - m_contentPadding.right()));
+	const float height = std::max(
+		0.0f,
+		static_cast<float>(
+			m_viewport.height() -
+			m_margin.top() - m_margin.bottom() -
+			m_padding.top() - m_padding.bottom() -
+			m_contentMargin.top() - m_contentMargin.bottom() -
+			m_contentPadding.top() - m_contentPadding.bottom() -
+			m_tabHeight - m_spacing));
 	return { left, top, width, height };
 
 }
@@ -148,9 +167,6 @@ void UiTabView::updateLayout(const QSize& windowSize)
 	if (IUiComponent* curContent = content(curIdx)) {
 		// 计算内容区域
 		QRect contentRect = contentRectF().toRect();
-
-		// qDebug() << "UiTabView updating content layout for tab" << curIdx
-		// 	<< "contentRect:" << contentRect << "\n";
 
 		// 如果内容实现了 IUiContent，设置视口
 		if (auto* c = dynamic_cast<IUiContent*>(curContent)) {
@@ -179,11 +195,10 @@ void UiTabView::updateResourceContext(IconLoader& loader, QOpenGLFunctions* gl, 
 QRectF UiTabView::tabBarRectF() const
 {
 	if (!m_viewport.isValid()) return {};
-	constexpr float padLr = 16.0f;
 	return {
-		static_cast<float>(m_viewport.left()) + padLr,
-		static_cast<float>(m_viewport.top()) + padLr,
-		std::max(0.0, static_cast<double>(m_viewport.width()) - padLr * 2.0),
+		static_cast<float>(m_viewport.left() + m_margin.left() + m_padding.left()),
+		static_cast<float>(m_viewport.top() + m_margin.top() + m_padding.top()),
+		std::max(0.0, static_cast<double>(m_viewport.width() - m_margin.left() - m_margin.right() - m_padding.left() - m_padding.right())),
 		static_cast<float>(m_tabHeight)
 	};
 }
@@ -193,8 +208,13 @@ QRectF UiTabView::tabRectF(const int i) const
 	const QRectF bar = tabBarRectF();
 	const int n = tabCount();
 	if (i < 0 || i >= n || bar.width() <= 0.0) return {};
-	const qreal w = bar.width() / std::max(1, n);
-	return { bar.left() + w * i, bar.top(), w, bar.height() };
+	const qreal w = (bar.width() - static_cast<float>(std::max(0, n - 1)) * m_tabBarSpacing - m_tabBarPadding.left() - m_tabBarPadding.right()) / std::max(1, n);
+	return {
+		bar.left() + m_tabBarPadding.left() + (w + m_tabBarSpacing) * i ,
+		bar.top() + m_tabBarPadding.top(),
+		w,
+		bar.height() - m_tabBarPadding.top() - m_tabBarPadding.bottom()
+	};
 }
 
 void UiTabView::append(Render::FrameData& fd) const
@@ -207,9 +227,19 @@ void UiTabView::append(Render::FrameData& fd) const
 	// TabBar 背景
 	if (m_pal.barBg.alpha() > 0) {
 		fd.roundedRects.push_back(Render::RoundedRectCmd{
-			.rect = bar.adjusted(-4, -3, 4, 3),
+			.rect = bar.adjusted(m_tabBarMargin.left(), m_tabBarMargin.top(), -m_tabBarMargin.right(), -m_tabBarMargin.bottom()),
 			.radiusPx = 8.0f,
 			.color = m_pal.barBg
+			});
+	}
+
+	// Content 背景
+	if (m_pal.contentBg.alpha() > 0) {
+		const QRectF contentR = contentRectF();
+		fd.roundedRects.push_back(Render::RoundedRectCmd{
+			.rect = contentR.adjusted(-m_contentPadding.left(), -m_contentPadding.top(), m_contentPadding.right(), m_contentPadding.bottom()),
+			.radiusPx = 8.0f,
+			.color = m_pal.contentBg
 			});
 	}
 
@@ -217,14 +247,13 @@ void UiTabView::append(Render::FrameData& fd) const
 	if (m_viewSelected >= 0 && m_viewSelected < tabCount() && m_highlightCenterX >= 0.0f) {
 		const QRectF rSelTmpl = tabRectF(m_viewSelected);
 
-		constexpr float padX = 6.0f;
-		constexpr float padY = 4.0f;
-		const float bgW = std::max(8.0f, static_cast<float>(rSelTmpl.width()) - padX * 2.0f);
-		const float bgH = std::max(8.0f, static_cast<float>(rSelTmpl.height()) - padY * 2.0f);
+
+		const float bgW = std::max(8.0f, static_cast<float>(rSelTmpl.width()));
+		const float bgH = std::max(8.0f, static_cast<float>(rSelTmpl.height()));
 
 		const QRectF bgRect(
-			static_cast<double>(m_highlightCenterX) - bgW * 0.5,
-			rSelTmpl.top() + padY,
+			m_highlightCenterX - bgW * 0.5f,
+			rSelTmpl.top(),
 			bgW,
 			bgH
 		);
@@ -244,7 +273,7 @@ void UiTabView::append(Render::FrameData& fd) const
 
 			QRectF indRect;
 			if (m_indicatorStyle == IndicatorStyle::Bottom) {
-				constexpr float indOffsetUp = 6.0f;
+				constexpr float indOffsetUp = 4.0f;
 				indRect = QRectF(
 					bgRect.center().x() - indW * 0.5f,
 					bgRect.bottom() - indOffsetUp,
@@ -253,7 +282,7 @@ void UiTabView::append(Render::FrameData& fd) const
 				);
 			}
 			else { // Top
-				constexpr float indOffsetDown = 6.0f;
+				constexpr float indOffsetDown = 4.0f;
 				indRect = QRectF(
 					bgRect.center().x() - indW * 0.5f,
 					bgRect.top() + indOffsetDown,
@@ -278,14 +307,14 @@ void UiTabView::append(Render::FrameData& fd) const
 		const QRectF r = tabRectF(i);
 		if (i == m_pressed) {
 			fd.roundedRects.push_back(Render::RoundedRectCmd{
-				.rect = r.adjusted(6, 4, -6, -4),
+				.rect = r,
 				.radiusPx = 6.0f,
 				.color = m_pal.tabHover.darker(115)
 				});
 		}
 		else if (i == m_hover) {
 			fd.roundedRects.push_back(Render::RoundedRectCmd{
-				.rect = r.adjusted(6, 4, -6, -4),
+				.rect = r,
 				.radiusPx = 6.0f,
 				.color = m_pal.tabHover
 				});
@@ -333,15 +362,12 @@ void UiTabView::append(Render::FrameData& fd) const
 	}
 
 	int curIdx = selectedIndex();
-	// qDebug() << "UiTabView rendering content for tab:" << curIdx << "\n";
 
 	if (IUiComponent* curContent = content(curIdx)) {
-		// qDebug() << "Found content for tab" << curIdx << ", appending...\n";
+
 		curContent->append(fd);
 	}
-	// else {
-	// 	qDebug() << "No content found for tab" << curIdx << "\n";
-	// }
+
 }
 
 bool UiTabView::onMousePress(const QPoint& pos)
@@ -459,6 +485,34 @@ bool UiTabView::tick()
 	int curIdx = selectedIndex();
 	if (IUiComponent* curContent = content(curIdx)) any = curContent->tick() || any;
 	return any;
+}
+
+void UiTabView::onThemeChanged(bool isDark)
+{
+	// 自动根据主题设置调色板
+	if (isDark) {
+		m_pal = Palette{
+			.barBg = QColor(220,233,245,10),
+			.contentBg = QColor(220,233,245,10),
+			.tabHover = QColor(255,255,255,18),
+			.tabSelectedBg = QColor(255,255,255,28),
+			.indicator = QColor(0,122,255,220),
+			.label = QColor(230,235,240,220),
+			.labelSelected = QColor(255,255,255,255)
+		};
+	}
+	else {
+		m_pal = Palette{
+			.barBg = QColor(10,23,35,10),
+			.contentBg = QColor(10,23,35,10),
+			.tabHover = QColor(0,0,0,16),
+			.tabSelectedBg = QColor(0,0,0,22),
+			.indicator = QColor(0,102,204,220),
+			.label = QColor(50,60,70,255),
+			.labelSelected = QColor(20,32,48,255)
+		};
+	}
+	// 不需要重建；下一帧按新配色渲染
 }
 
 void UiTabView::startHighlightAnim(const float toCenterX)

@@ -76,12 +76,12 @@ void UiFormulaView::updatePalettes()
 		// 深色主题配色
 
 		// 自身背景（可选，如果需要整体背景）
-		setBackgroundColor(QColor(18, 22, 28, 250));
+		setBackgroundColor(QColor(18, 22, 28, 0));
 
 		// 树列表配色
 		if (m_treeList) {
 			m_treeList->setPalette(UiTreeList::Palette{
-				.bg = QColor(28, 34, 42, 240),              // 深色背景
+				.bg = QColor(28, 34, 42, 0),              // 深色背景
 				.itemHover = QColor(255, 255, 255, 15),     // 白色半透明悬停
 				.itemSelected = QColor(0, 122, 255, 35),    // 蓝色选中
 				.expandIcon = QColor(180, 185, 190, 200),   // 浅灰展开图标
@@ -94,7 +94,7 @@ void UiFormulaView::updatePalettes()
 		// 详情视图配色
 		if (m_detailView) {
 			m_detailView->setPalette(UiFormulaDetail::Palette{
-				.bg = QColor(32, 38, 46, 240),              // 深色背景
+				.bg = QColor(32, 38, 46, 0),              // 深色背景
 				.titleColor = QColor(250, 252, 255, 255),   // 标题白色
 				.labelColor = QColor(100, 160, 220, 255),   // 标签蓝色
 				.textColor = QColor(255, 255, 255, 230),    // 正文浅灰
@@ -112,12 +112,12 @@ void UiFormulaView::updatePalettes()
 		// 浅色主题配色
 
 		// 自身背景
-		setBackgroundColor(QColor(248, 249, 250, 250));
+		setBackgroundColor(QColor(248, 249, 250, 0));
 
 		// 树列表配色
 		if (m_treeList) {
 			m_treeList->setPalette(UiTreeList::Palette{
-				.bg = QColor(255, 255, 255, 100),           // 白色背景
+				.bg = QColor(255, 255, 255, 0),           // 白色背景
 				.itemHover = QColor(0, 0, 0, 10),           // 黑色半透明悬停
 				.itemSelected = QColor(0, 122, 255, 25),    // 蓝色选中
 				.expandIcon = QColor(100, 105, 110, 200),   // 深灰展开图标
@@ -130,7 +130,7 @@ void UiFormulaView::updatePalettes()
 		// 详情视图配色
 		if (m_detailView) {
 			m_detailView->setPalette(UiFormulaDetail::Palette{
-				.bg = QColor(255, 255, 255, 100),           // 白色背景
+				.bg = QColor(255, 255, 255, 0),           // 白色背景
 				.titleColor = QColor(20, 25, 30, 255),      // 标题深色
 				.labelColor = QColor(60, 120, 180, 255),    // 标签蓝色
 				.textColor = QColor(50, 55, 60, 230),       // 正文深灰

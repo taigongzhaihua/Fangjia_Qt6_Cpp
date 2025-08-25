@@ -9,7 +9,7 @@ class QOpenGLFunctions;
 // 通用 UI 组件接口：继承主题感知接口
 class IUiComponent : public IThemeAware {
 public:
-	virtual ~IUiComponent() = default;
+	~IUiComponent() override = default;
 
 	// 基于窗口逻辑尺寸的布局更新
 	virtual void updateLayout(const QSize& windowSize) = 0;

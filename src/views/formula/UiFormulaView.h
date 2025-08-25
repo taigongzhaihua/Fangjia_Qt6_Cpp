@@ -13,7 +13,13 @@ public:
 	UiFormulaView();
 	~UiFormulaView() override;
 
-	// 设置主题
+	// 自动主题下发：覆盖 IUiComponent::onThemeChanged
+	void onThemeChanged(bool isDark) override {
+		setDarkTheme(isDark);          // 更新自身与子组件调色板
+		UiBoxLayout::onThemeChanged(isDark); // 继续向更深层子组件传播
+	}
+
+	// 设置主题（保留旧接口以便内部复用）
 	void setDarkTheme(bool dark);
 
 	// 重写以处理分割条拖动等特殊逻辑

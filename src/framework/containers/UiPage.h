@@ -61,6 +61,15 @@ public:
 	// 内容区矩形（卡片内，避开标题区域）
 	QRectF contentRectF() const;
 
+	void setMargins(const QMargins& m) { m_margins = m; }
+	QMargins margins() const { return m_margins; }
+
+	void setPadding(const QMargins& p) { m_padding = p; }
+	QMargins padding() const { return m_padding; }
+
+	void setCornerRadius(float r) { m_cornerRadius = r; }
+	float cornerRadius() const { return m_cornerRadius; }
+
 protected:
 	// 子类重写此方法来初始化内容
 	virtual void initializeContent() {}
@@ -74,6 +83,10 @@ private:
 	}
 
 protected:
+	QMargins m_margins{ 8, 52, 8, 8 }; // 页面边距（由上层设置）
+	QMargins m_padding{ 16,0,16,8 }; // 页面内边距（由上层设置）
+	float m_cornerRadius = 8.0f;   // 页面圆角（由上层设置）
+
 	QRect m_viewport; // 页面内容区域（由上层设置）
 
 	QString m_title{ QStringLiteral("页面") };
@@ -92,10 +105,6 @@ protected:
 	float m_dpr{ 1.0f };
 	bool m_isDark{ false };  // 添加主题状态
 
-	// 布局常量（逻辑像素）
-	static constexpr int kMargin = 8;
-	static constexpr int kMarginTop = 52;
-	static constexpr int kCardPad = 24;
 	// 标题区域高度（卡片内从顶部预留）
-	static constexpr int kTitleAreaH = 44;
+	static constexpr int kTitleAreaH = 84;
 };
