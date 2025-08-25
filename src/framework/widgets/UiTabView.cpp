@@ -163,10 +163,10 @@ void UiTabView::updateLayout(const QSize& windowSize)
 		m_highlightCenterX = r.isValid() ? static_cast<float>(r.center().x()) : -1.0f;
 	}
 	// 更新当前内容的布局
-	int curIdx = selectedIndex();
+	const int curIdx = selectedIndex();
 	if (IUiComponent* curContent = content(curIdx)) {
 		// 计算内容区域
-		QRect contentRect = contentRectF().toRect();
+		const QRect contentRect = contentRectF().toRect();
 
 		// 如果内容实现了 IUiContent，设置视口
 		if (auto* c = dynamic_cast<IUiContent*>(curContent)) {
@@ -185,7 +185,7 @@ void UiTabView::updateResourceContext(IconLoader& loader, QOpenGLFunctions* gl, 
 	m_dpr = std::max(0.5f, devicePixelRatio);
 
 	// 更新当前内容的资源上下文
-	int curIdx = selectedIndex();
+	const int curIdx = selectedIndex();
 	if (IUiComponent* curContent = content(curIdx)) {
 		// qDebug() << "UiTabView updating resource context for tab" << curIdx << "\n";
 		curContent->updateResourceContext(loader, gl, devicePixelRatio);
@@ -334,10 +334,6 @@ void UiTabView::append(Render::FrameData& fd) const
 
 		const QColor textColor = (i == m_viewSelected ? m_pal.labelSelected : m_pal.label);
 
-		// 调试输出
-		// qDebug() << "Tab" << i << "color:" << textColor.name()
-			// << "selected:" << (i == m_viewSelected);
-
 		const QString key = textCacheKey(QString("tab|%1").arg(label), fontPx, textColor);
 		const int tex = m_loader->ensureTextPx(key, font, label, textColor, m_gl);
 		const QSize ts = m_loader->textureSizePx(tex);
@@ -382,7 +378,7 @@ bool UiTabView::onMousePress(const QPoint& pos)
 		}
 	}
 
-	int curIdx = selectedIndex();
+	const int curIdx = selectedIndex();
 	IUiComponent* curContent = content(curIdx);
 	if (curContent && m_viewport.contains(pos)) {
 		return curContent->onMousePress(pos);
@@ -404,7 +400,7 @@ bool UiTabView::onMouseMove(const QPoint& pos)
 	const bool changed = (hov != m_hover);
 	m_hover = hov;
 
-	int curIdx = selectedIndex();
+	const int curIdx = selectedIndex();
 	IUiComponent* curContent = content(curIdx);
 	if (curContent && m_viewport.contains(pos)) {
 		return curContent->onMouseMove(pos) || changed;
@@ -439,7 +435,7 @@ bool UiTabView::onMouseRelease(const QPoint& pos)
 		return true;
 	}
 
-	int curIdx = selectedIndex();
+	const int curIdx = selectedIndex();
 	IUiComponent* curContent = content(curIdx);
 	if (curContent && m_viewport.contains(pos)) {
 		return curContent->onMouseRelease(pos);
@@ -482,7 +478,7 @@ bool UiTabView::tick()
 		return true;
 	}
 
-	int curIdx = selectedIndex();
+	const int curIdx = selectedIndex();
 	if (IUiComponent* curContent = content(curIdx)) any = curContent->tick() || any;
 	return any;
 }
@@ -553,6 +549,6 @@ void UiTabView::setContents(const std::vector<IUiComponent*>& contents)
 
 IUiComponent* UiTabView::content(const int tabIdx) const
 {
-	auto it = m_tabContents.find(tabIdx);
+	const auto it = m_tabContents.find(tabIdx);
 	return (it != m_tabContents.end()) ? it->second : nullptr;
 }

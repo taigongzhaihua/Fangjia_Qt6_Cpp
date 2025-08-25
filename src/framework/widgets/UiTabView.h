@@ -8,6 +8,7 @@
 #include <qcolor.h>
 #include <qcontainerfwd.h>
 #include <qelapsedtimer.h>
+#include <qmargins.h>
 #include <qopenglfunctions.h>
 #include <qpoint.h>
 #include <qrect.h>
@@ -60,6 +61,16 @@ public:
 	void setIndicatorStyle(IndicatorStyle style) { m_indicatorStyle = style; }
 	void setTabHeight(int h) { m_tabHeight = std::max(24, h); }
 	void setAnimationDuration(int ms) { m_animDuration = std::max(50, ms); }
+
+	// 新增：布局与间距配置
+	void setMargins(const QMargins& m) { m_margin = m; }
+	void setPadding(const QMargins& p) { m_padding = p; }
+	void setTabBarMargin(const QMargins& m) { m_tabBarMargin = m; }
+	void setTabBarPadding(const QMargins& p) { m_tabBarPadding = p; }
+	void setContentMargin(const QMargins& m) { m_contentMargin = m; }
+	void setContentPadding(const QMargins& p) { m_contentPadding = p; }
+	void setTabBarSpacing(qreal s) { m_tabBarSpacing = std::max<qreal>(0, s); }
+	void setSpacing(qreal s) { m_spacing = std::max<qreal>(0, s); }
 
 	// Tab内容管理接口
 	void setContent(int tabIdx, IUiComponent* content);

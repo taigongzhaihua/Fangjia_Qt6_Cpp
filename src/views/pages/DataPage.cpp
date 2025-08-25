@@ -48,8 +48,9 @@ public:
 		}
 	}
 
-	WidgetPtr buildUI() {
-		auto tv = tabView()
+	WidgetPtr buildUI() const
+	{
+		return tabView()
 			->tabs(QStringList({ "方剂","中药","经典", "医案","内科", "诊断" }))
 			->selectedIndex(0)
 			->indicatorStyle(UiTabView::IndicatorStyle::Bottom)
@@ -58,22 +59,23 @@ public:
 			->contents(WidgetList{
 				wrap(formulaView.get()),
 				container(text("中药功能开发中")->fontSize(16))->alignment(Alignment::Center),
-				container(text("经典功能开发中")->fontSize(16))->alignment(Alignment::Center)
+				container(text("经典功能开发中")->fontSize(16))->alignment(Alignment::Center),
 				})
-			->onChanged([this](int idx) {
+				->onChanged([this](int idx) {
 			// 非 VM 模式的回调
 			qDebug() << "Tab changed to" << idx;
-				});
-		return tv;
+					});
+
 	}
 
 private:
 
 
-	void rebuildContent() {
+	void rebuildContent() const
+	{
 		// 这里需要通知父组件重新构建
 		// 暂时通过保存配置触发
-		if (auto config = DI.get<AppConfig>()) {
+		if (const auto config = DI.get<AppConfig>()) {
 			config->setRecentTab(tabsVm.selectedId());
 		}
 	}
@@ -104,12 +106,9 @@ void DataPage::applyPageTheme(bool isDark) {
 		m_impl->formulaView->setDarkTheme(isDark);
 	}
 
-	// // 重新构建UI
-	// auto widget = m_impl->buildUI();
-	// m_impl->builtComponent = widget->build();
-	// setContent(m_impl->builtComponent.get());
 }
 
-TabViewModel* DataPage::tabViewModel() {
+TabViewModel* DataPage::tabViewModel() const
+{
 	return &m_impl->tabsVm;
 }

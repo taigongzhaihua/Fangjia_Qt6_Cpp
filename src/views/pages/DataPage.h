@@ -6,16 +6,16 @@
 class DataPage : public UiPage
 {
 public:
-    DataPage();
-    ~DataPage() override;
+	DataPage();
+	~DataPage() override;
 
-    TabViewModel* tabViewModel();
+	TabViewModel* tabViewModel() const;
 
 protected:
-    void initializeContent() override;
-    void applyPageTheme(bool isDark) override;
+	void initializeContent() override;
+	void applyPageTheme(bool isDark) override;
 
 private:
-    class Impl;
-    std::unique_ptr<Impl> m_impl;
+	class Impl;
+	std::unique_ptr<Impl> m_impl;
 };
