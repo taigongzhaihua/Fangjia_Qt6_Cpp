@@ -1,0 +1,2 @@
+/usr/bin/ar qc libcore_rendering.a CMakeFiles/core_rendering.dir/core_rendering_autogen/mocs_compilation.cpp.o CMakeFiles/core_rendering.dir/src/core/rendering/IconLoader.cpp.o CMakeFiles/core_rendering.dir/src/core/rendering/Renderer.cpp.o
+/usr/bin/ranlib libcore_rendering.a

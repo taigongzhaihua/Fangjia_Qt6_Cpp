@@ -1,0 +1,2 @@
+/usr/bin/ar qc libcore_di.a CMakeFiles/core_di.dir/core_di_autogen/mocs_compilation.cpp.o CMakeFiles/core_di.dir/src/core/di/ServiceRegistry.cpp.o
+/usr/bin/ranlib libcore_di.a
