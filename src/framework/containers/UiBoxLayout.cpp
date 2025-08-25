@@ -1,6 +1,8 @@
 #include "UiBoxLayout.h"
 #include <algorithm>
+#include <cmath>
 #include <IconLoader.h>
+#include <numeric>
 #include <qcolor.h>
 #include <qlogging.h>
 #include <qmargins.h>
@@ -116,115 +118,148 @@ void UiBoxLayout::calculateLayout()
 	m_childRects.resize(m_children.size());
 
 	const QRect content = contentRect();
+	if (!content.isValid() || m_children.empty()) return;
 
-	// 省略日志...
-
-	if (!content.isValid() || m_children.empty()) {
-		return;
-	}
-
-	// 统计可见子控件
-	std::vector<size_t> visibleIndices;
+	// 收集可见子项
+	std::vector<size_t> vis;
 	float totalWeight = 0.0f;
-
 	for (size_t i = 0; i < m_children.size(); ++i) {
-		if (m_children[i].visible) {
-			visibleIndices.push_back(i);
-			totalWeight += m_children[i].weight;
+		if (m_children[i].visible && m_children[i].component) {
+			vis.push_back(i);
+			totalWeight += std::max(0.0f, m_children[i].weight);
+		}
+	}
+	if (vis.empty()) return;
+
+	const bool isH = (m_direction == Direction::Horizontal);
+	const int availableMain = isH ? content.width() : content.height();
+	const int availableCross = isH ? content.height() : content.width();
+
+	// 预计算“固定尺寸”占用和每个子项最终主轴尺寸
+	std::vector<int> mainSizes(vis.size(), 0);
+	int usedFixed = 0;
+	for (size_t k = 0; k < vis.size(); ++k) {
+		const auto idx = vis[k];
+		const QRect pref = m_children[idx].component->bounds();
+		const int prefMain = isH ? pref.width() : pref.height();
+		if (m_children[idx].weight <= 0.0f) {
+			const int s = std::max(0, std::min(prefMain, availableMain));
+			mainSizes[k] = s;
+			usedFixed += s;
 		}
 	}
 
-	if (visibleIndices.empty()) return;
+	// 为“有权重”的子项分配空间
+	const int baseGapCount = std::max<int>(0, static_cast<int>(vis.size()) - 1);
+	// Start/Center/End 模式下，预留固定间距；Space* 模式下，间距由剩余空间决定
+	const bool fixedGapMode =
+		(m_mainAlign == MainAlignment::Start ||
+			m_mainAlign == MainAlignment::Center ||
+			m_mainAlign == MainAlignment::End);
 
-	const bool isHorizontal = (m_direction == Direction::Horizontal);
-	const int totalSpacing = m_spacing * std::max(0, static_cast<int>(visibleIndices.size()) - 1);
+	const int reservedGaps = fixedGapMode ? (m_spacing * baseGapCount) : 0;
+	int flexibleSpace = std::max(0, availableMain - usedFixed - reservedGaps);
 
-	// 可用空间
-	int availableSize = isHorizontal ? content.width() : content.height();
-	availableSize -= totalSpacing;
-
-	// 第一遍：固定大小
-	int usedSize = 0;
-	for (const size_t idx : visibleIndices) {
-		if (m_children[idx].weight == 0.0f) {
-			const QRect childBounds = m_children[idx].component->bounds();
-			const int preferredSize = isHorizontal ? childBounds.width() : childBounds.height();
-			usedSize += preferredSize;
+	// 按权重比例分配
+	float acc = 0.0f;
+	float assigned = 0.0f;
+	for (size_t k = 0; k < vis.size(); ++k) {
+		const auto idx = vis[k];
+		const float w = std::max(0.0f, m_children[idx].weight);
+		if (w > 0.0f && totalWeight > 0.0f) {
+			acc += w / totalWeight * static_cast<float>(flexibleSpace);
+			int s = static_cast<int>(std::floor(acc - assigned));
+			s = std::max(0, s);
+			mainSizes[k] = s;
+			assigned += static_cast<float>(s);
 		}
 	}
 
-	// 第二遍：分配弹性空间
-	const int flexibleSpace = std::max(0, availableSize - usedSize);
+	// 现在我们有每个子项的主轴尺寸，计算主轴剩余空间以做整体对齐/动态间距
+	const int sumMain = std::accumulate(mainSizes.begin(), mainSizes.end(), 0);
+	int remaining = std::max(0, availableMain - sumMain - reservedGaps);
 
-	int currentPos = isHorizontal ? content.left() : content.top();
-
-	for (const size_t idx : visibleIndices) {
-		const auto& child = m_children[idx];
-		const QRect childBounds = child.component ? child.component->bounds() : QRect();
-		QRect childRect;
-
-		if (isHorizontal) {
-			int width = (child.weight > 0.0f && totalWeight > 0.0f)
-				? static_cast<int>(flexibleSpace * (child.weight / totalWeight))
-				: childBounds.width();
-			width = std::min(width, content.width());
-
-			int height = content.height();
-			int y = content.top();
-
-			// 仅在子组件首选高度有效时才收缩
-			if (child.alignment != Alignment::Stretch) {
-				const int prefH = childBounds.height();
-				if (prefH > 0) {
-					height = std::min(height, prefH);
-				}
-				switch (child.alignment) {
-				case Alignment::Center:
-					y = content.top() + (content.height() - height) / 2;
-					break;
-				case Alignment::End:
-					y = content.bottom() - height;
-					break;
-				default:
-					break;
-				}
-			}
-
-			childRect = QRect(currentPos, y, width, height);
-			currentPos += width + m_spacing;
+	// 计算起始偏移与间距
+	double gap = static_cast<double>(m_spacing);
+	double startOffset = 0.0;
+	const int n = static_cast<int>(vis.size());
+	switch (m_mainAlign) {
+	case MainAlignment::Start:
+		startOffset = 0.0;
+		gap = static_cast<double>(m_spacing);
+		break;
+	case MainAlignment::Center:
+		startOffset = remaining * 0.5;
+		gap = static_cast<double>(m_spacing);
+		break;
+	case MainAlignment::End:
+		startOffset = remaining;
+		gap = static_cast<double>(m_spacing);
+		break;
+	case MainAlignment::SpaceBetween:
+		if (n > 1) {
+			gap = static_cast<double>(remaining) / static_cast<double>(n - 1);
+			startOffset = 0.0;
 		}
 		else {
-			int height = (child.weight > 0.0f && totalWeight > 0.0f)
-				? static_cast<int>(flexibleSpace * (child.weight / totalWeight))
-				: childBounds.height();
-			height = std::min(height, content.height());
+			gap = 0.0;
+			startOffset = remaining * 0.5;
+		}
+		break;
+	case MainAlignment::SpaceAround:
+		if (n > 0) {
+			gap = static_cast<double>(remaining) / static_cast<double>(n);
+			startOffset = gap * 0.5;
+		}
+		break;
+	case MainAlignment::SpaceEvenly:
+		gap = static_cast<double>(remaining) / static_cast<double>(n + 1);
+		startOffset = gap;
+		break;
+	}
 
-			int width = content.width();
-			int x = content.left();
+	// 放置子项：主轴按 mainSizes[] 和 gap 排列；交叉轴按每个子项的 Alignment 处理
+	int cur = (isH ? content.left() : content.top()) + static_cast<int>(std::round(startOffset));
+	for (size_t k = 0; k < vis.size(); ++k) {
+		const auto idx = vis[k];
+		const QRect childBounds = m_children[idx].component->bounds(); // 仅用于交叉轴“首选尺寸”
+		const int mainSize = mainSizes[k];
 
-			// 仅在子组件首选宽度有效时才收缩
-			if (child.alignment != Alignment::Stretch) {
-				const int prefW = childBounds.width();
-				if (prefW > 0) {
-					width = std::min(width, prefW);
-				}
-				switch (child.alignment) {
-				case Alignment::Center:
-					x = content.left() + (content.width() - width) / 2;
-					break;
-				case Alignment::End:
-					x = content.right() - width;
-					break;
-				default:
-					break;
+		QRect childRect;
+		if (isH) {
+			// 交叉轴（垂直）的高度 + 对齐
+			int height = availableCross;
+			int y = content.top();
+			if (m_children[idx].alignment != Alignment::Stretch) {
+				const int prefH = childBounds.height();
+				if (prefH > 0) height = std::min(height, prefH);
+				switch (m_children[idx].alignment) {
+				case Alignment::Center: y = content.top() + (availableCross - height) / 2; break;
+				case Alignment::End:    y = content.bottom() - height; break;
+				default: break;
 				}
 			}
-
-			childRect = QRect(x, currentPos, width, height);
-			currentPos += height + m_spacing;
+			childRect = QRect(cur, y, std::min(mainSize, availableMain), height);
+			cur += mainSize + static_cast<int>(std::round(gap));
+		}
+		else {
+			// 交叉轴（水平）的宽度 + 对齐
+			int width = availableCross;
+			int x = content.left();
+			if (m_children[idx].alignment != Alignment::Stretch) {
+				const int prefW = childBounds.width();
+				if (prefW > 0) width = std::min(width, prefW);
+				switch (m_children[idx].alignment) {
+				case Alignment::Center: x = content.left() + (availableCross - width) / 2; break;
+				case Alignment::End:    x = content.right() - width; break;
+				default: break;
+				}
+			}
+			childRect = QRect(x, cur, width, std::min(mainSize, availableMain));
+			cur += mainSize + static_cast<int>(std::round(gap));
 		}
 
-		m_childRects[idx] = childRect;
+		m_childRects[vis[k]] = childRect;
 	}
 }
 
@@ -233,7 +268,7 @@ void UiBoxLayout::setViewportRect(const QRect& r)
 	m_viewport = r;
 	calculateLayout();  // 重新计算布局
 
-	// 关键修复：在这里就把子项的 viewport 下发，不用等到 updateLayout
+	// 关键：在这里就把子项的 viewport 下发，不用等到 updateLayout
 	if (!m_childRects.empty()) {
 		for (size_t i = 0; i < m_children.size(); ++i) {
 			if (!m_children[i].visible || !m_children[i].component) continue;
@@ -286,7 +321,7 @@ void UiBoxLayout::append(Render::FrameData& fd) const
 		return;
 	}
 
-	// 绘制背景（如果设置了）
+	// 背景（如果设置了）
 	if (m_bgColor.alpha() > 0) {
 		fd.roundedRects.push_back(Render::RoundedRectCmd{
 			.rect = QRectF(m_viewport),
@@ -295,7 +330,7 @@ void UiBoxLayout::append(Render::FrameData& fd) const
 			});
 	}
 
-	// 绘制所有可见子控件
+	// 子控件
 	for (const auto& childItem : m_children)
 	{
 		if (childItem.visible && childItem.component) {
@@ -397,9 +432,6 @@ void UiBoxLayout::onThemeChanged(bool isDark)
 			child.component->onThemeChanged(isDark);
 		}
 	}
-
-	// 可以在这里根据主题调整自己的颜色
-	// 例如：updatePalette(isDark);
 }
 
 UiBoxLayout::Alignment UiBoxLayout::childAlignment(size_t index) const

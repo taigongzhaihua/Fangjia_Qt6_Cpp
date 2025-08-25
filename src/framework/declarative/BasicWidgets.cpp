@@ -165,21 +165,45 @@ namespace UI {
 		return decorate(std::move(comp));
 	}
 
-	// 按钮组件实现（略）
-	// ...
 
 	// 容器组件实现
 	std::unique_ptr<IUiComponent> Container::build() const {
 		auto layout = std::make_unique<UiBoxLayout>(UiBoxLayout::Direction::Vertical);
+
+		// 将 Container 的 alignment 同时用作：
+		// - 主轴对齐（Vertical 主轴为竖直方向）
+		// - 子项交叉轴对齐（已有逻辑）
+		auto toBoxMain = [](Alignment a) {
+			switch (a) {
+			case Alignment::Start: return UiBoxLayout::MainAlignment::Start;
+			case Alignment::Center: return UiBoxLayout::MainAlignment::Center;
+			case Alignment::End: return UiBoxLayout::MainAlignment::End;
+			default: return UiBoxLayout::MainAlignment::Start;
+			}
+			};
+		auto toBoxCross = [](Alignment a) {
+			switch (a) {
+			case Alignment::Start: return UiBoxLayout::Alignment::Start;
+			case Alignment::Center: return UiBoxLayout::Alignment::Center;
+			case Alignment::End: return UiBoxLayout::Alignment::End;
+			case Alignment::Stretch: return UiBoxLayout::Alignment::Stretch;
+			default: return UiBoxLayout::Alignment::Start;
+			}
+			};
+
+		layout->setMainAlignment(toBoxMain(m_alignment));
+
 		if (m_child) {
 			auto childComp = m_child->build();
-			layout->addChild(childComp.release(), 1.0f,
-				m_alignment == Alignment::Center ? UiBoxLayout::Alignment::Center :
-				m_alignment == Alignment::Start ? UiBoxLayout::Alignment::Start :
-				m_alignment == Alignment::End ? UiBoxLayout::Alignment::End :
-				UiBoxLayout::Alignment::Stretch);
+			// 说明：
+			// - 继续为子项提供 weight=1，确保子项获得可用区域；
+			// - 若需精确的“主轴不拉伸并居中”，建议子项自身处理对齐（例如 Text::align(Qt::AlignCenter)）。
+			layout->addChild(childComp.release(), 1.0f, toBoxCross(
+				m_alignment == Alignment::Stretch ? Alignment::Stretch : Alignment::Center == m_alignment ? Alignment::Center :
+				m_alignment == Alignment::End ? Alignment::End : Alignment::Start));
 		}
-		// 能直接落到布局的装饰在这里设置
+
+		// 落地装饰
 		if (m_decorations.padding != QMargins()) layout->setMargins(m_decorations.padding);
 		if (m_decorations.backgroundColor.alpha() > 0) {
 			layout->setBackgroundColor(m_decorations.backgroundColor);

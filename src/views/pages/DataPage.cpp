@@ -57,7 +57,7 @@ public:
 			->animationDuration(220)
 			->contents(WidgetList{
 				wrap(formulaView.get()),
-				container(text("中药功能开发中")->fontSize(16))->alignment(Alignment::Stretch),
+				container(text("中药功能开发中")->fontSize(16))->alignment(Alignment::Center),
 				container(text("经典功能开发中")->fontSize(16))->alignment(Alignment::Center),
 				})
 				->onChanged([this](int idx) {

@@ -21,6 +21,7 @@ public:
 		Vertical     // 垂直排列
 	};
 
+	// 子项在“交叉轴”的对齐（已有）
 	enum class Alignment {
 		Start,       // 左对齐（水平）或顶对齐（垂直）
 		Center,      // 居中对齐
@@ -28,10 +29,20 @@ public:
 		Stretch      // 拉伸填充
 	};
 
+	// 新增：主轴对齐（整体分布）
+	enum class MainAlignment {
+		Start,
+		Center,
+		End,
+		SpaceBetween,
+		SpaceAround,
+		SpaceEvenly
+	};
+
 	struct ChildItem {
 		IUiComponent* component{ nullptr };
 		float weight{ 0.0f };      // 权重（0表示固定大小，>0表示按比例分配剩余空间）
-		Alignment alignment{ Alignment::Start };
+		Alignment alignment{ Alignment::Start }; // 交叉轴对齐
 		bool visible{ true };
 	};
 
@@ -58,6 +69,10 @@ public:
 	void setMargins(const QMargins& margins) { m_margins = margins; }
 	[[nodiscard]] const QMargins& margins() const noexcept { return m_margins; }
 
+	// 新增：主轴对齐设置
+	void setMainAlignment(MainAlignment a) { m_mainAlign = a; }
+	[[nodiscard]] MainAlignment mainAlignment() const noexcept { return m_mainAlign; }
+
 	// 背景
 	void setBackgroundColor(const QColor& color) { m_bgColor = color; }
 	void setCornerRadius(float radius) { m_cornerRadius = std::max(0.0f, radius); }
@@ -80,6 +95,9 @@ public:
 	UiBoxLayout& withSpacing(int spacing);
 	UiBoxLayout& withMargins(const QMargins& margins);
 	UiBoxLayout& withBackground(const QColor& color, float radius);
+	// 新增：链式主轴对齐
+	UiBoxLayout& withMainAlignment(MainAlignment a) { setMainAlignment(a); return *this; }
+
 	QRect bounds() const override { return m_viewport; }
 	// IUiComponent - 添加主题支持
 	void onThemeChanged(bool isDark) override;
@@ -104,6 +122,7 @@ private:
 	QRect m_viewport;
 	QMargins m_margins{ 0, 0, 0, 0 };
 	int m_spacing{ 0 };
+	MainAlignment m_mainAlign{ MainAlignment::Start }; // 新增：主轴对齐
 
 	bool m_isDark{ false };  // 添加主题状态
 

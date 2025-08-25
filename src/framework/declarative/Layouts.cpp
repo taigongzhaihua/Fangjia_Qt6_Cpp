@@ -12,7 +12,7 @@
 
 namespace UI {
 
-	// 转换对齐方式
+	// 转换交叉轴对齐方式（已有）
 	static UiBoxLayout::Alignment toBoxAlignment(Alignment align) {
 		switch (align) {
 		case Alignment::Start: return UiBoxLayout::Alignment::Start;
@@ -23,9 +23,26 @@ namespace UI {
 		}
 	}
 
+	// 新增：转换主轴对齐方式
+	static UiBoxLayout::MainAlignment toBoxMain(Alignment align) {
+		switch (align) {
+		case Alignment::Start: return UiBoxLayout::MainAlignment::Start;
+		case Alignment::Center: return UiBoxLayout::MainAlignment::Center;
+		case Alignment::End: return UiBoxLayout::MainAlignment::End;
+		case Alignment::SpaceBetween: return UiBoxLayout::MainAlignment::SpaceBetween;
+		case Alignment::SpaceAround: return UiBoxLayout::MainAlignment::SpaceAround;
+		case Alignment::SpaceEvenly: return UiBoxLayout::MainAlignment::SpaceEvenly;
+		case Alignment::Stretch: return UiBoxLayout::MainAlignment::Start; // Stretch 不用于主轴，退化为 Start
+		default: return UiBoxLayout::MainAlignment::Start;
+		}
+	}
+
 	std::unique_ptr<IUiComponent> Column::build() const {
 		auto layout = std::make_unique<UiBoxLayout>(UiBoxLayout::Direction::Vertical);
 		layout->setSpacing(m_spacing);
+		// 主轴对齐（垂直方向）
+		layout->setMainAlignment(toBoxMain(m_mainAxisAlignment));
+
 		for (const auto& child : m_children) {
 			if (!child) continue;
 			auto comp = child->build();
@@ -34,13 +51,15 @@ namespace UI {
 			layout->addChild(comp.release(), weight, toBoxAlignment(m_crossAxisAlignment));
 		}
 		// 直接落入布局
-		// padding/background 在 decorate 中也能处理，这里优先走原生布局能力
 		return decorate(std::move(layout));
 	}
 
 	std::unique_ptr<IUiComponent> Row::build() const {
 		auto layout = std::make_unique<UiBoxLayout>(UiBoxLayout::Direction::Horizontal);
 		layout->setSpacing(m_spacing);
+		// 主轴对齐（水平方向）
+		layout->setMainAlignment(toBoxMain(m_mainAxisAlignment));
+
 		for (const auto& child : m_children) {
 			if (!child) continue;
 			auto comp = child->build();
