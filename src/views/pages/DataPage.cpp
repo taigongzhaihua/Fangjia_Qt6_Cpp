@@ -58,8 +58,8 @@ public:
 			->animationDuration(220)
 			->contents(WidgetList{
 				wrap(formulaView.get()),
-				container(text("中药功能开发中")->fontSize(16)->align(Qt::AlignRight))->alignment(Alignment::Start),
-				container(text("经典功能开发中")->fontSize(16)->align(Qt::AlignRight))->alignment(Alignment::Center),
+				container(text("中药功能开发中")->fontSize(16)->align(Qt::AlignCenter))->alignment(Alignment::Stretch),
+				container(text("经典功能开发中")->fontSize(16)->align(Qt::AlignCenter))->alignment(Alignment::Stretch),
 				})
 				->onChanged([this](int idx) {
 			// 非 VM 模式的回调
