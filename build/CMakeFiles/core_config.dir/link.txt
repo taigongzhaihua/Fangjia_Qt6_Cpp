@@ -1,2 +1,0 @@
-/usr/bin/ar qc libcore_config.a CMakeFiles/core_config.dir/core_config_autogen/mocs_compilation.cpp.o CMakeFiles/core_config.dir/src/core/config/AppConfig.cpp.o
-/usr/bin/ranlib libcore_config.a

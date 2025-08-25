@@ -103,6 +103,7 @@ private:
 
 	void syncFromVmInstant();
 	void startHighlightAnim(float toCenterX);
+	void mountSelectedContent();
 
 	static QString textCacheKey(const QString& baseKey, int px, const QColor& color);
 	static float easeInOut(float t);

@@ -30,6 +30,9 @@ void UiTabView::setViewModel(TabViewModel* vm)
 
 	// 同步视图状态（无动画）
 	syncFromVmInstant();
+	
+	// 挂载当前选中的内容
+	mountSelectedContent();
 }
 
 void UiTabView::syncFromVmInstant()
@@ -118,6 +121,9 @@ void UiTabView::setSelectedIndex(const int idx)
 	else {
 		startHighlightAnim(targetCX);
 	}
+
+	// 挂载新选中的内容
+	mountSelectedContent();
 }
 
 QRectF UiTabView::contentRectF() const
@@ -432,6 +438,8 @@ bool UiTabView::onMouseRelease(const QPoint& pos)
 		else {
 			setSelectedIndex(hit);
 		}
+		// VM模式下，mountSelectedContent()将在下一次tick()中被调用
+		// 兼容模式下，mountSelectedContent()已在setSelectedIndex()中被调用
 		return true;
 	}
 
@@ -462,6 +470,8 @@ bool UiTabView::tick()
 				m_animHighlight.active = false;
 			}
 			m_viewSelected = vmSel;
+			// 挂载新选中的内容
+			mountSelectedContent();
 		}
 	}
 
@@ -509,6 +519,13 @@ void UiTabView::onThemeChanged(bool isDark)
 		};
 	}
 	// 不需要重建；下一帧按新配色渲染
+	
+	// 传播主题变化给当前选中的内容
+	const int curIdx = selectedIndex();
+	IUiComponent* curContent = content(curIdx);
+	if (curContent) {
+		curContent->onThemeChanged(isDark);
+	}
 }
 
 void UiTabView::startHighlightAnim(const float toCenterX)
@@ -531,6 +548,26 @@ float UiTabView::easeInOut(float t)
 {
 	t = std::clamp(t, 0.0f, 1.0f);
 	return t * t * (3.0f - 2.0f * t);
+}
+
+void UiTabView::mountSelectedContent()
+{
+	const int curIdx = selectedIndex();
+	IUiComponent* curContent = content(curIdx);
+	if (!curContent) return;
+
+	// 设置视口（如果内容实现了 IUiContent）
+	if (auto* c = dynamic_cast<IUiContent*>(curContent)) {
+		c->setViewportRect(contentRectF().toRect());
+	}
+
+	// 更新资源上下文（如果可用）
+	if (m_loader && m_gl) {
+		curContent->updateResourceContext(*m_loader, m_gl, m_dpr);
+	}
+
+	// 更新布局
+	curContent->updateLayout(m_viewport.size());
 }
 
 void UiTabView::setContent(const int tabIdx, IUiComponent* content)

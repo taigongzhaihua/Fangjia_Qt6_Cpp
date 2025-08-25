@@ -1,2 +1,0 @@
-/usr/bin/ar qc libmodels.a CMakeFiles/models.dir/models_autogen/mocs_compilation.cpp.o CMakeFiles/models.dir/src/models/FormulaViewModel.cpp.o CMakeFiles/models.dir/src/models/NavViewModel.cpp.o CMakeFiles/models.dir/src/models/TabViewModel.cpp.o CMakeFiles/models.dir/src/models/ThemeManager.cpp.o
-/usr/bin/ranlib libmodels.a
