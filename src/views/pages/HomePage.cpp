@@ -20,7 +20,7 @@ public:
 	bool isDark = false;
 	std::unique_ptr<IUiComponent> builtComponent;
 
-	WidgetPtr buildUI() const
+	[[nodiscard]] WidgetPtr buildUI() const
 	{
 		auto main = panel({
 			// 欢迎标题
@@ -42,7 +42,7 @@ public:
 	}
 
 private:
-	WidgetPtr buildFeatureGrid() const
+	[[nodiscard]] WidgetPtr buildFeatureGrid() const
 	{
 		return container(
 			panel({
@@ -65,7 +65,7 @@ private:
 		)->padding(40);
 	}
 
-	WidgetPtr buildFeatureCard(const QString& iconPath, const QString& title, const QString& desc) const
+	[[nodiscard]] WidgetPtr buildFeatureCard(const QString& iconPath, const QString& title, const QString& desc) const
 	{
 		auto ic = icon(iconPath)->size(48)->color(isDark ? QColor(100, 160, 220) : QColor(60, 120, 180));
 		auto titleText = text(title)->fontSize(16)->fontWeight(QFont::DemiBold)
