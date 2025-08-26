@@ -1,6 +1,7 @@
 #pragma once
 #include "BasicWidgets.h"
 #include "Layouts.h"
+#include "UiBoxLayout.h"
 #include "Widget.h"
 
 namespace UI
@@ -153,7 +154,7 @@ namespace UI
 			{
 				children.push_back(m_builder(m_items[i], i));
 			}
-			return make_widget<Column>(children)->build();
+			return make_widget<Panel>(children)->build();
 		}
 
 	private:

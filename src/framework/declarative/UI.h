@@ -3,7 +3,7 @@
 #include "BasicWidgets.h"
 #include "ComponentWrapper.h"
 #include "Layouts.h"
-#include "TabView.h"  // 新增
+#include "TabView.h"
 #include "Theme.h"
 #include "Widget.h"
 
@@ -16,17 +16,13 @@ namespace UI {
 	inline auto container(WidgetPtr child = nullptr) { return make_widget<Container>(child); }
 	inline auto card(WidgetPtr child) { return make_widget<Card>(child); }
 
-	inline auto column(WidgetList children = {}) { return make_widget<Column>(children); }
-	inline auto row(WidgetList children = {}) { return make_widget<Row>(children); }
-	inline auto stack(WidgetList children = {}) { return make_widget<Stack>(children); }
+	// 新：Panel（替代 Row/Column）
+	inline auto panel(WidgetList children = {}) { return make_widget<Panel>(children); }
 
-	inline auto expanded(WidgetPtr child, float flex = 1.0f) { return make_widget<Expanded>(child, flex); }
+	// Spacer 仍可用
 	inline auto spacer(int size = 0) { return make_widget<Spacer>(size); }
 
 	inline auto listTile() { return make_widget<ListTile>(); }
-	inline auto tabBar(std::vector<TabBar::Tab> tabs) { return make_widget<TabBar>(tabs); }
-
-	// 新增：声明式 TabView 包装器
 	inline auto tabView() { return make_widget<TabView>(); }
 
 	// 条件渲染

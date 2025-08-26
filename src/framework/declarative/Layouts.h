@@ -1,82 +1,54 @@
 #pragma once
-#include "UiBoxLayout.h"
+#include "UiPanel.h"
 #include "Widget.h"
 
 namespace UI {
 
-	// 布局对齐方式
+	// 布局对齐方式（沿用现有定义，供 crossAxisAlignment 使用）
 	enum class Alignment {
 		Start, Center, End, Stretch, SpaceBetween, SpaceAround, SpaceEvenly
 	};
 
-	// 新增：尺寸模式（映射到 UiBoxLayout::SizeMode）
-	enum class LayoutSizeMode { Weighted, Natural };
-
-	class Column : public Widget {
+	// Panel（声明式）：顺序容器，按子项实际尺寸依次排布
+	class Panel : public Widget {
 	public:
-		Column(WidgetList children = {}) : m_children(std::move(children)) {}
+		Panel(WidgetList children = {}) : m_children(std::move(children)) {}
 
-		std::shared_ptr<Column> spacing(int s) { m_spacing = s; return self<Column>(); }
-		std::shared_ptr<Column> mainAxisAlignment(Alignment align) { m_mainAxisAlignment = align; return self<Column>(); }
-		std::shared_ptr<Column> crossAxisAlignment(Alignment align) { m_crossAxisAlignment = align; return self<Column>(); }
+		// 设置轴向：水平/垂直
+		std::shared_ptr<Panel> orientation(UiPanel::Orientation o) { m_orient = o; return self<Panel>(); }
 
-		// 新增：尺寸模式
-		std::shared_ptr<Column> sizeMode(LayoutSizeMode m) { m_sizeMode = m; return self<Column>(); }
+		// 子项之间的间距（像素）
+		std::shared_ptr<Panel> spacing(int s) { m_spacing = std::max(0, s); return self<Panel>(); }
 
-		std::shared_ptr<Column> children(WidgetList children) { m_children = std::move(children); return self<Column>(); }
+		// 交叉轴对齐（Start/Center/End/Stretch）
+		std::shared_ptr<Panel> crossAxisAlignment(Alignment a) { m_crossAlign = a; return self<Panel>(); }
+
+		std::shared_ptr<Panel> children(WidgetList children) { m_children = std::move(children); return self<Panel>(); }
+
 		std::unique_ptr<IUiComponent> build() const override;
 
 	private:
+		static UiPanel::CrossAlign toCross(Alignment a) {
+			switch (a) {
+			case Alignment::Center:  return UiPanel::CrossAlign::Center;
+			case Alignment::End:     return UiPanel::CrossAlign::End;
+			case Alignment::Stretch: return UiPanel::CrossAlign::Stretch;
+			case Alignment::Start:
+			case Alignment::SpaceBetween:
+			case Alignment::SpaceAround:
+			case Alignment::SpaceEvenly:
+			default:                 return UiPanel::CrossAlign::Start;
+			}
+		}
+
+	private:
 		WidgetList m_children;
+		UiPanel::Orientation m_orient{ UiPanel::Orientation::Vertical };
 		int m_spacing{ 0 };
-		Alignment m_mainAxisAlignment{ Alignment::Start };
-		Alignment m_crossAxisAlignment{ Alignment::Start };
-		LayoutSizeMode m_sizeMode{ LayoutSizeMode::Weighted }; // 默认保持兼容
+		Alignment m_crossAlign{ Alignment::Start };
 	};
 
-	class Row : public Widget {
-	public:
-		Row(WidgetList children = {}) : m_children(std::move(children)) {}
-
-		std::shared_ptr<Row> spacing(int s) { m_spacing = s; return self<Row>(); }
-		std::shared_ptr<Row> mainAxisAlignment(Alignment align) { m_mainAxisAlignment = align; return self<Row>(); }
-		std::shared_ptr<Row> crossAxisAlignment(Alignment align) { m_crossAxisAlignment = align; return self<Row>(); }
-
-		// 新增：尺寸模式
-		std::shared_ptr<Row> sizeMode(LayoutSizeMode m) { m_sizeMode = m; return self<Row>(); }
-
-		std::shared_ptr<Row> children(WidgetList children) { m_children = std::move(children); return self<Row>(); }
-		std::unique_ptr<IUiComponent> build() const override;
-
-	private:
-		WidgetList m_children;
-		int m_spacing{ 0 };
-		Alignment m_mainAxisAlignment{ Alignment::Start };
-		Alignment m_crossAxisAlignment{ Alignment::Start };
-		LayoutSizeMode m_sizeMode{ LayoutSizeMode::Weighted };
-	};
-
-	class Stack : public Widget {
-	public:
-		Stack(WidgetList children = {}) : m_children(std::move(children)) {}
-		std::shared_ptr<Stack> alignment(Alignment align) { m_alignment = align; return self<Stack>(); }
-		std::unique_ptr<IUiComponent> build() const override;
-
-	private:
-		WidgetList m_children;
-		Alignment m_alignment{ Alignment::Center };
-	};
-
-	class Expanded : public Widget {
-	public:
-		Expanded(WidgetPtr child, float flex = 1.0f) : m_child(std::move(child)), m_flex(flex) {}
-		std::unique_ptr<IUiComponent> build() const override { return m_child->build(); }
-		float flex() const { return m_flex; }
-	private:
-		WidgetPtr m_child;
-		float m_flex;
-	};
-
+	// 简单占位/留白
 	class Spacer : public Widget {
 	public:
 		explicit Spacer(int size = 0) : m_size(size) {}

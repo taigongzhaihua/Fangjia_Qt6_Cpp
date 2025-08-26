@@ -1,5 +1,4 @@
 #include "Layouts.h"
-#include "UiBoxLayout.h"
 #include <IconLoader.h>
 #include <memory>
 #include <qopenglfunctions.h>
@@ -8,69 +7,28 @@
 #include <qsize.h>
 #include <RenderData.hpp>
 #include <UiComponent.hpp>
+#include <UiPanel.h>
 #include <utility>
 
 namespace UI {
 
-	static UiBoxLayout::Alignment toBoxAlignment(Alignment align) {
-		switch (align) {
-		case Alignment::Start: return UiBoxLayout::Alignment::Start;
-		case Alignment::Center: return UiBoxLayout::Alignment::Center;
-		case Alignment::End: return UiBoxLayout::Alignment::End;
-		case Alignment::Stretch: return UiBoxLayout::Alignment::Stretch;
-		default: return UiBoxLayout::Alignment::Start;
-		}
-	}
-
-	static UiBoxLayout::MainAlignment toBoxMain(Alignment align) {
-		switch (align) {
-		case Alignment::Start: return UiBoxLayout::MainAlignment::Start;
-		case Alignment::Center: return UiBoxLayout::MainAlignment::Center;
-		case Alignment::End: return UiBoxLayout::MainAlignment::End;
-		case Alignment::SpaceBetween: return UiBoxLayout::MainAlignment::SpaceBetween;
-		case Alignment::SpaceAround: return UiBoxLayout::MainAlignment::SpaceAround;
-		case Alignment::SpaceEvenly: return UiBoxLayout::MainAlignment::SpaceEvenly;
-		case Alignment::Stretch: return UiBoxLayout::MainAlignment::Start;
-		default: return UiBoxLayout::MainAlignment::Start;
-		}
-	}
-
-	static UiBoxLayout::SizeMode toBoxSizeMode(LayoutSizeMode m) {
-		return (m == LayoutSizeMode::Natural) ? UiBoxLayout::SizeMode::Natural : UiBoxLayout::SizeMode::Weighted;
-	}
-
-	std::unique_ptr<IUiComponent> Column::build() const {
-		auto layout = std::make_unique<UiBoxLayout>(UiBoxLayout::Direction::Vertical);
+	std::unique_ptr<IUiComponent> Panel::build() const {
+		auto layout = std::make_unique<UiPanel>(m_orient);
 		layout->setSpacing(m_spacing);
-		layout->setMainAlignment(toBoxMain(m_mainAxisAlignment));
-		layout->setSizeMode(toBoxSizeMode(m_sizeMode));
 
+		// 逐个添加子项（交叉轴对齐统一使用当前 Panel 的 crossAxisAlignment）
+		const auto cross = toCross(m_crossAlign);
 		for (const auto& child : m_children) {
 			if (!child) continue;
 			auto comp = child->build();
-			float weight = 0.0f;
-			if (auto* expanded = dynamic_cast<const Expanded*>(child.get())) weight = expanded->flex();
-			layout->addChild(comp.release(), weight, toBoxAlignment(m_crossAxisAlignment));
+			layout->addChild(comp.release(), cross);
 		}
+
+		// Panel 自身的装饰器（背景/圆角/内边距等）交给通用 DecoratedBox（如有设置）
 		return decorate(std::move(layout));
 	}
 
-	std::unique_ptr<IUiComponent> Row::build() const {
-		auto layout = std::make_unique<UiBoxLayout>(UiBoxLayout::Direction::Horizontal);
-		layout->setSpacing(m_spacing);
-		layout->setMainAlignment(toBoxMain(m_mainAxisAlignment));
-		layout->setSizeMode(toBoxSizeMode(m_sizeMode));
-
-		for (const auto& child : m_children) {
-			if (!child) continue;
-			auto comp = child->build();
-			float weight = 0.0f;
-			if (auto* expanded = dynamic_cast<const Expanded*>(child.get())) weight = expanded->flex();
-			layout->addChild(comp.release(), weight, toBoxAlignment(m_crossAxisAlignment));
-		}
-		return decorate(std::move(layout));
-	}
-
+	// Spacer -> 固定大小的空组件（对 Panel 来说就是占位/留白）
 	class SpacerComponent : public IUiComponent {
 	public:
 		explicit SpacerComponent(int size) : m_size(size) {}
@@ -81,7 +39,8 @@ namespace UI {
 		bool onMouseMove(const QPoint&) override { return false; }
 		bool onMouseRelease(const QPoint&) override { return false; }
 		bool tick() override { return false; }
-		QRect bounds() const override { return QRect(0, 0, m_size, m_size); }
+		[[nodiscard]] QRect bounds() const override { return { 0, 0, m_size, m_size }; }
+		void onThemeChanged(bool) override {}
 	private:
 		int m_size;
 	};
