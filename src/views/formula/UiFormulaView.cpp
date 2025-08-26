@@ -10,6 +10,8 @@
 #include <UI.h>
 
 #include <algorithm>
+#include <cmath>
+#include <ILayoutable.hpp>
 #include <Layouts.h>
 #include <memory>
 #include <qcolor.h>
@@ -23,9 +25,9 @@
 #include <qrect.h>
 #include <qsize.h>
 #include <qstring.h>
-#include <UiBoxLayout.h>
 #include <UiComponent.hpp>
 #include <UiContent.hpp>
+#include <UiPanel.h>
 #include <Widget.h>
 
 using namespace UI;
@@ -110,11 +112,68 @@ private:
 	QRect  m_viewport;
 };
 
-// ====== UiFormulaView 实现（直接继承 UiBoxLayout） ======
+// ====== 宽度提示包装器：为 Panel 提供主轴方向“期望宽度” ======
+class UiFormulaView::WidthHint : public IUiComponent, public IUiContent, public ILayoutable {
+public:
+	explicit WidthHint(IUiComponent* wrapped, int preferredW = 0)
+		: m_child(wrapped), m_prefW(std::max(0, preferredW)) {
+	}
+
+	void setPreferredWidth(int w) { m_prefW = std::max(0, w); }
+
+	// IUiContent
+	void setViewportRect(const QRect& r) override {
+		m_viewport = r;
+		if (auto* c = dynamic_cast<IUiContent*>(m_child)) c->setViewportRect(r);
+	}
+
+	// ILayoutable：主轴方向提供期望宽度，交叉轴不设限（由父容器处理 Stretch）
+	QSize measure(const SizeConstraints& cs) override {
+		const int w = std::clamp(m_prefW, cs.minW, cs.maxW);
+		const int h = std::clamp(0, cs.minH, cs.maxH);
+		return { w, h };
+	}
+
+	void arrange(const QRect& finalRect) override {
+		setViewportRect(finalRect);
+		if (auto* l = dynamic_cast<ILayoutable*>(m_child)) l->arrange(finalRect);
+	}
+
+	// IUiComponent 转发
+	void updateLayout(const QSize& windowSize) override {
+		if (m_child) m_child->updateLayout(windowSize);
+	}
+	void updateResourceContext(IconLoader& loader, QOpenGLFunctions* gl, float dpr) override {
+		if (m_child) m_child->updateResourceContext(loader, gl, dpr);
+	}
+	void append(Render::FrameData& fd) const override {
+		if (m_child) m_child->append(fd);
+	}
+	bool onMousePress(const QPoint& pos) override { return m_child ? m_child->onMousePress(pos) : false; }
+	bool onMouseMove(const QPoint& pos) override { return m_child ? m_child->onMouseMove(pos) : false; }
+	bool onMouseRelease(const QPoint& pos) override { return m_child ? m_child->onMouseRelease(pos) : false; }
+	bool tick() override { return m_child ? m_child->tick() : false; }
+
+	QRect bounds() const override {
+		// 在还未安排之前，至少提供一个“首选宽度”的边界，避免 0 宽
+		return QRect(0, 0, std::max(0, m_prefW), 0);
+	}
+
+	void onThemeChanged(bool isDark) override {
+		if (m_child) m_child->onThemeChanged(isDark);
+	}
+
+private:
+	IUiComponent* m_child{ nullptr }; // 非拥有
+	int m_prefW{ 0 };
+	QRect m_viewport;
+};
+
+// ====== UiFormulaView 实现（UiPanel-based） ======
 UiFormulaView::UiFormulaView()
-	: UiBoxLayout(UiBoxLayout::Direction::Horizontal)
+	: UiPanel(UiPanel::Orientation::Horizontal)
 {
-	qDebug() << "[UiFormulaView] ctor (UiBoxLayout-based)";
+	qDebug() << "[UiFormulaView] ctor (UiPanel-based)";
 
 	// 1) VM + 左树
 	m_vm = std::make_unique<FormulaViewModel>();
@@ -148,7 +207,7 @@ UiFormulaView::UiFormulaView()
 					)->padding(0, 6, 0, 12)
 					})
 					->spacing(2)
-					->sizeMode(LayoutSizeMode::Natural); // 每个段落自然排布
+					->sizeMode(LayoutSizeMode::Natural);
 				};
 
 			bodyWidget = container(
@@ -163,7 +222,7 @@ UiFormulaView::UiFormulaView()
 					section("备注",      detail->note)
 					})
 				->spacing(4)
-				->sizeMode(LayoutSizeMode::Natural) // 整体详情列采用自然排布
+				->sizeMode(LayoutSizeMode::Natural)
 			)->padding(24);
 		}
 
@@ -199,21 +258,21 @@ void UiFormulaView::buildChildren()
 	// 清空旧子项
 	clearChildren();
 
-	// 设置容器属性
+	// Panel 属性
 	setSpacing(0);
-	setMainAlignment(MainAlignment::Start);
 
 	// 分割条颜色随主题
 	const QColor splitClr = m_isDark ? QColor(255, 255, 255, 30) : QColor(0, 0, 0, 25);
 	m_splitter = std::make_unique<VSplitter>(splitClr, 1);
 
-	// 添加子项：左树（权重 m_leftRatio）、分割条（固定 1px）、右详情（权重 1 - m_leftRatio）
-	addChild(m_tree.get(), std::max(0.0f, m_leftRatio), UiBoxLayout::Alignment::Stretch);
-	addChild(m_splitter.get(), 0.0f, UiBoxLayout::Alignment::Stretch);
-	addChild(m_detailHost.get(), std::max(0.0f, 1.0f - m_leftRatio), UiBoxLayout::Alignment::Stretch);
+	// 创建宽度提示包装器（默认左侧 320px，右侧先置 400px，实际会在 setViewportRect 中根据比例更新）
+	m_treeWrap = std::make_unique<WidthHint>(m_tree.get(), 320);
+	m_detailWrap = std::make_unique<WidthHint>(m_detailHost.get(), 400);
 
-	// 让布局立即重新计算
-	calculateLayout();
+	// 添加子项：左树（Stretch 交叉轴拉伸）、分割条（1px）、右详情（Stretch）
+	addChild(m_treeWrap.get(), UiPanel::CrossAlign::Stretch);
+	addChild(m_splitter.get(), UiPanel::CrossAlign::Stretch);
+	addChild(m_detailWrap.get(), UiPanel::CrossAlign::Stretch);
 }
 
 void UiFormulaView::setDarkTheme(bool dark)
@@ -222,7 +281,7 @@ void UiFormulaView::setDarkTheme(bool dark)
 	m_isDark = dark;
 	applyPalettes();
 	if (m_detailHost) m_detailHost->requestRebuild();
-	UiBoxLayout::onThemeChanged(m_isDark);
+	UiPanel::onThemeChanged(m_isDark);
 }
 
 void UiFormulaView::applyPalettes()
@@ -258,6 +317,26 @@ void UiFormulaView::onThemeChanged(bool isDark)
 	applyPalettes();
 	if (m_detailHost) m_detailHost->requestRebuild();
 
-	// 交给 UiBoxLayout 继续把主题往子项传
-	UiBoxLayout::onThemeChanged(isDark);
+	// 交给 UiPanel 继续把主题往子项传
+	UiPanel::onThemeChanged(isDark);
+}
+
+// 在获取到页面 viewport 时，按比例计算左右两侧的“期望宽度”，下发给包装器
+void UiFormulaView::setViewportRect(const QRect& r)
+{
+	UiPanel::setViewportRect(r);
+
+	const int totalW = std::max(0, r.width());
+	const int splitterW = 1;
+	// 可设置一个左侧最小/最大宽度，避免过窄或过宽
+	const int minLeft = 220;
+	const int maxLeft = std::max(minLeft, totalW - 300);
+
+	int leftW = static_cast<int>(std::round(static_cast<double>(totalW) * m_leftRatio));
+	leftW = std::clamp(leftW, minLeft, maxLeft);
+
+	int rightW = std::max(0, totalW - splitterW - leftW);
+
+	if (m_treeWrap)   m_treeWrap->setPreferredWidth(leftW);
+	if (m_detailWrap) m_detailWrap->setPreferredWidth(rightW);
 }
