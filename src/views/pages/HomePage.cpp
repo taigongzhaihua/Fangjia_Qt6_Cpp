@@ -62,6 +62,7 @@ public:
 private:
 	[[nodiscard]] WidgetPtr buildFeatureCard(const QString& iconPath, const QString& title, const QString& desc) const
 	{
+		// 注意：将 size(200,180) 施加在 card 外层，而不是内部 panel 上
 		return
 			card(panel({
 					icon(iconPath)->size(48)
@@ -82,9 +83,8 @@ private:
 				})->vertical()
 				->crossAxisAlignment(Alignment::Center)
 				->spacing(10)
-				->size(200, 180)
-			)->elevation(2.0f)
-			->border(QColor(0, 0, 0, 40), 1.0f, 8.0f);
+				->size(200, 160)
+			)->elevation(2.0f); // 固定“卡片外层”尺寸，保证大小稳定
 	}
 };
 

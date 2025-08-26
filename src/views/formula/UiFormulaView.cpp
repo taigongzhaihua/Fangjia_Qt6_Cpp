@@ -171,7 +171,7 @@ private:
 
 // ====== UiFormulaView 实现（UiPanel-based） ======
 UiFormulaView::UiFormulaView()
-	: UiPanel(UiPanel::Orientation::Horizontal)
+	: UiPanel(Orientation::Horizontal)
 {
 	qDebug() << "[UiFormulaView] ctor (UiPanel-based)";
 
@@ -182,7 +182,7 @@ UiFormulaView::UiFormulaView()
 	m_tree->setModel(m_adapter.get());
 
 	// 2) 右侧详情：RebuildHost
-	m_detailHost = std::make_unique<UI::RebuildHost>();
+	m_detailHost = std::make_unique<RebuildHost>();
 	m_detailHost->setBuilder([this]() -> std::unique_ptr<IUiComponent>
 		{
 			const auto* detail = m_vm->selectedFormula();
@@ -197,7 +197,7 @@ UiFormulaView::UiFormulaView()
 			{
 				bodyWidget = container(
 					text("请从左侧列表选择一个方剂")->fontSize(14)->align(Qt::AlignCenter)
-				)->alignment(UI::Alignment::Center);
+				)->alignment(Alignment::Center);
 			}
 			else
 			{
@@ -211,6 +211,7 @@ UiFormulaView::UiFormulaView()
 								text(content)->fontSize(14)
 											 ->color(body)
 											 ->wrap(true)
+											 ->margin(30, 0)
 							})->vertical()
 							->spacing(10)
 							->crossAxisAlignment(Alignment::Stretch)

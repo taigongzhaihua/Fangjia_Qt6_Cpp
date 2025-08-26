@@ -12,13 +12,15 @@
 #include <UiContent.hpp>
 #include <utility>
 
-namespace UI {
-
+namespace UI
+{
 	DecoratedBox::DecoratedBox(std::unique_ptr<IUiComponent> child, Props p)
-		: m_child(std::move(child)), m_p(std::move(p)) {
+		: m_child(std::move(child)), m_p(std::move(p))
+	{
 	}
 
-	void DecoratedBox::setViewportRect(const QRect& r) {
+	void DecoratedBox::setViewportRect(const QRect& r)
+	{
 		m_viewport = r;
 
 		// 视觉外边距：只影响绘制区与内容区，不影响父布局分配的 viewport
@@ -36,17 +38,21 @@ namespace UI {
 		);
 
 		// 下发给子项
-		if (auto* c = dynamic_cast<IUiContent*>(m_child.get())) {
+		if (auto* c = dynamic_cast<IUiContent*>(m_child.get()))
+		{
 			c->setViewportRect(m_contentRect);
 		}
-		if (auto* l = dynamic_cast<ILayoutable*>(m_child.get())) {
+		if (auto* l = dynamic_cast<ILayoutable*>(m_child.get()))
+		{
 			l->arrange(m_contentRect);
 		}
 	}
 
-	QSize DecoratedBox::measure(const SizeConstraints& cs) {
+	QSize DecoratedBox::measure(const SizeConstraints& cs)
+	{
 		// 固定尺寸优先（不考虑 margin，margin 仅视觉）
-		if (m_p.fixedSize.width() > 0 || m_p.fixedSize.height() > 0) {
+		if (m_p.fixedSize.width() > 0 || m_p.fixedSize.height() > 0)
+		{
 			int w = (m_p.fixedSize.width() > 0 ? m_p.fixedSize.width() : 0);
 			int h = (m_p.fixedSize.height() > 0 ? m_p.fixedSize.height() : 0);
 			w = std::clamp(w, cs.minW, cs.maxW);
@@ -59,7 +65,8 @@ namespace UI {
 		const int padH = m_p.padding.top() + m_p.padding.bottom();
 
 		QSize inner(0, 0);
-		if (auto* l = dynamic_cast<ILayoutable*>(m_child.get())) {
+		if (auto* l = dynamic_cast<ILayoutable*>(m_child.get()))
+		{
 			SizeConstraints innerCs = cs;
 			innerCs.minW = std::max(0, cs.minW - padW);
 			innerCs.minH = std::max(0, cs.minH - padH);
@@ -67,7 +74,8 @@ namespace UI {
 			innerCs.maxH = std::max(0, cs.maxH - padH);
 			inner = l->measure(innerCs);
 		}
-		else if (m_child) {
+		else if (m_child)
+		{
 			inner = m_child->bounds().size();
 		}
 
@@ -78,27 +86,34 @@ namespace UI {
 		return QSize(w, h);
 	}
 
-	void DecoratedBox::arrange(const QRect& finalRect) {
+	void DecoratedBox::arrange(const QRect& finalRect)
+	{
 		setViewportRect(finalRect);
 	}
 
-	void DecoratedBox::updateLayout(const QSize& windowSize) {
+	void DecoratedBox::updateLayout(const QSize& windowSize)
+	{
 		if (m_child) m_child->updateLayout(windowSize);
 	}
 
-	void DecoratedBox::updateResourceContext(IconLoader& loader, QOpenGLFunctions* gl, float devicePixelRatio) {
-		m_loader = &loader; m_gl = gl; m_dpr = std::max(0.5f, devicePixelRatio);
+	void DecoratedBox::updateResourceContext(IconLoader& loader, QOpenGLFunctions* gl, float devicePixelRatio)
+	{
+		m_loader = &loader;
+		m_gl = gl;
+		m_dpr = std::max(0.5f, devicePixelRatio);
 		if (m_child) m_child->updateResourceContext(loader, gl, devicePixelRatio);
 	}
 
-	void DecoratedBox::append(Render::FrameData& fd) const {
+	void DecoratedBox::append(Render::FrameData& fd) const
+	{
 		if (!m_p.visible) return;
 
 		// 裁剪到上级 viewport
 		const QRectF clip = QRectF(m_viewport);
 
 		// 先画边框（若启用）
-		if (m_drawRect.isValid() && m_p.border.alpha() > 0 && m_p.borderW > 0.0f) {
+		if (m_drawRect.isValid() && m_p.border.alpha() > 0 && m_p.borderW > 0.0f)
+		{
 			fd.roundedRects.push_back(Render::RoundedRectCmd{
 				.rect = QRectF(m_drawRect),
 				.radiusPx = (m_p.borderRadius > 0.0f ? m_p.borderRadius : m_p.bgRadius),
@@ -108,10 +123,12 @@ namespace UI {
 		}
 
 		// 再画背景（若启用），要扣除边框厚度
-		if (m_drawRect.isValid() && m_p.bg.alpha() > 0) {
+		if (m_drawRect.isValid() && m_p.bg.alpha() > 0)
+		{
 			const int bw = static_cast<int>(std::round(std::max(0.0f, m_p.borderW)));
 			const QRect bgRect = m_drawRect.adjusted(bw, bw, -bw, -bw);
-			if (bgRect.isValid()) {
+			if (bgRect.isValid())
+			{
 				fd.roundedRects.push_back(Render::RoundedRectCmd{
 					.rect = QRectF(bgRect),
 					.radiusPx = std::max(0.0f, m_p.bgRadius - static_cast<float>(bw)),
@@ -125,19 +142,23 @@ namespace UI {
 		if (m_child) m_child->append(fd);
 	}
 
-	bool DecoratedBox::onMousePress(const QPoint& pos) {
+	bool DecoratedBox::onMousePress(const QPoint& pos)
+	{
 		if (!m_p.visible || !m_viewport.contains(pos)) return false;
 		if (m_child && m_child->onMousePress(pos)) return true;
 		return false;
 	}
 
-	bool DecoratedBox::onMouseMove(const QPoint& pos) {
+	bool DecoratedBox::onMouseMove(const QPoint& pos)
+	{
 		if (!m_p.visible) return false;
 		bool handled = false;
 		if (m_child) handled = m_child->onMouseMove(pos) || handled;
-		if (m_p.onHover) {
+		if (m_p.onHover)
+		{
 			const bool hov = m_viewport.contains(pos);
-			if (hov != m_hover) {
+			if (hov != m_hover)
+			{
 				m_hover = hov;
 				m_p.onHover(m_hover);
 				handled = true;
@@ -146,40 +167,60 @@ namespace UI {
 		return handled;
 	}
 
-	bool DecoratedBox::onMouseRelease(const QPoint& pos) {
+	bool DecoratedBox::onMouseRelease(const QPoint& pos)
+	{
 		if (!m_p.visible) return false;
 		bool handled = false;
 		if (m_child) handled = m_child->onMouseRelease(pos) || handled;
-		if (m_p.onTap && m_viewport.contains(pos)) {
+		if (m_p.onTap && m_viewport.contains(pos))
+		{
 			m_p.onTap();
 			handled = true;
 		}
 		return handled;
 	}
 
-	bool DecoratedBox::tick() {
+	bool DecoratedBox::tick()
+	{
 		return m_child && m_child->tick();
 	}
 
-	QRect DecoratedBox::bounds() const {
+	QRect DecoratedBox::bounds() const
+	{
 		// 若设置了 fixedSize，则作为 preferred size
-		if (m_p.fixedSize.width() > 0 || m_p.fixedSize.height() > 0) {
-			return QRect(0, 0, std::max(0, m_p.fixedSize.width()), std::max(0, m_p.fixedSize.height()));
+		if (m_p.fixedSize.width() > 0 || m_p.fixedSize.height() > 0)
+		{
+			return QRect(
+				0,
+				0,
+				std::max(0, m_p.fixedSize.width()),
+				std::max(0, m_p.fixedSize.height())
+			);
 		}
-		if (m_child) {
+		if (m_child)
+		{
 			const QRect cb = m_child->bounds();
 			const int bw2 = static_cast<int>(std::round(std::max(0.0f, m_p.borderW))) * 2;
-			return QRect(0, 0,
+			return {
+				0,0,
 				cb.width() + m_p.padding.left() + m_p.padding.right() + bw2,
-				cb.height() + m_p.padding.top() + m_p.padding.bottom() + bw2);
+				cb.height() + m_p.padding.top() + m_p.padding.bottom() + bw2
+			};
 		}
-		return QRect();
+		return {};
 	}
 
-	QColor DecoratedBox::withOpacity(QColor c, float mul) {
-		const int a = std::clamp(int(std::lround(c.alphaF() * mul * 255.0f)), 0, 255);
+	void DecoratedBox::onThemeChanged(bool isDark)
+	{
+		// 将主题变化继续传递给子项
+		if (m_child) m_child->onThemeChanged(isDark);
+	}
+
+
+	QColor DecoratedBox::withOpacity(QColor c, float mul)
+	{
+		const int a = std::clamp(static_cast<int>(std::lround(c.alphaF() * mul * 255.0f)), 0, 255);
 		c.setAlpha(a);
 		return c;
 	}
-
 } // namespace UI

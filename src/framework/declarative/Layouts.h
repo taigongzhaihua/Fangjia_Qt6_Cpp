@@ -27,16 +27,6 @@ namespace UI {
 		// 交叉轴对齐（Start/Center/End/Stretch）
 		std::shared_ptr<Panel> crossAxisAlignment(Alignment a) { m_crossAlign = a; return self<Panel>(); }
 
-		// Panel 自身的边距/内边距（作用于 UiPanel，非 DecoratedBox）
-		std::shared_ptr<Panel> margins(const QMargins& m) { m_margins = m; return self<Panel>(); }
-		std::shared_ptr<Panel> margin(int all) { m_margins = QMargins(all, all, all, all); return self<Panel>(); }
-		std::shared_ptr<Panel> margin(int horizontal, int vertical) { m_margins = QMargins(horizontal, vertical, horizontal, vertical); return self<Panel>(); }
-		std::shared_ptr<Panel> margin(int left, int top, int right, int bottom) { m_margins = QMargins(left, top, right, bottom); return self<Panel>(); }
-
-		std::shared_ptr<Panel> padding(const QMargins& p) { m_padding = p; return self<Panel>(); }
-		std::shared_ptr<Panel> padding(int all) { m_padding = QMargins(all, all, all, all); return self<Panel>(); }
-		std::shared_ptr<Panel> padding(int horizontal, int vertical) { m_padding = QMargins(horizontal, vertical, horizontal, vertical); return self<Panel>(); }
-		std::shared_ptr<Panel> padding(int left, int top, int right, int bottom) { m_padding = QMargins(left, top, right, bottom); return self<Panel>(); }
 
 		std::shared_ptr<Panel> children(WidgetList children) { m_children = std::move(children); return self<Panel>(); }
 

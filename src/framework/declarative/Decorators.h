@@ -19,7 +19,7 @@ namespace UI {
 	public:
 		struct Props {
 			QMargins padding{ 0,0,0,0 };
-			QMargins margin{ 0,0,0,0 }; // 视觉外边距，不参与父布局测量
+			QMargins margin{ 0,0,0,0 };
 			QColor   bg{ Qt::transparent };
 			float    bgRadius{ 0.0f };
 			QColor   border{ Qt::transparent };
@@ -53,15 +53,18 @@ namespace UI {
 		bool tick() override;
 		QRect bounds() const override;
 
+		// 新增：主题转发
+		void onThemeChanged(bool isDark) override;
+
 	private:
 		static QColor withOpacity(QColor c, float mul);
 
 	private:
 		std::unique_ptr<IUiComponent> m_child;
 		Props   m_p;
-		QRect   m_viewport;    // 上级分配的矩形
-		QRect   m_drawRect;    // 去掉 margin 后用于绘制/放置的矩形
-		QRect   m_contentRect; // 去掉 margin + border + padding 的内容矩形
+		QRect   m_viewport;
+		QRect   m_drawRect;
+		QRect   m_contentRect;
 
 		bool    m_hover{ false };
 		IconLoader* m_loader{ nullptr };

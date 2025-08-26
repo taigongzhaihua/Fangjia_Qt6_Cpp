@@ -9,6 +9,7 @@
 #include <memory>
 #include <qchar.h>
 #include <qcolor.h>
+#include <qfile.h>
 #include <qfont.h>
 #include <qfontmetrics.h>
 #include <qnamespace.h>
@@ -23,6 +24,9 @@
 #include <vector>
 
 #include "ILayoutable.hpp"
+#include <qbytearray.h>
+#include <qhash.h>
+#include <qiodevice.h>
 
 namespace UI {
 
@@ -340,33 +344,62 @@ namespace UI {
 
 
 	// 图标组件实现（与之前相同，补上裁剪）
-	class IconComponent : public IUiComponent, public IUiContent {
+	class IconComponent : public IUiComponent, public IUiContent, public ILayoutable {
 	public:
-		IconComponent(const QString& path, const QColor& color, int size, bool /*autoColor*/)
-			: m_path(path), m_color(color), m_size(size) {
+		IconComponent(const QString& path, const QColor& color, int size, bool autoColor)
+			: m_path(path), m_color(color), m_size(size), m_autoColor(autoColor) {
 		}
 
 		// IUiContent
 		void setViewportRect(const QRect& r) override { m_bounds = r; }
+
+		// ILayoutable：图标自然尺寸为 m_size（正方形），并受父约束裁剪
+		QSize measure(const SizeConstraints& cs) override {
+			const int s = std::max(0, m_size);
+			int w = std::clamp(s, cs.minW, cs.maxW);
+			int h = std::clamp(s, cs.minH, cs.maxH);
+			return QSize(w, h);
+		}
+		void arrange(const QRect& finalRect) override { m_bounds = finalRect; }
 
 		void updateLayout(const QSize&) override {}
 
 		void updateResourceContext(IconLoader& loader, QOpenGLFunctions* gl, float dpr) override {
 			m_loader = &loader;
 			m_gl = gl;
-			m_dpr = dpr;
+			m_dpr = std::max(0.5f, dpr);
 		}
 
 		void append(Render::FrameData& fd) const override {
-			if (!m_loader || !m_gl || m_path.isEmpty()) return;
+			if (!m_loader || !m_gl || m_path.isEmpty() || !m_bounds.isValid()) return;
 
-			fd.roundedRects.push_back(Render::RoundedRectCmd{
-				.rect = QRectF(m_bounds.center().x() - m_size / 2.0f,
-							  m_bounds.center().y() - m_size / 2.0f,
-							  m_size, m_size),
-				.radiusPx = m_size / 4.0f,
-				.color = m_color,
-				.clipRect = QRectF(m_bounds) // 新增：裁剪到自身 bounds
+			// 目标逻辑尺寸：不超过自身 bounds，保持正方形
+			const int availW = std::max(0, m_bounds.width());
+			const int availH = std::max(0, m_bounds.height());
+			const int logicalS = std::max(0, std::min({ m_size, availW, availH }));
+			if (logicalS <= 0) return;
+
+			// 中心放置
+			const QRectF dst(
+				m_bounds.center().x() - logicalS * 0.5,
+				m_bounds.center().y() - logicalS * 0.5,
+				logicalS,
+				logicalS
+			);
+
+			// 生成/获取纹理
+			const int px = std::lround(logicalS * m_dpr);
+			QByteArray svg = svgDataCached(m_path);
+			const QString key = QString("icon:%1@%2px").arg(m_path).arg(px);
+			const int tex = m_loader->ensureSvgPx(key, svg, QSize(px, px), QColor(255, 255, 255, 255), m_gl);
+			const QSize ts = m_loader->textureSizePx(tex);
+
+			fd.images.push_back(Render::ImageCmd{
+				.dstRect = dst,
+				.textureId = tex,
+				.srcRectPx = QRectF(0, 0, ts.width(), ts.height()),
+				.tint = m_color,                     // 以白膜纹理 + tint 输出指定颜色
+				.clipRect = QRectF(m_bounds)         // 严格裁剪到自身 bounds
 				});
 		}
 
@@ -374,16 +407,39 @@ namespace UI {
 		bool onMouseMove(const QPoint&) override { return false; }
 		bool onMouseRelease(const QPoint&) override { return false; }
 		bool tick() override { return false; }
-		QRect bounds() const override { return m_bounds; }
 
-		void setBounds(const QRect& bounds) { m_bounds = bounds; }
+		QRect bounds() const override {
+			// 若已有布局矩形，返回之；否则以自然尺寸给出一个首选矩形
+			if (m_bounds.isValid()) return m_bounds;
+			const int s = std::max(0, m_size);
+			return QRect(0, 0, s, s);
+		}
+
+		void onThemeChanged(bool isDark) override {
+			if (m_autoColor) {
+				// 简单的自动配色：可按需要调整
+				m_color = isDark ? QColor(100, 160, 220) : QColor(60, 120, 180);
+			}
+		}
+
+	private:
+		static QByteArray svgDataCached(const QString& path) {
+			static thread_local QHash<QString, QByteArray> cache;
+			if (const auto it = cache.find(path); it != cache.end()) return it.value();
+			QFile f(path);
+			if (!f.open(QIODevice::ReadOnly)) return {};
+			QByteArray data = f.readAll();
+			cache.insert(path, data);
+			return data;
+		}
 
 	private:
 		QString m_path;
-		QColor m_color{ 0,0,0 };
-		int m_size;
-		QRect m_bounds;
+		QColor  m_color{ 0,0,0 };
+		int     m_size{ 24 };
+		bool    m_autoColor{ true };
 
+		QRect m_bounds;
 		IconLoader* m_loader{ nullptr };
 		QOpenGLFunctions* m_gl{ nullptr };
 		float m_dpr{ 1.0f };
@@ -393,6 +449,7 @@ namespace UI {
 		auto comp = std::make_unique<IconComponent>(m_path, m_color, m_size, m_autoColor);
 		return decorate(std::move(comp));
 	}
+
 
 	// 容器组件实现（保持与你当前版本一致）
 	std::unique_ptr<IUiComponent> Container::build() const {
