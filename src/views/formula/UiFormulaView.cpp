@@ -205,15 +205,19 @@ UiFormulaView::UiFormulaView()
 					{
 						if (content.isEmpty()) return container();
 						return panel({
-								text(head + "：")->fontSize(13)
-												->fontWeight(QFont::DemiBold)
-												->color(label),
-								text(content)->fontSize(14)
-											 ->color(body)
-											 ->wrap(true)
-											 ->margin(30, 0)
+								text(head + "：")
+								->fontSize(13)
+								->fontWeight(QFont::DemiBold)
+								->color(label)
+								->align(Qt::AlignTop),
+								container(
+									text(content)
+									->fontSize(14)
+									->color(body)
+									->wrap(true)
+								)->padding(20, 0)
 							})->vertical()
-							->spacing(10)
+							->spacing(12)
 							->crossAxisAlignment(Alignment::Stretch)
 							->margin(20, 0);
 					};

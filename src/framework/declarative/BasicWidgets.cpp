@@ -7,7 +7,6 @@
 #include <climits>
 #include <cmath>
 #include <memory>
-#include <qchar.h>
 #include <qcolor.h>
 #include <qfile.h>
 #include <qfont.h>
@@ -25,22 +24,23 @@
 
 #include "ILayoutable.hpp"
 #include <qbytearray.h>
+#include <qchar.h>
 #include <qhash.h>
 #include <qiodevice.h>
 
 namespace UI {
 
 	// 简单的文本组件实现（支持换行 / 裁切 / 省略）
-		// 简单的文本组件实现（支持换行 / 裁切 / 省略）
-	class TextComponent : public IUiComponent, public IUiContent, public ILayoutable {
+	class TextComponent final : public IUiComponent, public IUiContent, public ILayoutable {
 	public:
-		TextComponent(const QString& text,
+		TextComponent(QString text,
 			QColor color, bool autoColor,
 			int fontSize, QFont::Weight weight,
 			Qt::Alignment align,
 			bool wrap, int maxLines, Text::Overflow overflow,
-			bool wordWrap, int lineSpacing)
-			: m_text(text)
+			bool wordWrap, int lineSpacing,
+			bool useThemeColor, QColor light, QColor dark)
+			: m_text(std::move(text))
 			, m_color(color)
 			, m_autoColor(autoColor)
 			, m_fontSize(fontSize)
@@ -50,7 +50,11 @@ namespace UI {
 			, m_maxLines(maxLines)
 			, m_overflow(overflow)
 			, m_wordWrap(wordWrap)
-			, m_lineSpacing(lineSpacing) {
+			, m_lineSpacing(lineSpacing)
+			, m_useThemeColor(useThemeColor)
+			, m_colorLight(light)
+			, m_colorDark(dark)
+		{
 		}
 
 		// IUiContent
@@ -77,14 +81,15 @@ namespace UI {
 				int h = lineH;
 				w = std::clamp(w, cs.minW, cs.maxW);
 				h = std::clamp(h, cs.minH, cs.maxH);
-				return QSize(w, h);
+				return { w, h };
 			}
 			else {
 				int wMax = 0;
 				int hTot = 0;
 				int curW = 0;
-				for (int i = 0; i < m_text.size(); ++i) {
-					int chW = fm.horizontalAdvance(m_text[i]);
+				for (auto i : m_text)
+				{
+					int chW = fm.horizontalAdvance(i);
 					if (maxW > 0 && curW + chW > maxW) {
 						wMax = std::max(wMax, curW);
 						hTot += (hTot == 0 ? lineH : (lineH + lineGap));
@@ -107,7 +112,7 @@ namespace UI {
 				int h = (maxH > 0 ? std::min(hTot, maxH) : hTot);
 				w = std::clamp(w, cs.minW, cs.maxW);
 				h = std::clamp(h, cs.minH, cs.maxH);
-				return QSize(w, h);
+				return { w, h };
 			}
 		}
 
@@ -117,7 +122,7 @@ namespace UI {
 
 		void updateLayout(const QSize&) override {}
 
-		void updateResourceContext(IconLoader& loader, QOpenGLFunctions* gl, float dpr) override {
+		void updateResourceContext(IconLoader& loader, QOpenGLFunctions* gl, const float dpr) override {
 			m_loader = &loader;
 			m_gl = gl;
 			m_dpr = std::max(0.5f, dpr);
@@ -127,15 +132,15 @@ namespace UI {
 			if (!m_loader || !m_gl || m_text.isEmpty() || !m_bounds.isValid()) return;
 
 			QFont font;
-			font.setPixelSize(std::lround(m_fontSize * m_dpr));
+			font.setPixelSize(std::lround(static_cast<float>(m_fontSize) * m_dpr));
 			font.setWeight(m_fontWeight);
 			QFontMetrics fm(font);
 
 			const int lineHpx = fm.height();
-			const int lineGapPx = (m_lineSpacing >= 0) ? std::lround(m_lineSpacing * m_dpr)
+			const int lineGapPx = (m_lineSpacing >= 0) ? std::lround(static_cast<float>(m_lineSpacing) * m_dpr)
 				: std::lround(lineHpx * 0.2);
-			const int availWpx = std::max(0, static_cast<int>(std::lround(m_bounds.width() * m_dpr)));
-			const int availHpx = std::max(0, static_cast<int>(std::lround(m_bounds.height() * m_dpr)));
+			const int availWpx = std::max(0, static_cast<int>(std::lround(static_cast<float>(m_bounds.width()) * m_dpr)));
+			const int availHpx = std::max(0, static_cast<int>(std::lround(static_cast<float>(m_bounds.height()) * m_dpr)));
 
 			struct Line { QString text; int tex{ 0 }; QSize texPx; int drawWpx{ 0 }; };
 			std::vector<Line> lines;
@@ -144,9 +149,9 @@ namespace UI {
 				const QString key = QString("text_%1_%2_%3").arg(s).arg(m_fontSize).arg(m_color.name(QColor::HexArgb));
 				const int tex = m_loader->ensureTextPx(key, font, s, m_color, m_gl);
 				const QSize ts = m_loader->textureSizePx(tex);
-				return Line{ s, tex, ts, ts.width() };
+				return Line{ .text = s, .tex = tex, .texPx = ts, .drawWpx = ts.width() };
 				};
-			auto elideRight = [&](const QString& s, int maxWpx) -> QString {
+			auto elideRight = [&](const QString& s, const int maxWpx) -> QString {
 				return QFontMetrics(font).elidedText(s, Qt::ElideRight, std::max(0, maxWpx));
 				};
 
@@ -222,7 +227,7 @@ namespace UI {
 						while (pos < n && sAll[pos].isSpace()) ++pos;
 					}
 
-					const int totalHpx = static_cast<int>(lines.size()) * lineHpx + static_cast<int>(lines.size() > 0 ? (lines.size() - 1) : 0) * lineGapPx;
+					const int totalHpx = static_cast<int>(lines.size()) * lineHpx + static_cast<int>(!lines.empty() ? (lines.size() - 1) : 0) * lineGapPx;
 					if (totalHpx > availHpx && availHpx > 0) {
 						break;
 					}
@@ -231,14 +236,14 @@ namespace UI {
 
 			if (lines.empty()) return;
 
-			const int totalHpx = static_cast<int>(lines.size()) * lineHpx + static_cast<int>(lines.size() > 0 ? (lines.size() - 1) : 0) * lineGapPx;
+			const int totalHpx = static_cast<int>(lines.size()) * lineHpx + static_cast<int>(!lines.empty() ? (lines.size() - 1) : 0) * lineGapPx;
 
 			float y0 = static_cast<float>(m_bounds.top());
 			if (m_alignment.testFlag(Qt::AlignVCenter)) {
-				y0 = m_bounds.center().y() - (static_cast<float>(totalHpx) / m_dpr) * 0.5f;
+				y0 = static_cast<float>(m_bounds.center().y()) - (static_cast<float>(totalHpx) / m_dpr) * 0.5f;
 			}
 			else if (m_alignment.testFlag(Qt::AlignBottom)) {
-				y0 = m_bounds.bottom() - static_cast<float>(totalHpx) / m_dpr;
+				y0 = static_cast<float>(m_bounds.bottom()) - static_cast<float>(totalHpx) / m_dpr;
 			}
 
 			for (size_t i = 0; i < lines.size(); ++i) {
@@ -251,10 +256,10 @@ namespace UI {
 
 				float x = static_cast<float>(m_bounds.left());
 				if (m_alignment.testFlag(Qt::AlignHCenter)) {
-					x = m_bounds.center().x() - wLogical * 0.5f;
+					x = static_cast<float>(m_bounds.center().x()) - wLogical * 0.5f;
 				}
 				else if (m_alignment.testFlag(Qt::AlignRight)) {
-					x = m_bounds.right() - wLogical;
+					x = static_cast<float>(m_bounds.right()) - wLogical;
 				}
 
 				QRectF srcPx(0, 0, ln.texPx.width(), ln.texPx.height());
@@ -300,14 +305,19 @@ namespace UI {
 		bool onMouseRelease(const QPoint&) override { return false; }
 		bool tick() override { return false; }
 
-		// 修复：类内定义时无需使用限定名
 		QRect bounds() const override {
 			if (m_bounds.isValid() && m_bounds.height() > 0) return m_bounds;
 			const int estimatedLineH = std::max(1, static_cast<int>(std::round(m_fontSize * 1.4)));
-			return QRect(0, 0, 0, estimatedLineH);
+			return { 0, 0, 0, estimatedLineH };
 		}
 
-		void onThemeChanged(bool isDark) override {
+		void onThemeChanged(const bool isDark) override {
+			// 优先使用用户指定的主题色
+			if (m_useThemeColor) {
+				m_color = isDark ? m_colorDark : m_colorLight;
+				return;
+			}
+			// 否则按默认的自动配色
 			if (m_autoColor) {
 				m_color = isDark ? QColor(240, 245, 250) : QColor(30, 35, 40);
 			}
@@ -328,6 +338,11 @@ namespace UI {
 		bool m_wordWrap{ true };
 		int  m_lineSpacing{ -1 };
 
+		// 新增：主题色支持
+		bool  m_useThemeColor{ false };
+		QColor m_colorLight{ 30,35,40 };
+		QColor m_colorDark{ 240,245,250 };
+
 		IconLoader* m_loader{ nullptr };
 		QOpenGLFunctions* m_gl{ nullptr };
 		float m_dpr{ 1.0f };
@@ -337,17 +352,17 @@ namespace UI {
 		auto comp = std::make_unique<TextComponent>(
 			m_text, m_color, m_autoColor,
 			m_fontSize, m_fontWeight, m_alignment,
-			m_wrap, m_maxLines, m_overflow, m_wordWrap, m_lineSpacing
+			m_wrap, m_maxLines, m_overflow, m_wordWrap, m_lineSpacing,
+			m_useThemeColor, m_colorLight, m_colorDark
 		);
 		return decorate(std::move(comp));
 	}
 
-
 	// 图标组件实现（与之前相同，补上裁剪）
 	class IconComponent : public IUiComponent, public IUiContent, public ILayoutable {
 	public:
-		IconComponent(const QString& path, const QColor& color, int size, bool autoColor)
-			: m_path(path), m_color(color), m_size(size), m_autoColor(autoColor) {
+		IconComponent(QString path, const QColor& color, const int size, const bool autoColor)
+			: m_path(std::move(path)), m_color(color), m_size(size), m_autoColor(autoColor) {
 		}
 
 		// IUiContent
@@ -358,13 +373,13 @@ namespace UI {
 			const int s = std::max(0, m_size);
 			int w = std::clamp(s, cs.minW, cs.maxW);
 			int h = std::clamp(s, cs.minH, cs.maxH);
-			return QSize(w, h);
+			return { w, h };
 		}
 		void arrange(const QRect& finalRect) override { m_bounds = finalRect; }
 
 		void updateLayout(const QSize&) override {}
 
-		void updateResourceContext(IconLoader& loader, QOpenGLFunctions* gl, float dpr) override {
+		void updateResourceContext(IconLoader& loader, QOpenGLFunctions* gl, const float dpr) override {
 			m_loader = &loader;
 			m_gl = gl;
 			m_dpr = std::max(0.5f, dpr);
@@ -388,7 +403,7 @@ namespace UI {
 			);
 
 			// 生成/获取纹理
-			const int px = std::lround(logicalS * m_dpr);
+			const int px = std::lround(static_cast<float>(logicalS) * m_dpr);
 			QByteArray svg = svgDataCached(m_path);
 			const QString key = QString("icon:%1@%2px").arg(m_path).arg(px);
 			const int tex = m_loader->ensureSvgPx(key, svg, QSize(px, px), QColor(255, 255, 255, 255), m_gl);
@@ -412,10 +427,10 @@ namespace UI {
 			// 若已有布局矩形，返回之；否则以自然尺寸给出一个首选矩形
 			if (m_bounds.isValid()) return m_bounds;
 			const int s = std::max(0, m_size);
-			return QRect(0, 0, s, s);
+			return { 0, 0, s, s };
 		}
 
-		void onThemeChanged(bool isDark) override {
+		void onThemeChanged(const bool isDark) override {
 			if (m_autoColor) {
 				// 简单的自动配色：可按需要调整
 				m_color = isDark ? QColor(100, 160, 220) : QColor(60, 120, 180);
@@ -455,13 +470,13 @@ namespace UI {
 	std::unique_ptr<IUiComponent> Container::build() const {
 		auto cont = std::make_unique<UiContainer>();
 		// 映射对齐：单子项容器用统一两轴对齐
-		auto toAlign = [](Alignment a) {
+		auto toAlign = [](const Alignment a) {
 			switch (a) {
 			case Alignment::Center:  return UiContainer::Align::Center;
 			case Alignment::End:     return UiContainer::Align::End;
 			case Alignment::Stretch: return UiContainer::Align::Stretch;
 			case Alignment::Start:
-			default:                 return UiContainer::Align::Start;
+			default:				 return UiContainer::Align::Start;
 			}
 			};
 		cont->setAlignment(toAlign(m_alignment));

@@ -3,6 +3,7 @@
 #include "Layouts.h"
 #include "UiPanel.h"
 #include "Widget.h"
+#include <qmargins.h>
 
 namespace UI
 {
@@ -10,28 +11,47 @@ namespace UI
 	class Card : public Widget
 	{
 	public:
-		explicit Card(WidgetPtr child) : m_child(std::move(child))
-		{
-		}
+		struct Palette {
+			// 亮/暗两套背景颜色
+			QColor bgLight{ QColor(255,255,255,245) };
+			QColor bgDark{ QColor(28,38,50,220) };
 
-		std::shared_ptr<Card> elevation(float e)
-		{
-			m_elevation = e;
+			// 可选边框（默认无）
+			QColor borderLight{ Qt::transparent };
+			QColor borderDark{ Qt::transparent };
+			float  borderW{ 0.0f };
+
+			float  radius{ 8.0f };
+			QMargins padding{ 16,16,16,16 };
+		};
+
+		explicit Card(WidgetPtr child) : m_child(std::move(child)) {}
+
+		// 阴影占位（暂留，不影响绘制）
+		std::shared_ptr<Card> elevation(float e) { m_elevation = e; return self<Card>(); }
+
+		// 配置亮/暗主题的背景（外部可分别设置）
+		std::shared_ptr<Card> backgroundTheme(QColor light, QColor dark, float radius = 8.0f) {
+			m_pal.bgLight = light; m_pal.bgDark = dark; m_pal.radius = radius; return self<Card>();
+		}
+		// 配置亮/暗主题的边框（外部可分别设置）
+		std::shared_ptr<Card> borderTheme(QColor light, QColor dark, float width = 1.0f, float radius = -1.0f) {
+			m_pal.borderLight = light; m_pal.borderDark = dark; m_pal.borderW = std::max(0.0f, width);
+			if (radius >= 0.0f) m_pal.radius = radius;
 			return self<Card>();
 		}
+		// 配置 padding
+		std::shared_ptr<Card> padding(const QMargins& p) { m_pal.padding = p; return self<Card>(); }
+		std::shared_ptr<Card> padding(int all) { m_pal.padding = QMargins(all, all, all, all); return self<Card>(); }
+		std::shared_ptr<Card> padding(int h, int v) { m_pal.padding = QMargins(h, v, h, v); return self<Card>(); }
+		std::shared_ptr<Card> padding(int l, int t, int r, int b) { m_pal.padding = QMargins(l, t, r, b); return self<Card>(); }
 
-		std::unique_ptr<IUiComponent> build() const override
-		{
-			return
-				make_widget<Container>(m_child)
-				->padding(16)
-				->background(QColor(255, 255, 255), 8.0f)
-				->build();
-		}
+		std::unique_ptr<IUiComponent> build() const override;
 
 	private:
 		WidgetPtr m_child;
 		float m_elevation{ 2.0f };
+		Palette m_pal;              // 主题化配色/内边距
 	};
 
 	// ListTile组件

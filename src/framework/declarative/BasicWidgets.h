@@ -22,6 +22,16 @@ namespace UI {
 		std::shared_ptr<Text> color(QColor c) {
 			m_color = c;
 			m_autoColor = false;
+			m_useThemeColor = false; // 显式设色优先，取消主题色
+			return self<Text>();
+		}
+
+		// 新增：分别设置亮/暗两套颜色，随主题自动切换
+		std::shared_ptr<Text> themeColor(QColor light, QColor dark) {
+			m_colorLight = light;
+			m_colorDark = dark;
+			m_useThemeColor = true;
+			m_autoColor = false; // 主题色优先，关闭默认自动配色
 			return self<Text>();
 		}
 
@@ -82,7 +92,12 @@ namespace UI {
 		int m_fontSize{ 14 };
 		QFont::Weight m_fontWeight{ QFont::Normal };
 		Qt::Alignment m_alignment{ Qt::AlignLeft | Qt::AlignTop };
-		bool m_autoColor{ true };       // 自动跟随主题
+		bool m_autoColor{ true };       // 自动跟随主题（未设主题色/显式色时）
+
+		// 新增：按主题切换的颜色
+		bool  m_useThemeColor{ false };
+		QColor m_colorLight{ QColor(30,35,40) };
+		QColor m_colorDark{ QColor(240,245,250) };
 
 		bool m_wrap{ false };
 		int m_maxLines{ 1 };            // 0 = 不限；wrap=false 时建议为 1

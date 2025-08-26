@@ -4,11 +4,11 @@
 #include <Layouts.h>
 #include <memory>
 #include <qcolor.h>
-#include <qfont.h>
 #include <qlogging.h>
 
 #include "UI.h"
 #include <exception>
+#include <qfont.h>
 #include <qstring.h>
 #include <UiComponent.hpp>
 #include <Widget.h>
@@ -29,6 +29,7 @@ public:
 			// 副标题
 			text("中医方剂数据管理系统")->fontSize(16),
 
+			spacer(15),
 			// 功能卡片网格
 			panel({
 				// 第一行
@@ -54,7 +55,7 @@ public:
 			spacer(8)
 			})->vertical()
 			->crossAxisAlignment(Alignment::Center)
-			->spacing(15);
+			->spacing(20);
 
 		return main;
 	}
@@ -69,22 +70,18 @@ private:
 								  ->color(isDark
 											  ? QColor(100, 160, 220)
 											  : QColor(60, 120, 180)),
-					spacer(16),
-					text(title)->fontSize(16)
-							   ->fontWeight(QFont::DemiBold)
-							   ->color(isDark
-										   ? QColor(240, 245, 250)
-										   : QColor(30, 35, 40)),
 					spacer(8),
+					text(title)->fontSize(16)
+							   ->fontWeight(QFont::Medium)
+							   ->themeColor(QColor(30, 35, 40), QColor(210, 220, 215)),
 					text(desc)->fontSize(13)
-							  ->color(isDark
-										  ? QColor(180, 190, 200)
-										  : QColor(100, 110, 120))
+							  ->themeColor(QColor(100, 110, 120), QColor(150, 160, 155))
 				})->vertical()
 				->crossAxisAlignment(Alignment::Center)
 				->spacing(10)
 				->size(200, 160)
-			)->elevation(2.0f); // 固定“卡片外层”尺寸，保证大小稳定
+			)->elevation(2.0f)
+			->backgroundTheme(QColor(240, 245, 255), QColor(10, 15, 25)); // 固定“卡片外层”尺寸，保证大小稳定
 	}
 };
 

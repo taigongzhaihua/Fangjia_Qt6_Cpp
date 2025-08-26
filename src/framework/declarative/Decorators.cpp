@@ -29,7 +29,7 @@ namespace UI
 			-m_p.margin.right(), -m_p.margin.bottom()
 		);
 
-		// 内容区：在绘制区基础上再扣除 border 和 padding
+		// 内容区：在绘制区基础上再扣除边框和内边距
 		const int bw = static_cast<int>(std::round(std::max(0.0f, m_p.borderW)));
 		QRect inner = m_drawRect.adjusted(bw, bw, -bw, -bw);
 		m_contentRect = inner.adjusted(
@@ -104,6 +104,18 @@ namespace UI
 		if (m_child) m_child->updateResourceContext(loader, gl, devicePixelRatio);
 	}
 
+	QColor DecoratedBox::effectiveBg() const
+	{
+		if (m_p.useThemeBg) return m_isDark ? m_p.bgDark : m_p.bgLight;
+		return m_p.bg;
+	}
+
+	QColor DecoratedBox::effectiveBorder() const
+	{
+		if (m_p.useThemeBorder) return m_isDark ? m_p.borderDark : m_p.borderLight;
+		return m_p.border;
+	}
+
 	void DecoratedBox::append(Render::FrameData& fd) const
 	{
 		if (!m_p.visible) return;
@@ -111,19 +123,22 @@ namespace UI
 		// 裁剪到上级 viewport
 		const QRectF clip = QRectF(m_viewport);
 
+		const QColor borderColor = effectiveBorder();
+		const QColor bgColor = effectiveBg();
+
 		// 先画边框（若启用）
-		if (m_drawRect.isValid() && m_p.border.alpha() > 0 && m_p.borderW > 0.0f)
+		if (m_drawRect.isValid() && borderColor.alpha() > 0 && m_p.borderW > 0.0f)
 		{
 			fd.roundedRects.push_back(Render::RoundedRectCmd{
 				.rect = QRectF(m_drawRect),
 				.radiusPx = (m_p.borderRadius > 0.0f ? m_p.borderRadius : m_p.bgRadius),
-				.color = withOpacity(m_p.border, m_p.opacity),
+				.color = withOpacity(borderColor, m_p.opacity),
 				.clipRect = clip
 				});
 		}
 
 		// 再画背景（若启用），要扣除边框厚度
-		if (m_drawRect.isValid() && m_p.bg.alpha() > 0)
+		if (m_drawRect.isValid() && bgColor.alpha() > 0)
 		{
 			const int bw = static_cast<int>(std::round(std::max(0.0f, m_p.borderW)));
 			const QRect bgRect = m_drawRect.adjusted(bw, bw, -bw, -bw);
@@ -132,7 +147,7 @@ namespace UI
 				fd.roundedRects.push_back(Render::RoundedRectCmd{
 					.rect = QRectF(bgRect),
 					.radiusPx = std::max(0.0f, m_p.bgRadius - static_cast<float>(bw)),
-					.color = withOpacity(m_p.bg, m_p.opacity),
+					.color = withOpacity(bgColor, m_p.opacity),
 					.clipRect = clip
 					});
 			}
@@ -212,10 +227,10 @@ namespace UI
 
 	void DecoratedBox::onThemeChanged(bool isDark)
 	{
-		// 将主题变化继续传递给子项
+		// 先更新自身主题，再传递给子项
+		m_isDark = isDark;
 		if (m_child) m_child->onThemeChanged(isDark);
 	}
-
 
 	QColor DecoratedBox::withOpacity(QColor c, float mul)
 	{
