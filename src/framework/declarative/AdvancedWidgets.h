@@ -1,7 +1,7 @@
 #pragma once
 #include "BasicWidgets.h"
 #include "Layouts.h"
-#include "UiBoxLayout.h"
+#include "UiPanel.h"
 #include "Widget.h"
 
 namespace UI
@@ -126,7 +126,7 @@ namespace UI
 			{
 				return m_ifFalse->build();
 			}
-			return std::make_unique<UiBoxLayout>();
+			return std::make_unique<UiPanel>();
 		}
 
 	private:

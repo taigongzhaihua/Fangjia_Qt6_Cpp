@@ -2,7 +2,7 @@
 #include "IconLoader.h"
 #include "Layouts.h"
 #include "RenderData.hpp"
-#include "UiBoxLayout.h"
+#include "UiContainer.h"
 #include <algorithm>
 #include <climits>
 #include <cmath>
@@ -11,7 +11,6 @@
 #include <qcolor.h>
 #include <qfont.h>
 #include <qfontmetrics.h>
-#include <qmargins.h>
 #include <qnamespace.h>
 #include <qopenglfunctions.h>
 #include <qpoint.h>
@@ -398,41 +397,24 @@ namespace UI {
 
 	// 容器组件实现（保持与你当前版本一致）
 	std::unique_ptr<IUiComponent> Container::build() const {
-		auto layout = std::make_unique<UiBoxLayout>(UiBoxLayout::Direction::Vertical);
-
-		auto toBoxMain = [](Alignment a) {
+		auto cont = std::make_unique<UiContainer>();
+		// 映射对齐：单子项容器用统一两轴对齐
+		auto toAlign = [](Alignment a) {
 			switch (a) {
-			case Alignment::Start: return UiBoxLayout::MainAlignment::Start;
-			case Alignment::Center: return UiBoxLayout::MainAlignment::Center;
-			case Alignment::End: return UiBoxLayout::MainAlignment::End;
-			default: return UiBoxLayout::MainAlignment::Start;
+			case Alignment::Center:  return UiContainer::Align::Center;
+			case Alignment::End:     return UiContainer::Align::End;
+			case Alignment::Stretch: return UiContainer::Align::Stretch;
+			case Alignment::Start:
+			default:                 return UiContainer::Align::Start;
 			}
 			};
-		auto toBoxCross = [](Alignment a) {
-			switch (a) {
-			case Alignment::Start: return UiBoxLayout::Alignment::Start;
-			case Alignment::Center: return UiBoxLayout::Alignment::Center;
-			case Alignment::End: return UiBoxLayout::Alignment::End;
-			case Alignment::Stretch: return UiBoxLayout::Alignment::Stretch;
-			default: return UiBoxLayout::Alignment::Start;
-			}
-			};
-
-		layout->setMainAlignment(toBoxMain(m_alignment));
-
+		cont->setAlignment(toAlign(m_alignment));
 		if (m_child) {
-			auto childComp = m_child->build();
-			layout->addChild(childComp.release(), 1.0f, toBoxCross(
-				m_alignment == Alignment::Stretch ? Alignment::Stretch : Alignment::Center == m_alignment ? Alignment::Center :
-				m_alignment == Alignment::End ? Alignment::End : Alignment::Start));
+			cont->setChild(m_child->build().release());
 		}
-
-		if (m_decorations.padding != QMargins()) layout->setMargins(m_decorations.padding);
-		if (m_decorations.backgroundColor.alpha() > 0) {
-			layout->setBackgroundColor(m_decorations.backgroundColor);
-			layout->setCornerRadius(m_decorations.backgroundRadius);
-		}
-		return decorate(std::move(layout));
+		// 注意：不再把 Widget 的 padding/background 写入容器本体，
+			// 统一交给 DecoratedBox（decorate）处理，避免双重 padding。
+		return decorate(std::move(cont));
 	}
 
 } // namespace UI
