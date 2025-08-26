@@ -27,7 +27,7 @@ private:
 	// 初始化/重建子项（左树 + 分割条 + 右详情）
 	void buildChildren();
 	// 根据主题应用树的调色板
-	void applyPalettes();
+	void applyPalettes() const;
 
 	// 内部宽度提示包装器（给 Panel 提供主轴方向的期望尺寸）
 	class WidthHint;

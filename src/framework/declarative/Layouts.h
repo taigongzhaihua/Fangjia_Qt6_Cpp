@@ -16,6 +16,9 @@ namespace UI {
 
 		// 设置轴向：水平/垂直
 		std::shared_ptr<Panel> orientation(UiPanel::Orientation o) { m_orient = o; return self<Panel>(); }
+		// 便捷：垂直/水平
+		std::shared_ptr<Panel> vertical() { m_orient = UiPanel::Orientation::Vertical; return self<Panel>(); }
+		std::shared_ptr<Panel> horizontal() { m_orient = UiPanel::Orientation::Horizontal; return self<Panel>(); }
 
 		// 子项之间的间距（像素）
 		std::shared_ptr<Panel> spacing(int s) { m_spacing = std::max(0, s); return self<Panel>(); }
