@@ -12,37 +12,27 @@
 #include <qrect.h>
 #include <vector>
 
-// 通用盒式布局容器：支持水平/垂直排列子控件和主题传播
 class UiBoxLayout : public IUiComponent, public IUiContent
 {
 public:
-	enum class Direction {
-		Horizontal,  // 水平排列
-		Vertical     // 垂直排列
+	enum class Direction { Horizontal, Vertical };
+
+	// 新增：主轴尺寸模式
+	enum class SizeMode {
+		Weighted, // 旧行为：按权重分配剩余空间
+		Natural   // 新行为：按首选尺寸顺序排布，剩余留白，超出裁切
 	};
 
-	// 子项在“交叉轴”的对齐（已有）
-	enum class Alignment {
-		Start,       // 左对齐（水平）或顶对齐（垂直）
-		Center,      // 居中对齐
-		End,         // 右对齐（水平）或底对齐（垂直）
-		Stretch      // 拉伸填充
-	};
+	enum class Alignment { Start, Center, End, Stretch };
 
-	// 新增：主轴对齐（整体分布）
 	enum class MainAlignment {
-		Start,
-		Center,
-		End,
-		SpaceBetween,
-		SpaceAround,
-		SpaceEvenly
+		Start, Center, End, SpaceBetween, SpaceAround, SpaceEvenly
 	};
 
 	struct ChildItem {
 		IUiComponent* component{ nullptr };
-		float weight{ 0.0f };      // 权重（0表示固定大小，>0表示按比例分配剩余空间）
-		Alignment alignment{ Alignment::Start }; // 交叉轴对齐
+		float weight{ 0.0f };
+		Alignment alignment{ Alignment::Start };
 		bool visible{ true };
 	};
 
@@ -69,9 +59,13 @@ public:
 	void setMargins(const QMargins& margins) { m_margins = margins; }
 	[[nodiscard]] const QMargins& margins() const noexcept { return m_margins; }
 
-	// 新增：主轴对齐设置
 	void setMainAlignment(MainAlignment a) { m_mainAlign = a; }
 	[[nodiscard]] MainAlignment mainAlignment() const noexcept { return m_mainAlign; }
+
+	// 新增：主轴尺寸模式
+	void setSizeMode(SizeMode m) { m_sizeMode = m; }
+	[[nodiscard]] SizeMode sizeMode() const noexcept { return m_sizeMode; }
+	UiBoxLayout& withSizeMode(SizeMode m) { setSizeMode(m); return *this; }
 
 	// 背景
 	void setBackgroundColor(const QColor& color) { m_bgColor = color; }
@@ -95,49 +89,42 @@ public:
 	UiBoxLayout& withSpacing(int spacing);
 	UiBoxLayout& withMargins(const QMargins& margins);
 	UiBoxLayout& withBackground(const QColor& color, float radius);
-	// 新增：链式主轴对齐
 	UiBoxLayout& withMainAlignment(MainAlignment a) { setMainAlignment(a); return *this; }
 
 	QRect bounds() const override { return m_viewport; }
-	// IUiComponent - 添加主题支持
 	void onThemeChanged(bool isDark) override;
 
-	// 设置是否为深色主题
 	void applyTheme(bool dark) override { m_isDark = dark; IUiComponent::applyTheme(dark); }
 	bool isDarkTheme() const { return m_isDark; }
-	// 子控件可见性
+
 	void setChildVisible(size_t index, bool visible);
 	bool isChildVisible(size_t index) const;
 
 protected:
-	// 计算布局
 	void calculateLayout();
 	QRect childRect(size_t index) const;
-
-	// 获取内容区域（去除边距后）
 	QRect contentRect() const;
 
 private:
 	Direction m_direction{ Direction::Vertical };
+	SizeMode  m_sizeMode{ SizeMode::Weighted }; // 新增：默认保持兼容
 	QRect m_viewport;
 	QMargins m_margins{ 0, 0, 0, 0 };
 	int m_spacing{ 0 };
-	MainAlignment m_mainAlign{ MainAlignment::Start }; // 新增：主轴对齐
+	MainAlignment m_mainAlign{ MainAlignment::Start };
 
-	bool m_isDark{ false };  // 添加主题状态
+	bool m_isDark{ false };
 
 	QColor m_bgColor{ Qt::transparent };
 	float m_cornerRadius{ 0.0f };
 
 	std::vector<ChildItem> m_children;
-	std::vector<QRect> m_childRects;  // 缓存计算后的子控件矩形
+	std::vector<QRect> m_childRects;
 
-	// 捕获状态（用于事件分发）
 	IUiComponent* m_capturedChild{ nullptr };
 };
 
-// 便捷类型别名
-using UiVBoxLayout = UiBoxLayout;  // 垂直布局
+using UiVBoxLayout = UiBoxLayout;
 
 class UiHBoxLayout : public UiBoxLayout {
 public:

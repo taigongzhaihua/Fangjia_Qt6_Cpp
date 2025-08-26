@@ -24,10 +24,13 @@
 #include <utility>
 #include <vector>
 
+#include "ILayoutable.hpp"
+
 namespace UI {
 
 	// 简单的文本组件实现（支持换行 / 裁切 / 省略）
-	class TextComponent : public IUiComponent, public IUiContent {
+		// 简单的文本组件实现（支持换行 / 裁切 / 省略）
+	class TextComponent : public IUiComponent, public IUiContent, public ILayoutable {
 	public:
 		TextComponent(const QString& text,
 			QColor color, bool autoColor,
@@ -50,6 +53,68 @@ namespace UI {
 
 		// IUiContent
 		void setViewportRect(const QRect& r) override { m_bounds = r; }
+
+		// ILayoutable
+		QSize measure(const SizeConstraints& cs) override {
+			// 用逻辑像素的 fontSize 粗略度量（不依赖 DPR）
+			QFont font;
+			font.setPixelSize(std::max(1, m_fontSize));
+			font.setWeight(m_fontWeight);
+			QFontMetrics fm(font);
+
+			const int lineH = fm.height();
+			const int lineGap = (m_lineSpacing >= 0) ? m_lineSpacing : std::lround(lineH * 0.2);
+
+			const int maxW = std::max(0, cs.maxW);
+			const int maxH = std::max(0, cs.maxH);
+
+			if (!m_wrap) {
+				int w = fm.horizontalAdvance(m_text);
+				// 溢出不换行时，按 Clip/Ellipsis 可以限制测量宽度为 maxW（让 Panel 不至于过长）
+				if (m_overflow == UI::Text::Overflow::Ellipsis || m_overflow == UI::Text::Overflow::Clip) {
+					w = std::min(w, maxW > 0 ? maxW : w);
+				}
+				int h = lineH;
+				w = std::clamp(w, cs.minW, cs.maxW);
+				h = std::clamp(h, cs.minH, cs.maxH);
+				return QSize(w, h);
+			}
+			else {
+				// 简化换行：按字符累计宽度不超过 maxW
+				int wMax = 0;
+				int hTot = 0;
+				int curW = 0;
+				for (int i = 0; i < m_text.size(); ++i) {
+					int chW = fm.horizontalAdvance(m_text[i]);
+					if (maxW > 0 && curW + chW > maxW) {
+						wMax = std::max(wMax, curW);
+						hTot += (hTot == 0 ? lineH : (lineH + lineGap));
+						curW = chW;
+					}
+					else {
+						curW += chW;
+					}
+				}
+				if (curW > 0) {
+					wMax = std::max(wMax, curW);
+					hTot += (hTot == 0 ? lineH : (lineH + lineGap));
+				}
+				if (m_maxLines > 0) {
+					const int per = (lineH + lineGap);
+					const int cap = lineH + (m_maxLines - 1) * per;
+					hTot = std::min(hTot, cap);
+				}
+				int w = (maxW > 0 ? std::min(wMax, maxW) : wMax);
+				int h = (maxH > 0 ? std::min(hTot, maxH) : hTot);
+				w = std::clamp(w, cs.minW, cs.maxW);
+				h = std::clamp(h, cs.minH, cs.maxH);
+				return QSize(w, h);
+			}
+		}
+
+		void arrange(const QRect& finalRect) override {
+			m_bounds = finalRect;
+		}
 
 		void updateLayout(const QSize&) override {}
 
@@ -86,7 +151,7 @@ namespace UI {
 				};
 
 			auto elideRight = [&](const QString& s, int maxWpx) -> QString {
-				return fm.elidedText(s, Qt::ElideRight, std::max(0, maxWpx));
+				return QFontMetrics(font).elidedText(s, Qt::ElideRight, std::max(0, maxWpx));
 				};
 
 			if (!m_wrap) {
@@ -106,7 +171,7 @@ namespace UI {
 				}
 			}
 			else {
-				// 多行换行
+				// 多行换行（省略：与现有实现一致）
 				const QString& sAll = m_text;
 				int pos = 0;
 				const int n = sAll.size();
@@ -120,31 +185,26 @@ namespace UI {
 					while (lineEnd < n) {
 						const QChar ch = sAll[lineEnd];
 						const QString piece(ch);
-						const int w = fm.horizontalAdvance(piece);
+						const int w = QFontMetrics(font).horizontalAdvance(piece);
 						if (widthPx + w > availWpx && availWpx > 0) {
-							// 超宽，回退到最后断点；如果没有断点，按字符断
 							if (m_wordWrap && lastBreak > pos) {
 								lineEnd = lastBreak;
 							}
 							else if (lineEnd == pos) {
-								// 单个字符都放不下：强制至少放一个
 								++lineEnd;
 							}
 							break;
 						}
 						widthPx += w;
 						if (m_wordWrap && (ch.isSpace() || ch == QChar::fromLatin1('-') || ch == QChar::fromLatin1('/'))) {
-							lastBreak = lineEnd + 1; // 断点放在后一个位置（跳过空格）
+							lastBreak = lineEnd + 1;
 						}
 						++lineEnd;
 					}
 
 					QString seg = sAll.mid(pos, lineEnd - pos);
-
-					// 去掉末尾多余空格
 					while (!seg.isEmpty() && seg.back().isSpace()) seg.chop(1);
 
-					// 如果已经到达最后一行但还有剩余内容，根据溢出策略处理
 					const bool lastLine = (lines.size() + 1 == static_cast<size_t>(maxLines));
 					const bool hasMore = (lineEnd < n);
 
@@ -154,29 +214,21 @@ namespace UI {
 							lines.push_back(makeTex(seg));
 							break;
 						}
-						else if (m_overflow == Text::Overflow::Clip) {
-							// 正常放这一行，余下不再绘制
-							lines.push_back(makeTex(seg));
-							break;
-						}
-						else { // Visible
+						else {
 							lines.push_back(makeTex(seg));
 							break;
 						}
 					}
 					else {
 						if (seg.isEmpty()) {
-							// 放至少一个字符，防止死循环
 							seg = sAll.mid(pos, 1);
 							lineEnd = pos + 1;
 						}
 						lines.push_back(makeTex(seg));
 						pos = lineEnd;
-						// 跳过前导空格
 						while (pos < n && sAll[pos].isSpace()) ++pos;
 					}
 
-					// 高度满了就停止（Clip/ Ellipsis 皆停止）
 					const int totalHpx = static_cast<int>(lines.size()) * lineHpx + static_cast<int>(lines.size() > 0 ? (lines.size() - 1) : 0) * lineGapPx;
 					if (totalHpx > availHpx && availHpx > 0) {
 						break;
@@ -186,10 +238,9 @@ namespace UI {
 
 			if (lines.empty()) return;
 
-			// 计算总高度用于垂直对齐
 			const int totalHpx = static_cast<int>(lines.size()) * lineHpx + static_cast<int>(lines.size() > 0 ? (lines.size() - 1) : 0) * lineGapPx;
 
-			// 起始 Y（逻辑像素）
+			// 垂直对齐
 			float y0 = static_cast<float>(m_bounds.top());
 			if (m_alignment.testFlag(Qt::AlignVCenter)) {
 				y0 = m_bounds.center().y() - (static_cast<float>(totalHpx) / m_dpr) * 0.5f;
@@ -198,18 +249,14 @@ namespace UI {
 				y0 = m_bounds.bottom() - static_cast<float>(totalHpx) / m_dpr;
 			}
 
-			// 逐行绘制
 			for (size_t i = 0; i < lines.size(); ++i) {
 				const auto& ln = lines[i];
 
-				// 逻辑尺寸
 				const float wLogical = static_cast<float>(ln.texPx.width()) / m_dpr;
 				const float hLogical = static_cast<float>(ln.texPx.height()) / m_dpr;
 
-				// 行基线 Y（顶部对齐）
 				const float lineTop = y0 + static_cast<float>(i) * (static_cast<float>(lineHpx + lineGapPx) / m_dpr);
 
-				// 水平对齐
 				float x = static_cast<float>(m_bounds.left());
 				if (m_alignment.testFlag(Qt::AlignHCenter)) {
 					x = m_bounds.center().x() - wLogical * 0.5f;
@@ -218,7 +265,6 @@ namespace UI {
 					x = m_bounds.right() - wLogical;
 				}
 
-				// 水平裁切：已在 Renderer 用 glScissor 统一处理；这里仍保留像素级 srcRect 裁切（多行/clip 模式）
 				QRectF srcPx(0, 0, ln.texPx.width(), ln.texPx.height());
 				float drawW = wLogical;
 				if ((m_overflow == Text::Overflow::Clip || m_wrap) && m_bounds.width() > 0) {
@@ -241,11 +287,9 @@ namespace UI {
 					}
 				}
 
-				// 垂直裁切：若超出下边界，停止绘制
 				if (lineTop >= static_cast<float>(m_bounds.bottom())) break;
 				if (lineTop + hLogical <= static_cast<float>(m_bounds.top())) continue;
 
-				// 目标矩形
 				const QRectF dst(x, lineTop, drawW, hLogical);
 				if (dst.width() <= 0.0 || dst.height() <= 0.0) continue;
 
@@ -254,7 +298,7 @@ namespace UI {
 					.textureId = ln.tex,
 					.srcRectPx = srcPx,
 					.tint = QColor(255,255,255,255),
-					.clipRect = QRectF(m_bounds) // 新增：对整段文本使用 m_bounds 作为裁剪区域
+					.clipRect = QRectF(m_bounds)
 					});
 			}
 		}
@@ -263,7 +307,13 @@ namespace UI {
 		bool onMouseMove(const QPoint&) override { return false; }
 		bool onMouseRelease(const QPoint&) override { return false; }
 		bool tick() override { return false; }
-		QRect bounds() const override { return m_bounds; }
+
+		// 关键修复：当还没有有效 viewport，或 viewport 高度为 0 时，返回一个估算的首选高度
+		QRect TextComponent::bounds() const override {
+			if (m_bounds.isValid() && m_bounds.height() > 0) return m_bounds;
+			const int estimatedLineH = std::max(1, static_cast<int>(std::round(m_fontSize * 1.4)));
+			return QRect(0, 0, 0, estimatedLineH);
+		}
 
 		void onThemeChanged(bool isDark) override {
 			if (m_autoColor) {
@@ -299,6 +349,7 @@ namespace UI {
 		);
 		return decorate(std::move(comp));
 	}
+
 
 	// 图标组件实现（与之前相同，补上裁剪）
 	class IconComponent : public IUiComponent, public IUiContent {

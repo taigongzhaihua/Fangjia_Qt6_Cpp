@@ -1,7 +1,6 @@
 ﻿{
     "version": 3,
     "configurePresets": [
-       
         {
             "name": "x64-debug",
             "displayName": "x64 Debug",
