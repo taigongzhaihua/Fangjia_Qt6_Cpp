@@ -24,47 +24,47 @@ public:
 	{
 		auto main = panel({
 			// 欢迎标题
-			container(text("欢迎使用方家")->fontSize(28))->padding(0, 40, 0, 20),
+			text("欢迎使用方家")->fontSize(28),
 
 			// 副标题
-			container(text("中医方剂数据管理系统")->fontSize(16))->padding(0, 0, 0, 40),
+			text("中医方剂数据管理系统")->fontSize(16),
 
 			// 功能卡片网格
-			buildFeatureGrid(),
+			panel({
+				// 第一行
+				panel({
+					buildFeatureCard(
+						":/icons/data_light.svg",
+						"方剂数据",
+						"查看和管理中医方剂"),
+					spacer(16),
+					buildFeatureCard(
+						":/icons/explore_light.svg",
+						"探索发现",
+						"发现新的方剂组合")
+				})->horizontal()
+				->crossAxisAlignment(Alignment::Center),
+
+				spacer(16),
+
+						// 第二行
+						panel({
+							buildFeatureCard(":/icons/fav_light.svg", "我的收藏", "管理收藏的方剂"),
+							spacer(16),
+							buildFeatureCard(":/icons/settings_light.svg", "系统设置", "自定义应用偏好")
+						})->horizontal()
+						->crossAxisAlignment(Alignment::Center)
+					}),
 
 			// 留白
 			spacer(8)
-			})
-			->vertical()
+			})->vertical()
 			->crossAxisAlignment(Alignment::Center);
 
 		return main;
 	}
 
 private:
-	[[nodiscard]] WidgetPtr buildFeatureGrid() const
-	{
-		return container(
-			panel({
-				// 第一行
-				panel({
-					buildFeatureCard(":/icons/data_light.svg", "方剂数据", "查看和管理中医方剂"),
-					spacer(16),
-					buildFeatureCard(":/icons/explore_light.svg", "探索发现", "发现新的方剂组合")
-				})->horizontal()->crossAxisAlignment(Alignment::Center),
-
-				spacer(16),
-
-					// 第二行
-					panel({
-						buildFeatureCard(":/icons/fav_light.svg", "我的收藏", "管理收藏的方剂"),
-						spacer(16),
-						buildFeatureCard(":/icons/settings_light.svg", "系统设置", "自定义应用偏好")
-					})->horizontal()->crossAxisAlignment(Alignment::Center)
-				})
-		)->padding(40);
-	}
-
 	[[nodiscard]] WidgetPtr buildFeatureCard(const QString& iconPath, const QString& title, const QString& desc) const
 	{
 		auto ic = icon(iconPath)->size(48)->color(isDark ? QColor(100, 160, 220) : QColor(60, 120, 180));
@@ -73,11 +73,11 @@ private:
 		auto descText = text(desc)->fontSize(13)->color(isDark ? QColor(180, 190, 200) : QColor(100, 110, 120));
 
 		const auto column = panel({
-			ic,
-			spacer(16),
-			titleText,
-			spacer(8),
-			descText
+								ic,
+								spacer(16),
+								titleText,
+								spacer(8),
+								descText
 			})
 			->vertical()
 			->crossAxisAlignment(Alignment::Center);
@@ -90,11 +90,13 @@ private:
 
 HomePage::HomePage() : m_impl(std::make_unique<Impl>())
 {
-	try {
+	try
+	{
 		setTitle("首页");
 		HomePage::initializeContent();
 	}
-	catch (const std::exception& e) {
+	catch (const std::exception& e)
+	{
 		qCritical() << "Exception in HomePage:" << e.what();
 		throw;
 	}
@@ -104,13 +106,16 @@ HomePage::~HomePage() = default;
 
 void HomePage::initializeContent()
 {
-	try {
-		if (const auto widget = m_impl->buildUI()) {
+	try
+	{
+		if (const auto widget = m_impl->buildUI())
+		{
 			m_impl->builtComponent = widget->build();
 			setContent(m_impl->builtComponent.get());
 		}
 	}
-	catch (const std::exception& e) {
+	catch (const std::exception& e)
+	{
 		qCritical() << "Exception in initializeContent:" << e.what();
 		throw;
 	}
@@ -121,7 +126,8 @@ void HomePage::applyPageTheme(bool isDark)
 	m_impl->isDark = isDark;
 
 	// 重新构建UI
-	if (const auto widget = m_impl->buildUI()) {
+	if (const auto widget = m_impl->buildUI())
+	{
 		m_impl->builtComponent = widget->build();
 		setContent(m_impl->builtComponent.get());
 	}

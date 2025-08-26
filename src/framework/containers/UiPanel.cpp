@@ -111,6 +111,83 @@ QRect UiPanel::placeChild(const QRect& area, const int cur, const QSize& desired
 	}
 }
 
+// ========== 新增：ILayoutable 实现 ==========
+QSize UiPanel::measure(const SizeConstraints& cs)
+{
+	// 先扣除 panel 自身的 margins + padding
+	const int padW = m_margins.left() + m_margins.right() + m_padding.left() + m_padding.right();
+	const int padH = m_margins.top() + m_margins.bottom() + m_padding.top() + m_padding.bottom();
+
+	const bool isH = (m_orient == Orientation::Horizontal);
+	const int crossMaxAvail = std::max(0, isH ? (cs.maxH - padH) : (cs.maxW - padW));
+
+	int mainSum = 0;
+	int crossMax = 0;
+	int visCount = 0;
+
+	for (const auto& ch : m_children) {
+		if (!ch.visible || !ch.component) continue;
+
+		QSize desired(0, 0);
+		if (auto* l = dynamic_cast<ILayoutable*>(ch.component)) {
+			SizeConstraints childCs{};
+			if (isH) {
+				childCs.minW = 0; childCs.minH = 0;
+				childCs.maxW = std::numeric_limits<int>::max() / 2;
+				childCs.maxH = crossMaxAvail;
+			}
+			else {
+				childCs.minW = 0; childCs.minH = 0;
+				childCs.maxW = crossMaxAvail;
+				childCs.maxH = std::numeric_limits<int>::max() / 2;
+			}
+			desired = l->measure(childCs);
+		}
+		else {
+			desired = ch.component->bounds().size();
+			// 限制交叉轴
+			if (isH) {
+				desired.setHeight(std::min(std::max(0, desired.height()), crossMaxAvail));
+			}
+			else {
+				desired.setWidth(std::min(std::max(0, desired.width()), crossMaxAvail));
+			}
+		}
+
+		if (isH) {
+			mainSum += std::max(0, desired.width());
+			crossMax = std::max({ crossMax, 0, desired.height() });
+		}
+		else {
+			mainSum += std::max(0, desired.height());
+			crossMax = std::max({ crossMax, 0, desired.width() });
+		}
+		++visCount;
+	}
+
+	if (visCount > 1) mainSum += m_spacing * (visCount - 1);
+
+	int outW, outH;
+	if (isH) {
+		outW = padW + mainSum;
+		outH = padH + crossMax;
+	}
+	else {
+		outW = padW + crossMax;
+		outH = padH + mainSum;
+	}
+
+	outW = std::clamp(outW, cs.minW, cs.maxW);
+	outH = std::clamp(outH, cs.minH, cs.maxH);
+	return { outW, outH };
+}
+
+void UiPanel::arrange(const QRect& finalRect)
+{
+	// 仅设置 viewport，具体子项布局仍由 updateLayout 完成
+	setViewportRect(finalRect);
+}
+
 void UiPanel::updateLayout(const QSize& windowSize)
 {
 	const QRect area = contentRect();

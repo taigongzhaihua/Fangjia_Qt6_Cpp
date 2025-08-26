@@ -1,4 +1,5 @@
 #pragma once
+#include "ILayoutable.hpp"  // 新增
 #include "UiComponent.hpp"
 #include "UiContent.hpp"
 
@@ -16,7 +17,7 @@
 #include <vector>
 
 // 顺序容器：按“子项实际尺寸”依次排布
-class UiPanel : public IUiComponent, public IUiContent {
+class UiPanel : public IUiComponent, public IUiContent, public ILayoutable { // 新增 ILayoutable
 public:
 	enum class Orientation :uint8_t { Horizontal, Vertical };
 	enum class CrossAlign :uint8_t { Start, Center, End, Stretch };
@@ -41,6 +42,10 @@ public:
 	void setPadding(const QMargins& p) { m_padding = p; }
 	void setSpacing(int px) { m_spacing = std::max(0, px); }
 	void setBackground(QColor c, float radius = 0.0f) { m_bg = c; m_radius = std::max(0.0f, radius); }
+
+	// ILayoutable（新增）
+	QSize measure(const SizeConstraints& cs) override;
+	void arrange(const QRect& finalRect) override;
 
 	// IUiComponent
 	void updateLayout(const QSize& windowSize) override;
