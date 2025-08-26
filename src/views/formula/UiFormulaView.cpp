@@ -205,12 +205,12 @@ UiFormulaView::UiFormulaView()
 					{
 						if (content.isEmpty()) return container();
 						return panel({
-								   text(head + "：")->fontSize(13)
-												   ->fontWeight(QFont::DemiBold)
-												   ->color(label),
-								   text(content)->fontSize(14)
-												->color(body)
-												->wrap(true)
+								text(head + "：")->fontSize(13)
+												->fontWeight(QFont::DemiBold)
+												->color(label),
+								text(content)->fontSize(14)
+											 ->color(body)
+											 ->wrap(true)
 							})->vertical()
 							->spacing(10)
 							->crossAxisAlignment(Alignment::Stretch)
@@ -233,7 +233,9 @@ UiFormulaView::UiFormulaView()
 					->padding(20, 30, 20, 10);
 			}
 
-			auto root = container(bodyWidget)->background(cardBg, 0.0f);
+			auto root =
+				container(bodyWidget)->alignment(Alignment::Stretch)
+				->background(cardBg, 0.0f);
 			return root->build();
 		});
 	// 重要：首次构建一次（避免初始为空）
