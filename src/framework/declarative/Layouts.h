@@ -1,6 +1,7 @@
 #pragma once
 #include "UiPanel.h"
 #include "Widget.h"
+#include <qmargins.h>  // 新增
 
 namespace UI {
 
@@ -26,6 +27,17 @@ namespace UI {
 		// 交叉轴对齐（Start/Center/End/Stretch）
 		std::shared_ptr<Panel> crossAxisAlignment(Alignment a) { m_crossAlign = a; return self<Panel>(); }
 
+		// Panel 自身的边距/内边距（作用于 UiPanel，非 DecoratedBox）
+		std::shared_ptr<Panel> margins(const QMargins& m) { m_margins = m; return self<Panel>(); }
+		std::shared_ptr<Panel> margin(int all) { m_margins = QMargins(all, all, all, all); return self<Panel>(); }
+		std::shared_ptr<Panel> margin(int horizontal, int vertical) { m_margins = QMargins(horizontal, vertical, horizontal, vertical); return self<Panel>(); }
+		std::shared_ptr<Panel> margin(int left, int top, int right, int bottom) { m_margins = QMargins(left, top, right, bottom); return self<Panel>(); }
+
+		std::shared_ptr<Panel> padding(const QMargins& p) { m_padding = p; return self<Panel>(); }
+		std::shared_ptr<Panel> padding(int all) { m_padding = QMargins(all, all, all, all); return self<Panel>(); }
+		std::shared_ptr<Panel> padding(int horizontal, int vertical) { m_padding = QMargins(horizontal, vertical, horizontal, vertical); return self<Panel>(); }
+		std::shared_ptr<Panel> padding(int left, int top, int right, int bottom) { m_padding = QMargins(left, top, right, bottom); return self<Panel>(); }
+
 		std::shared_ptr<Panel> children(WidgetList children) { m_children = std::move(children); return self<Panel>(); }
 
 		std::unique_ptr<IUiComponent> build() const override;
@@ -49,6 +61,10 @@ namespace UI {
 		UiPanel::Orientation m_orient{ UiPanel::Orientation::Vertical };
 		int m_spacing{ 0 };
 		Alignment m_crossAlign{ Alignment::Start };
+
+		// 新增：Panel 自身的 margin/padding
+		QMargins m_margins{ 0,0,0,0 };
+		QMargins m_padding{ 0,0,0,0 };
 	};
 
 	// 简单占位/留白

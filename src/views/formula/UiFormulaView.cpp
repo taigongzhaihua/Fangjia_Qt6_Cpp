@@ -205,26 +205,32 @@ UiFormulaView::UiFormulaView()
 					{
 						if (content.isEmpty()) return container();
 						return panel({
-								   text(head + "：")->fontSize(13)->fontWeight(QFont::DemiBold)->color(label),
-								   text(content)->fontSize(14)->color(body)->wrap(true)
-							})
-							->vertical()
-							->spacing(2)
-							->crossAxisAlignment(Alignment::Stretch);
+								   text(head + "：")->fontSize(13)
+												   ->fontWeight(QFont::DemiBold)
+												   ->color(label),
+								   text(content)->fontSize(14)
+												->color(body)
+												->wrap(true)
+							})->vertical()
+							->spacing(10)
+							->crossAxisAlignment(Alignment::Stretch)
+							->margin(20, 0);
 					};
 
 				bodyWidget = panel({
-								 text(detail->name)->fontSize(22)->fontWeight(QFont::Bold)->color(title),
-								 container()->height(16),
-								 section("出处", detail->source),
-								 section("组成", detail->composition),
-								 section("用法", detail->usage),
-								 section("功效", detail->function),
-								 section("主治", detail->indication),
-								 section("备注", detail->note)
-					})
-					->vertical()
-					->spacing(4);
+						text(detail->name)->fontSize(22)
+										  ->fontWeight(QFont::Bold)
+										  ->color(title),
+						container()->height(16),
+						section("出处", detail->source),
+						section("组成", detail->composition),
+						section("用法", detail->usage),
+						section("功效", detail->function),
+						section("主治", detail->indication),
+						section("备注", detail->note)
+					})->vertical()
+					->spacing(16)
+					->padding(20, 30, 20, 10);
 			}
 
 			auto root = container(bodyWidget)->background(cardBg, 0.0f);

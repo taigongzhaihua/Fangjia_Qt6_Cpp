@@ -258,11 +258,20 @@ void UiPanel::updateResourceContext(IconLoader& loader, QOpenGLFunctions* gl, co
 
 void UiPanel::append(Render::FrameData& fd) const
 {
+	// 背景在“去除 margin 的区域”内绘制（包含 padding）
 	if (m_bg.alpha() > 0 && m_viewport.isValid())
 	{
-		fd.roundedRects.push_back(Render::RoundedRectCmd{
-			.rect = QRectF(m_viewport), .radiusPx = m_radius, .color = m_bg, .clipRect = QRectF(m_viewport)
-			});
+		const QRect bgRect = m_viewport.adjusted(
+			m_margins.left(), m_margins.top(),
+			-m_margins.right(), -m_margins.bottom());
+		if (bgRect.isValid()) {
+			fd.roundedRects.push_back(Render::RoundedRectCmd{
+				.rect = QRectF(bgRect),
+				.radiusPx = m_radius,
+				.color = m_bg,
+				.clipRect = QRectF(m_viewport) // 仍以整个 viewport 裁剪
+				});
+		}
 	}
 	for (const auto& ch : m_children) if (ch.visible && ch.component) ch.component->append(fd);
 }

@@ -15,6 +15,8 @@ namespace UI {
 	std::unique_ptr<IUiComponent> Panel::build() const {
 		auto layout = std::make_unique<UiPanel>(m_orient);
 		layout->setSpacing(m_spacing);
+		layout->setMargins(m_margins);
+		layout->setPadding(m_padding);
 
 		// 逐个添加子项（交叉轴对齐统一使用当前 Panel 的 crossAxisAlignment）
 		const auto cross = toCross(m_crossAlign);
