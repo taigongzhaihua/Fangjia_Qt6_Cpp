@@ -1,11 +1,10 @@
 #pragma once
-#include "UiComponent.hpp"
-#include "UiContent.hpp"
-#include "ILayoutable.hpp"
-#include <algorithm>
-#include <cmath>
 #include <functional>
 #include <memory>
+
+#include "ILayoutable.hpp"
+#include "UiComponent.hpp"
+#include "UiContent.hpp"
 #include <qcolor.h>
 #include <qmargins.h>
 #include <qnamespace.h>
@@ -13,11 +12,9 @@
 #include <qrect.h>
 #include <qsize.h>
 #include <RenderData.hpp>
-#include <utility>
 
 namespace UI {
 
-	// 通用装饰器：将 Widget 的 Decorations 落地到一个 IUiComponent 包裹层
 	class DecoratedBox : public IUiComponent, public IUiContent, public ILayoutable {
 	public:
 		struct Props {
@@ -62,8 +59,9 @@ namespace UI {
 	private:
 		std::unique_ptr<IUiComponent> m_child;
 		Props   m_p;
-		QRect   m_viewport;
-		QRect   m_contentRect;
+		QRect   m_viewport;    // 上级分配的矩形
+		QRect   m_drawRect;    // 去掉 margin 后用于绘制/放置的矩形
+		QRect   m_contentRect; // 去掉 margin + border + padding 的内容矩形
 
 		bool    m_hover{ false };
 		IconLoader* m_loader{ nullptr };

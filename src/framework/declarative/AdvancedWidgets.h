@@ -14,10 +14,10 @@ namespace UI
 		{
 		}
 
-		Card* elevation(float e)
+		std::shared_ptr<Card> elevation(float e)
 		{
 			m_elevation = e;
-			return this;
+			return self<Card>();
 		}
 
 		std::unique_ptr<IUiComponent> build() const override

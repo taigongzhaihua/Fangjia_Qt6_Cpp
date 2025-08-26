@@ -17,7 +17,6 @@
 #include <qrect.h>
 #include <qsize.h>
 #include <qstring.h>
-#include <qtypes.h>
 #include <UiComponent.hpp>
 #include <UiContent.hpp>
 #include <utility>
@@ -364,7 +363,7 @@ namespace UI {
 			fd.roundedRects.push_back(Render::RoundedRectCmd{
 				.rect = QRectF(m_bounds.center().x() - m_size / 2.0f,
 							  m_bounds.center().y() - m_size / 2.0f,
-							  static_cast<qreal>(m_size), static_cast<qreal>(m_size)),
+							  m_size, m_size),
 				.radiusPx = m_size / 4.0f,
 				.color = m_color,
 				.clipRect = QRectF(m_bounds) // 新增：裁剪到自身 bounds

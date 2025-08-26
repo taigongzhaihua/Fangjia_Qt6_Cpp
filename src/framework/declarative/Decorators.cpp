@@ -1,4 +1,16 @@
 #include "Decorators.h"
+#include <algorithm>
+#include <cmath>
+#include <ILayoutable.hpp>
+#include <memory>
+#include <qcolor.h>
+#include <qpoint.h>
+#include <qrect.h>
+#include <qsize.h>
+#include <RenderData.hpp>
+#include <UiComponent.hpp>
+#include <UiContent.hpp>
+#include <utility>
 
 namespace UI {
 
@@ -8,10 +20,22 @@ namespace UI {
 
 	void DecoratedBox::setViewportRect(const QRect& r) {
 		m_viewport = r;
-		m_contentRect = m_viewport.adjusted(
+
+		// 视觉外边距：只影响绘制区与内容区，不影响父布局分配的 viewport
+		m_drawRect = m_viewport.adjusted(
+			m_p.margin.left(), m_p.margin.top(),
+			-m_p.margin.right(), -m_p.margin.bottom()
+		);
+
+		// 内容区：在绘制区基础上再扣除 border 和 padding
+		const int bw = static_cast<int>(std::round(std::max(0.0f, m_p.borderW)));
+		QRect inner = m_drawRect.adjusted(bw, bw, -bw, -bw);
+		m_contentRect = inner.adjusted(
 			m_p.padding.left(), m_p.padding.top(),
 			-m_p.padding.right(), -m_p.padding.bottom()
 		);
+
+		// 下发给子项
 		if (auto* c = dynamic_cast<IUiContent*>(m_child.get())) {
 			c->setViewportRect(m_contentRect);
 		}
@@ -21,7 +45,7 @@ namespace UI {
 	}
 
 	QSize DecoratedBox::measure(const SizeConstraints& cs) {
-		// 固定尺寸优先
+		// 固定尺寸优先（不考虑 margin，margin 仅视觉）
 		if (m_p.fixedSize.width() > 0 || m_p.fixedSize.height() > 0) {
 			int w = (m_p.fixedSize.width() > 0 ? m_p.fixedSize.width() : 0);
 			int h = (m_p.fixedSize.height() > 0 ? m_p.fixedSize.height() : 0);
@@ -30,21 +54,25 @@ namespace UI {
 			return QSize(w, h);
 		}
 
+		// 仅将 padding 算入测量（border/margin 仅视觉，不影响父布局）
+		const int padW = m_p.padding.left() + m_p.padding.right();
+		const int padH = m_p.padding.top() + m_p.padding.bottom();
+
 		QSize inner(0, 0);
 		if (auto* l = dynamic_cast<ILayoutable*>(m_child.get())) {
 			SizeConstraints innerCs = cs;
-			innerCs.minW = std::max(0, cs.minW - (m_p.padding.left() + m_p.padding.right()));
-			innerCs.minH = std::max(0, cs.minH - (m_p.padding.top() + m_p.padding.bottom()));
-			innerCs.maxW = std::max(0, cs.maxW - (m_p.padding.left() + m_p.padding.right()));
-			innerCs.maxH = std::max(0, cs.maxH - (m_p.padding.top() + m_p.padding.bottom()));
+			innerCs.minW = std::max(0, cs.minW - padW);
+			innerCs.minH = std::max(0, cs.minH - padH);
+			innerCs.maxW = std::max(0, cs.maxW - padW);
+			innerCs.maxH = std::max(0, cs.maxH - padH);
 			inner = l->measure(innerCs);
 		}
 		else if (m_child) {
 			inner = m_child->bounds().size();
 		}
 
-		int w = inner.width() + m_p.padding.left() + m_p.padding.right();
-		int h = inner.height() + m_p.padding.top() + m_p.padding.bottom();
+		int w = inner.width() + padW;
+		int h = inner.height() + padH;
 		w = std::clamp(w, cs.minW, cs.maxW);
 		h = std::clamp(h, cs.minH, cs.maxH);
 		return QSize(w, h);
@@ -65,14 +93,35 @@ namespace UI {
 
 	void DecoratedBox::append(Render::FrameData& fd) const {
 		if (!m_p.visible) return;
-		if (m_p.bg.alpha() > 0 && m_viewport.isValid()) {
+
+		// 裁剪到上级 viewport
+		const QRectF clip = QRectF(m_viewport);
+
+		// 先画边框（若启用）
+		if (m_drawRect.isValid() && m_p.border.alpha() > 0 && m_p.borderW > 0.0f) {
 			fd.roundedRects.push_back(Render::RoundedRectCmd{
-				.rect = QRectF(m_viewport),
-				.radiusPx = m_p.bgRadius,
-				.color = withOpacity(m_p.bg, m_p.opacity),
-				.clipRect = QRectF(m_viewport)
+				.rect = QRectF(m_drawRect),
+				.radiusPx = (m_p.borderRadius > 0.0f ? m_p.borderRadius : m_p.bgRadius),
+				.color = withOpacity(m_p.border, m_p.opacity),
+				.clipRect = clip
 				});
 		}
+
+		// 再画背景（若启用），要扣除边框厚度
+		if (m_drawRect.isValid() && m_p.bg.alpha() > 0) {
+			const int bw = static_cast<int>(std::round(std::max(0.0f, m_p.borderW)));
+			const QRect bgRect = m_drawRect.adjusted(bw, bw, -bw, -bw);
+			if (bgRect.isValid()) {
+				fd.roundedRects.push_back(Render::RoundedRectCmd{
+					.rect = QRectF(bgRect),
+					.radiusPx = std::max(0.0f, m_p.bgRadius - static_cast<float>(bw)),
+					.color = withOpacity(m_p.bg, m_p.opacity),
+					.clipRect = clip
+					});
+			}
+		}
+
+		// 子内容
 		if (m_child) m_child->append(fd);
 	}
 
@@ -119,9 +168,10 @@ namespace UI {
 		}
 		if (m_child) {
 			const QRect cb = m_child->bounds();
+			const int bw2 = static_cast<int>(std::round(std::max(0.0f, m_p.borderW))) * 2;
 			return QRect(0, 0,
-				cb.width() + m_p.padding.left() + m_p.padding.right(),
-				cb.height() + m_p.padding.top() + m_p.padding.bottom());
+				cb.width() + m_p.padding.left() + m_p.padding.right() + bw2,
+				cb.height() + m_p.padding.top() + m_p.padding.bottom() + bw2);
 		}
 		return QRect();
 	}

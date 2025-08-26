@@ -43,7 +43,7 @@ public:
 						"探索发现",
 						"发现新的方剂组合")
 				})->horizontal()
-				->crossAxisAlignment(Alignment::Center),
+				  ->crossAxisAlignment(Alignment::Stretch),
 
 				spacer(16),
 
@@ -53,13 +53,14 @@ public:
 							spacer(16),
 							buildFeatureCard(":/icons/settings_light.svg", "系统设置", "自定义应用偏好")
 						})->horizontal()
-						->crossAxisAlignment(Alignment::Center)
+						  ->crossAxisAlignment(Alignment::Stretch)
 					}),
 
 			// 留白
 			spacer(8)
 			})->vertical()
-			->crossAxisAlignment(Alignment::Center);
+			->crossAxisAlignment(Alignment::Center)
+			->spacing(15);
 
 		return main;
 	}
@@ -67,24 +68,29 @@ public:
 private:
 	[[nodiscard]] WidgetPtr buildFeatureCard(const QString& iconPath, const QString& title, const QString& desc) const
 	{
-		auto ic = icon(iconPath)->size(48)->color(isDark ? QColor(100, 160, 220) : QColor(60, 120, 180));
-		auto titleText = text(title)->fontSize(16)->fontWeight(QFont::DemiBold)
-			->color(isDark ? QColor(240, 245, 250) : QColor(30, 35, 40));
-		auto descText = text(desc)->fontSize(13)->color(isDark ? QColor(180, 190, 200) : QColor(100, 110, 120));
-
-		const auto column = panel({
-								ic,
-								spacer(16),
-								titleText,
-								spacer(8),
-								descText
-			})
-			->vertical()
-			->crossAxisAlignment(Alignment::Center);
-
-		auto cardW = card(column);
-		cardW->elevation(2.0f)->size(200, 180);
-		return cardW;
+		return
+			card(panel({
+					 icon(iconPath)->size(48)
+								   ->color(isDark
+											   ? QColor(100, 160, 220)
+											   : QColor(60, 120, 180)),
+					 spacer(16),
+					 text(title)->fontSize(16)
+								->fontWeight(QFont::DemiBold)
+								->color(isDark
+											? QColor(240, 245, 250)
+											: QColor(30, 35, 40)),
+					 spacer(8),
+					 text(desc)->fontSize(13)
+							   ->color(isDark
+										   ? QColor(180, 190, 200)
+										   : QColor(100, 110, 120))
+				})
+				->vertical()
+				->crossAxisAlignment(Alignment::Center)
+				->spacing(10)
+			)->elevation(2.0f)
+			->border(QColor(0, 0, 0, 40), 1.0f, 8.0f);
 	}
 };
 
@@ -124,11 +130,5 @@ void HomePage::initializeContent()
 void HomePage::applyPageTheme(bool isDark)
 {
 	m_impl->isDark = isDark;
-
-	// 重新构建UI
-	if (const auto widget = m_impl->buildUI())
-	{
-		m_impl->builtComponent = widget->build();
-		setContent(m_impl->builtComponent.get());
-	}
+	if (m_impl->builtComponent) m_impl->builtComponent->onThemeChanged(isDark);
 }
