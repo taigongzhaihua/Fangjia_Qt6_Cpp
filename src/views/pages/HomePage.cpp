@@ -33,28 +33,22 @@ public:
 			panel({
 				// 第一行
 				panel({
-					buildFeatureCard(
-						":/icons/data_light.svg",
-						"方剂数据",
-						"查看和管理中医方剂"),
+					buildFeatureCard(":/icons/data_light.svg", "方剂数据", "查看和管理中医方剂"),
 					spacer(16),
-					buildFeatureCard(
-						":/icons/explore_light.svg",
-						"探索发现",
-						"发现新的方剂组合")
+					buildFeatureCard(":/icons/explore_light.svg", "探索发现", "发现新的方剂组合")
 				})->horizontal()
 				  ->crossAxisAlignment(Alignment::Stretch),
 
 				spacer(16),
 
-						// 第二行
-						panel({
-							buildFeatureCard(":/icons/fav_light.svg", "我的收藏", "管理收藏的方剂"),
-							spacer(16),
-							buildFeatureCard(":/icons/settings_light.svg", "系统设置", "自定义应用偏好")
-						})->horizontal()
-						  ->crossAxisAlignment(Alignment::Stretch)
-					}),
+					// 第二行
+					panel({
+						buildFeatureCard(":/icons/fav_light.svg", "我的收藏", "管理收藏的方剂"),
+						spacer(16),
+						buildFeatureCard(":/icons/settings_light.svg", "系统设置", "自定义应用偏好")
+					})->horizontal()
+					  ->crossAxisAlignment(Alignment::Stretch)
+				}),
 
 			// 留白
 			spacer(8)
@@ -70,25 +64,25 @@ private:
 	{
 		return
 			card(panel({
-					 icon(iconPath)->size(48)
-								   ->color(isDark
-											   ? QColor(100, 160, 220)
-											   : QColor(60, 120, 180)),
-					 spacer(16),
-					 text(title)->fontSize(16)
-								->fontWeight(QFont::DemiBold)
-								->color(isDark
-											? QColor(240, 245, 250)
-											: QColor(30, 35, 40)),
-					 spacer(8),
-					 text(desc)->fontSize(13)
+					icon(iconPath)->size(48)
+								  ->color(isDark
+											  ? QColor(100, 160, 220)
+											  : QColor(60, 120, 180)),
+					spacer(16),
+					text(title)->fontSize(16)
+							   ->fontWeight(QFont::DemiBold)
 							   ->color(isDark
-										   ? QColor(180, 190, 200)
-										   : QColor(100, 110, 120))
-				})
-				->vertical()
+										   ? QColor(240, 245, 250)
+										   : QColor(30, 35, 40)),
+					spacer(8),
+					text(desc)->fontSize(13)
+							  ->color(isDark
+										  ? QColor(180, 190, 200)
+										  : QColor(100, 110, 120))
+				})->vertical()
 				->crossAxisAlignment(Alignment::Center)
 				->spacing(10)
+				->size(200, 180)
 			)->elevation(2.0f)
 			->border(QColor(0, 0, 0, 40), 1.0f, 8.0f);
 	}
