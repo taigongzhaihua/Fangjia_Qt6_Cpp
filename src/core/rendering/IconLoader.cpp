@@ -1,7 +1,7 @@
 #include "IconLoader.h"
 
 #include <algorithm>
-#include <gl/GL.h>
+#include <QtGui/qopengl.h>
 #include <qbytearray.h>
 #include <qchar.h>
 #include <qcolor.h>
@@ -10,7 +10,6 @@
 #include <qimage.h>
 #include <qnamespace.h>
 #include <qnumeric.h>
-#include <qopenglext.h>
 #include <qopenglfunctions.h>
 #include <qpainter.h>
 #include <qpoint.h>
@@ -26,7 +25,6 @@ static QImage toWhiteMask(const QImage& srcRgba8888)
 	QImage out = srcRgba8888;
 	for (int y = 0; y < out.height(); ++y) {
 		uchar* line = out.scanLine(y);
-		// Format_RGBA8888：每像素 4 字节，顺序 RGBA
 		for (int x = 0; x < out.width(); ++x) {
 			uchar* px = line + x * 4;
 			const uchar a = px[3];
@@ -41,7 +39,6 @@ static QImage toWhiteMask(const QImage& srcRgba8888)
 
 QImage IconLoader::renderSvgToImage(const QByteArray& svg, const QSize& pixelSize, const QColor& /*color*/)
 {
-	// 先按 SVG 自己的样式渲染到图像
 	QImage img(pixelSize, QImage::Format_ARGB32_Premultiplied);
 	img.fill(Qt::transparent);
 	{
@@ -50,7 +47,6 @@ QImage IconLoader::renderSvgToImage(const QByteArray& svg, const QSize& pixelSiz
 		QSvgRenderer renderer(svg);
 		renderer.render(&p, QRectF(QPointF(0, 0), QSizeF(pixelSize)));
 	}
-	// 转为非预乘 RGBA8888，再把 RGB 统一变为白色，保留 alpha
 	QImage rgba = img.convertToFormat(QImage::Format_RGBA8888);
 	return toWhiteMask(rgba);
 }
@@ -81,15 +77,13 @@ QImage IconLoader::renderTextToImage(const QFont& fontPx, const QString& text, c
 	img.fill(Qt::transparent);
 
 	QPainter p(&img);
-	// 添加更多渲染提示
 	p.setRenderHint(QPainter::TextAntialiasing, true);
 	p.setRenderHint(QPainter::Antialiasing, true);
-	p.setRenderHint(QPainter::SmoothPixmapTransform, true);  // 新增
+	p.setRenderHint(QPainter::SmoothPixmapTransform, true);
 
-	// 可以尝试不同的字体渲染策略
 	QFont renderFont = f;
-	renderFont.setHintingPreference(QFont::PreferVerticalHinting);  // 新增
-	renderFont.setStyleStrategy(QFont::PreferAntialias);  // 新增
+	renderFont.setHintingPreference(QFont::PreferVerticalHinting);
+	renderFont.setStyleStrategy(QFont::PreferAntialias);
 	p.setFont(renderFont);
 
 	p.setPen(color);
@@ -120,7 +114,6 @@ int IconLoader::ensureSvgPx(const QString& key, const QByteArray& svgData, const
 	if (const auto it = m_cache.find(key); it != m_cache.end()) {
 		return it->id;
 	}
-	// 注意：renderSvgToImage 现在忽略 glyphColor，统一输出白色蒙版
 	const QImage img = renderSvgToImage(svgData, pixelSize, glyphColor);
 	const int id = createTextureFromImage(img, gl);
 	m_cache.insert(key, Tex{ .id = id, .sizePx = img.size() });
@@ -160,12 +153,10 @@ QSize IconLoader::textureSizePx(const int texId) const
 
 void IconLoader::releaseAll(QOpenGLFunctions* gl)
 {
-	for (const auto& [_id, sizePx] : m_cache)
-	{
-		GLuint id = static_cast<GLuint>(_id);
+	for (auto it = m_cache.begin(); it != m_cache.end(); ++it) {
+		GLuint id = static_cast<GLuint>(it->id);
 		if (id) gl->glDeleteTextures(1, &id);
 	}
 	m_cache.clear();
 	m_idToSize.clear();
 }
-

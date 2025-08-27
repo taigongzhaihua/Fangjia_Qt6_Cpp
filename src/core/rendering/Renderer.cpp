@@ -5,9 +5,8 @@
 
 #include <algorithm>
 #include <cmath>
-#include <gl/GL.h>
+#include <QtGui/qopengl.h>   // 使用 Qt 自带 OpenGL 定义
 #include <qcolor.h>
-#include <qopenglext.h>
 #include <qopenglfunctions.h>
 #include <qopenglshaderprogram.h>
 #include <qrect.h>
@@ -15,7 +14,7 @@
 #include <qvectornd.h>
 
 namespace {
-	inline void rectPxToNdcVerts(const QRectF& rPx, const int vpWpx, const int vpHpx, float out[12]) {
+	void rectPxToNdcVerts(const QRectF& rPx, const int vpWpx, const int vpHpx, float out[12]) {
 		const float xL = static_cast<float>(rPx.left());
 		const float xR = static_cast<float>(rPx.left() + rPx.width());
 		const float yT = static_cast<float>(rPx.top());
@@ -28,19 +27,18 @@ namespace {
 		out[6] = ndcL; out[7] = ndcT; out[8] = ndcR; out[9] = ndcB; out[10] = ndcL; out[11] = ndcB;
 	}
 
-	inline QRect clipLogicalToPxTopLeft(const QRectF& logical, float dpr, int fbWpx, int fbHpx) {
-		if (logical.width() <= 0.0 || logical.height() <= 0.0) return QRect();
+	QRect clipLogicalToPxTopLeft(const QRectF& logical, float dpr, int fbWpx, int fbHpx) {
+		if (logical.width() <= 0.0 || logical.height() <= 0.0) return {};
 		const int x = std::clamp(static_cast<int>(std::floor(logical.left() * dpr)), 0, fbWpx);
 		const int yTop = static_cast<int>(std::floor(logical.top() * dpr));
 		const int hPx = static_cast<int>(std::ceil(logical.height() * dpr));
 		const int y = std::clamp(yTop, 0, fbHpx);
 		const int w = std::clamp(static_cast<int>(std::ceil(logical.width() * dpr)), 0, fbWpx - x);
 		const int h = std::clamp(hPx, 0, fbHpx - y);
-		return QRect(x, y, w, h);
+		return {x, y, w, h};
 	}
 
-	// OpenGL glScissor 以左下角为原点，我们这里统一使用“左上角原点”的像素坐标，因此需要转换
-	inline void glScissorTopLeft(QOpenGLFunctions* gl, const QRect& clipTopLeftPx, int fbHpx) {
+	void glScissorTopLeft(QOpenGLFunctions* gl, const QRect& clipTopLeftPx, int fbHpx) {
 		const int x = clipTopLeftPx.x();
 		const int y = std::max(0, fbHpx - (clipTopLeftPx.y() + clipTopLeftPx.height()));
 		const int w = clipTopLeftPx.width();
@@ -168,12 +166,10 @@ void Renderer::resize(const int fbWpx, const int fbHpx)
 
 void Renderer::applyClip(const QRectF& clipLogical)
 {
-	// 若 clip 未启用，关闭剪裁
 	if (clipLogical.width() <= 0.0 || clipLogical.height() <= 0.0) {
 		restoreClip();
 		return;
 	}
-	// 计算像素空间并启用 glScissor（左上角原点）
 	m_clipPx = clipLogicalToPxTopLeft(clipLogical, m_currentDpr, m_fbWpx, m_fbHpx);
 	if (m_clipPx.width() <= 0 || m_clipPx.height() <= 0) {
 		restoreClip();
@@ -196,7 +192,6 @@ void Renderer::drawRoundedRect(const Render::RoundedRectCmd& cmd)
 {
 	if (!m_progRect || !m_gl || m_fbWpx <= 0 || m_fbHpx <= 0) return;
 
-	// 应用裁剪
 	applyClip(cmd.clipRect);
 
 	const QRectF rp(cmd.rect.x() * m_currentDpr, cmd.rect.y() * m_currentDpr, cmd.rect.width() * m_currentDpr, cmd.rect.height() * m_currentDpr);
@@ -218,7 +213,6 @@ void Renderer::drawRoundedRect(const Render::RoundedRectCmd& cmd)
 	m_progRect->release();
 	m_vao.release();
 
-	// 恢复裁剪
 	restoreClip();
 }
 
@@ -226,7 +220,6 @@ void Renderer::drawImage(const Render::ImageCmd& img, const IconLoader& iconLoad
 {
 	if (!m_progTex || !m_gl || img.textureId == 0 || m_fbWpx <= 0 || m_fbHpx <= 0) return;
 
-	// 应用裁剪
 	applyClip(img.clipRect);
 
 	const QRectF dstPx(img.dstRect.x() * m_currentDpr, img.dstRect.y() * m_currentDpr, img.dstRect.width() * m_currentDpr, img.dstRect.height() * m_currentDpr);
@@ -256,7 +249,6 @@ void Renderer::drawImage(const Render::ImageCmd& img, const IconLoader& iconLoad
 	m_progTex->release();
 	m_vao.release();
 
-	// 恢复裁剪
 	restoreClip();
 }
 
@@ -264,9 +256,6 @@ void Renderer::drawFrame(const Render::FrameData& fd, const IconLoader& iconLoad
 {
 	m_currentDpr = std::max(0.5f, devicePixelRatio);
 
-	// 圆角矩形
 	for (const auto& rr : fd.roundedRects) drawRoundedRect(rr);
-
-	// 纹理
 	for (const auto& im : fd.images)       drawImage(im, iconLoader);
 }

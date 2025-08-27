@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <numeric>
 #include <ranges>
+#include <RenderUtils.hpp>
 
 void UiGrid::clearChildren() {
 	m_children.clear();
@@ -47,7 +48,6 @@ QSize UiGrid::measureChildNatural(IUiComponent* c) const {
 	if (!c) return { 0,0 };
 	if (auto* l = dynamic_cast<ILayoutable*>(c)) {
 		SizeConstraints cs;
-		// 不限制（很大的上限）
 		cs.maxW = std::numeric_limits<int>::max() / 4;
 		cs.maxH = std::numeric_limits<int>::max() / 4;
 		return l->measure(cs);
@@ -431,7 +431,6 @@ void UiGrid::updateResourceContext(IconLoader& loader, QOpenGLFunctions* gl, con
 
 void UiGrid::append(Render::FrameData& fd) const {
 	const QRectF parentClip = QRectF(contentRect());
-	const bool parentClipValid = parentClip.width() > 0.0 && parentClip.height() > 0.0;
 
 	for (const auto& ch : m_children) {
 		if (!ch.visible || !ch.component) continue;
@@ -441,18 +440,7 @@ void UiGrid::append(Render::FrameData& fd) const {
 
 		ch.component->append(fd);
 
-		if (!parentClipValid) continue;
-
-		for (int k = rr0; k < static_cast<int>(fd.roundedRects.size()); ++k) {
-			auto& cmd = fd.roundedRects[k];
-			if (cmd.clipRect.width() > 0.0 && cmd.clipRect.height() > 0.0) cmd.clipRect = cmd.clipRect.intersected(parentClip);
-			else cmd.clipRect = parentClip;
-		}
-		for (int k = im0; k < static_cast<int>(fd.images.size()); ++k) {
-			auto& cmd = fd.images[k];
-			if (cmd.clipRect.width() > 0.0 && cmd.clipRect.height() > 0.0) cmd.clipRect = cmd.clipRect.intersected(parentClip);
-			else cmd.clipRect = parentClip;
-		}
+		RenderUtils::applyParentClip(fd, rr0, im0, parentClip);
 	}
 }
 

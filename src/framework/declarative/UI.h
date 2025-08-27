@@ -4,7 +4,6 @@
 #include "ComponentWrapper.h"
 #include "Layouts.h"
 #include "TabView.h"
-#include "Theme.h"
 #include "Widget.h"
 
 namespace UI {
@@ -28,10 +27,6 @@ namespace UI {
 	inline auto when(bool condition, WidgetPtr ifTrue, WidgetPtr ifFalse = nullptr) {
 		return make_widget<Conditional>(condition, ifTrue, ifFalse);
 	}
-
-	// 主题
-	inline auto theme(ThemeData data, WidgetPtr child) { return make_widget<Theme>(data, child); }
-	inline auto themed(std::function<WidgetPtr(const ThemeData&)> builder) { return make_widget<ThemedBuilder>(builder); }
 
 } // namespace UI
 
