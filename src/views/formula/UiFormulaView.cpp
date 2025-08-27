@@ -150,7 +150,7 @@ public:
 
 	void updateLayout(const QSize& windowSize) override { if (m_child) m_child->updateLayout(windowSize); }
 
-	void updateResourceContext(IconLoader& loader, QOpenGLFunctions* gl, float dpr) override
+	void updateResourceContext(IconCache& cache, QOpenGLFunctions* gl, float dpr) override
 	{
 		if (m_child) m_child->updateResourceContext(loader, gl, dpr);
 	}

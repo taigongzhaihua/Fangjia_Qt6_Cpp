@@ -46,10 +46,10 @@ void UiPage::updateLayout(const QSize& /*windowSize*/)
     }
 }
 
-void UiPage::updateResourceContext(IconLoader& loader, QOpenGLFunctions* gl, float devicePixelRatio)
+void UiPage::updateResourceContext(IconCache& cache, QOpenGLFunctions* gl, float devicePixelRatio)
 {
     m_loader = &loader; m_gl = gl; m_dpr = std::max(0.5f, devicePixelRatio);
-    if (m_content) m_content->updateResourceContext(loader, gl, devicePixelRatio);
+    if (m_content) m_content->updateResourceContext(cache, gl, devicePixelRatio);
 }
 
 void UiPage::append(Render::FrameData& fd) const

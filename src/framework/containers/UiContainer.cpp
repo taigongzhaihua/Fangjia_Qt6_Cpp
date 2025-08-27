@@ -103,10 +103,10 @@ void UiContainer::updateLayout(const QSize& windowSize)
     if (m_child) m_child->updateLayout(windowSize);
 }
 
-void UiContainer::updateResourceContext(IconLoader& loader, QOpenGLFunctions* gl, float devicePixelRatio)
+void UiContainer::updateResourceContext(IconCache& cache, QOpenGLFunctions* gl, float devicePixelRatio)
 {
     m_loader = &loader; m_gl = gl; m_dpr = devicePixelRatio;
-    if (m_child) m_child->updateResourceContext(loader, gl, devicePixelRatio);
+    if (m_child) m_child->updateResourceContext(cache, gl, devicePixelRatio);
 }
 
 void UiContainer::append(Render::FrameData& fd) const

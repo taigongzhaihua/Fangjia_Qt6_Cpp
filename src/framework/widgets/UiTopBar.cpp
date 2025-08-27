@@ -1,6 +1,6 @@
 #include "UiTopBar.h"
 
-#include "IconLoader.h"
+#include "IconCache.h"
 #include "RenderData.hpp"
 #include "UiButton.hpp"
 #include <algorithm>
@@ -115,11 +115,11 @@ void UiTopBar::updateLayout(const QSize& windowSize)
 	m_bounds = u;
 }
 
-void UiTopBar::updateResourceContext(IconLoader& loader, QOpenGLFunctions* gl, const float devicePixelRatio)
+void UiTopBar::updateResourceContext(IconCache& cache, QOpenGLFunctions* gl, const float devicePixelRatio)
 {
-	m_loader = &loader; m_gl = gl; m_dpr = std::max(0.5f, devicePixelRatio);
+	m_cache = &cache; m_gl = gl; m_dpr = std::max(0.5f, devicePixelRatio);
 
-	if (!m_loader || !m_gl) return;
+	if (!m_cache || !m_gl) return;
 
 	const QString themePath = m_dark ? m_svgThemeWhenDark : m_svgThemeWhenLight;
 	const QString themeBaseKey = m_dark ? "theme_sun" : "theme_moon";
@@ -128,14 +128,14 @@ void UiTopBar::updateResourceContext(IconLoader& loader, QOpenGLFunctions* gl, c
 	const QString followBaseKey = m_followSystem ? "follow_on" : "follow_off";
 
 	m_btnTheme.setIconPainter([this, themePath, themeBaseKey](const QRectF& r, Render::FrameData& fd, const QColor& iconColor, float) {
-		if (!m_loader || !m_gl) return;
+		if (!m_cache || !m_gl) return;
 		constexpr int iconLogical = 18;
 		const int px = std::lround(iconLogical * m_dpr);
 		const QString key = RenderUtils::makeIconCacheKey(themeBaseKey, px);
 
 		QByteArray svg = RenderUtils::loadSvgCached(themePath);
-		const int tex = m_loader->ensureSvgPx(key, svg, QSize(px, px), QColor(255, 255, 255, 255), m_gl);
-		const QSize texSz = m_loader->textureSizePx(tex);
+		const int tex = m_cache->ensureSvgPx(key, svg, QSize(px, px), m_gl);
+		const QSize texSz = m_cache->textureSizePx(tex);
 
 		const QRectF dst(r.center().x() - iconLogical * 0.5, r.center().y() - iconLogical * 0.5, iconLogical, iconLogical);
 		fd.images.push_back(Render::ImageCmd{
@@ -145,14 +145,14 @@ void UiTopBar::updateResourceContext(IconLoader& loader, QOpenGLFunctions* gl, c
 		});
 
 	m_btnFollow.setIconPainter([this, followPath, followBaseKey](const QRectF& r, Render::FrameData& fd, const QColor& iconColor, float) {
-		if (!m_loader || !m_gl) return;
+		if (!m_cache || !m_gl) return;
 		constexpr int iconLogical = 18;
 		const int px = std::lround(iconLogical * m_dpr);
 		const QString key = RenderUtils::makeIconCacheKey(followBaseKey, px);
 
 		QByteArray svg = RenderUtils::loadSvgCached(followPath);
-		const int tex = m_loader->ensureSvgPx(key, svg, QSize(px, px), QColor(255, 255, 255, 255), m_gl);
-		const QSize texSz = m_loader->textureSizePx(tex);
+		const int tex = m_cache->ensureSvgPx(key, svg, QSize(px, px), m_gl);
+		const QSize texSz = m_cache->textureSizePx(tex);
 
 		const QRectF dst(r.center().x() - iconLogical * 0.5, r.center().y() - iconLogical * 0.5, iconLogical, iconLogical);
 		fd.images.push_back(Render::ImageCmd{
@@ -163,13 +163,13 @@ void UiTopBar::updateResourceContext(IconLoader& loader, QOpenGLFunctions* gl, c
 
 	auto setupSvgIcon = [this](Ui::Button& btn, const QString& baseKey, const QString& path, int logicalPx) {
 		btn.setIconPainter([this, baseKey, path, logicalPx](const QRectF& r, Render::FrameData& fd, const QColor& iconColor, float) {
-			if (!m_loader || !m_gl) return;
+			if (!m_cache || !m_gl) return;
 			const int px = std::lround(static_cast<float>(logicalPx) * m_dpr);
 			const QString key = RenderUtils::makeIconCacheKey(baseKey, px);
 
 			QByteArray svg = RenderUtils::loadSvgCached(path);
-			const int tex = m_loader->ensureSvgPx(key, svg, QSize(px, px), QColor(255, 255, 255, 255), m_gl);
-			const QSize texSz = m_loader->textureSizePx(tex);
+			const int tex = m_cache->ensureSvgPx(key, svg, QSize(px, px), m_gl);
+			const QSize texSz = m_cache->textureSizePx(tex);
 
 			const QRectF dst(
 				r.center().x() - static_cast<qreal>(logicalPx) * 0.5,

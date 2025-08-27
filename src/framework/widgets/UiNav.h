@@ -1,5 +1,5 @@
 #pragma once
-#include "IconLoader.h"
+#include "IconCache.h"
 #include "RenderData.hpp"
 #include "UiComponent.hpp"
 
@@ -176,7 +176,7 @@ namespace Ui {
 		ScalarAnim m_animExpand;
 		QElapsedTimer m_clock;
 
-		IconLoader* m_loader{ nullptr };
+		IconCache* m_cache{ nullptr };
 		QOpenGLFunctions* m_gl{ nullptr };
 		float m_dpr{ 1.0f };
 

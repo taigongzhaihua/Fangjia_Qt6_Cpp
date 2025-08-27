@@ -97,9 +97,9 @@ namespace UI
         if (m_child) m_child->updateLayout(windowSize);
     }
 
-    void DecoratedBox::updateResourceContext(IconLoader& loader, QOpenGLFunctions* gl, float devicePixelRatio)
+    void DecoratedBox::updateResourceContext(IconCache& cache, QOpenGLFunctions* gl, float devicePixelRatio)
     {
-        m_loader = &loader;
+        m_cache = &loader;
         m_gl = gl;
         m_dpr = std::max(0.5f, devicePixelRatio);
         if (m_child) m_child->updateResourceContext(loader, gl, devicePixelRatio);

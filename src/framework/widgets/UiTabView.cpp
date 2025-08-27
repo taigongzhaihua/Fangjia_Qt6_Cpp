@@ -2,7 +2,7 @@
 #include "TabViewModel.h"
 #include "UiTabView.h"
 
-#include "IconLoader.h"
+#include "IconCache.h"
 #include "UiComponent.hpp"
 #include "UiContent.hpp"
 #include <algorithm>
@@ -195,16 +195,16 @@ void UiTabView::updateLayout(const QSize& windowSize)
 	}
 }
 
-void UiTabView::updateResourceContext(IconLoader& loader, QOpenGLFunctions* gl, const float devicePixelRatio)
+void UiTabView::updateResourceContext(IconCache& cache, QOpenGLFunctions* gl, const float devicePixelRatio)
 {
-	m_loader = &loader;
+	m_cache = &cache;
 	m_gl = gl;
 	m_dpr = std::max(0.5f, devicePixelRatio);
 
 	// 更新当前内容的资源上下文
 	const int curIdx = selectedIndex();
 	if (IUiComponent* curContent = content(curIdx)) {
-		curContent->updateResourceContext(loader, gl, devicePixelRatio);
+		curContent->updateResourceContext(cache, gl, devicePixelRatio);
 	}
 }
 
@@ -235,7 +235,7 @@ QRectF UiTabView::tabRectF(const int i) const
 void UiTabView::append(Render::FrameData& fd) const
 {
 	if (!m_viewport.isValid() || m_viewport.width() <= 0 || m_viewport.height() <= 0) return;
-	if (!m_loader || !m_gl) return;
+	if (!m_cache || !m_gl) return;
 
 	const QRectF bar = tabBarRectF();
 
@@ -345,8 +345,8 @@ void UiTabView::append(Render::FrameData& fd) const
 		const QColor textColor = (i == m_viewSelected ? m_pal.labelSelected : m_pal.label);
 
 		const QString key = textCacheKey(QString("tab|%1").arg(label), fontPx, textColor);
-		const int tex = m_loader->ensureTextPx(key, font, label, textColor, m_gl);
-		const QSize ts = m_loader->textureSizePx(tex);
+		const int tex = m_cache->ensureTextPx(key, font, label, textColor, m_gl);
+		const QSize ts = m_cache->textureSizePx(tex);
 
 		const float wLogical = static_cast<float>(ts.width()) / m_dpr;
 		const float hLogical = static_cast<float>(ts.height()) / m_dpr;

@@ -1,5 +1,5 @@
 #include "ComponentWrapper.h"
-#include "IconLoader.h"
+#include "IconCache.h"
 #include "RenderData.hpp"
 #include <qopenglfunctions.h>
 
@@ -21,7 +21,7 @@ namespace UI {
 		void updateLayout(const QSize& windowSize) override {
 			if (m_wrapped) m_wrapped->updateLayout(windowSize);
 		}
-		void updateResourceContext(IconLoader& loader, QOpenGLFunctions* gl, float dpr) override {
+		void updateResourceContext(IconCache& cache, QOpenGLFunctions* gl, float dpr) override {
 			if (m_wrapped) m_wrapped->updateResourceContext(loader, gl, dpr);
 		}
 		void append(Render::FrameData& fd) const override {

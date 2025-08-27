@@ -49,7 +49,7 @@ public:
 
 	// IUiComponent
 	void updateLayout(const QSize& windowSize) override;
-	void updateResourceContext(IconLoader& loader, QOpenGLFunctions* gl, float devicePixelRatio) override;
+	void updateResourceContext(IconCache& cache, QOpenGLFunctions* gl, float devicePixelRatio) override;
 	void append(Render::FrameData& fd) const override;
 
 	bool onMousePress(const QPoint& pos) override;

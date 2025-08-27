@@ -29,7 +29,7 @@ public:
                 }
             }
             if (m_hasCtx) {
-                m_child->updateResourceContext(*m_loader, m_gl, m_dpr);
+                m_child->updateResourceContext(*m_cache, m_gl, m_dpr);
             }
             if (m_hasWinSize) {
                 m_child->updateLayout(m_winSize);
@@ -56,8 +56,8 @@ public:
         if (m_child) m_child->updateLayout(windowSize);
     }
 
-    void updateResourceContext(IconLoader& loader, QOpenGLFunctions* gl, float devicePixelRatio) override {
-        m_loader = &loader; m_gl = gl; m_dpr = devicePixelRatio;
+    void updateResourceContext(IconCache& cache, QOpenGLFunctions* gl, float devicePixelRatio) override {
+        m_cache = &loader; m_gl = gl; m_dpr = devicePixelRatio;
         m_hasCtx = true;
         if (m_child) m_child->updateResourceContext(loader, gl, devicePixelRatio);
     }
@@ -96,7 +96,7 @@ private:
     // 环境缓存，供重建后立即同步
     QRect m_viewport;
     QSize m_winSize;
-    IconLoader* m_loader{nullptr};
+    IconCache* m_cache{nullptr};
     QOpenGLFunctions* m_gl{nullptr};
     float m_dpr{1.0f};
     bool m_isDark{false};
