@@ -52,7 +52,7 @@ private:
 	Align m_vAlign{ Align::Stretch };
 
 	// 资源上下文缓存（只转发给子项）
-	IconLoader* m_loader{ nullptr };
+	IconCache* m_cache{ nullptr };
 	QOpenGLFunctions* m_gl{ nullptr };
 	float m_dpr{ 1.0f };
 };

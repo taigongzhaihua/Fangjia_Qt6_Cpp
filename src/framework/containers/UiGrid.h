@@ -102,7 +102,7 @@ private:
     int m_colSpacing{ 8 };
 
     // 上下文
-    IconLoader* m_loader{ nullptr };
+    IconCache* m_cache{ nullptr };
     QOpenGLFunctions* m_gl{ nullptr };
     float m_dpr{ 1.0f };
 

@@ -5,7 +5,7 @@
 
 #include <algorithm>
 #include <cstdint>
-#include <IconLoader.h>
+#include <IconCache.h>
 #include <qcolor.h>
 #include <qmargins.h>
 #include <qnamespace.h>
@@ -72,7 +72,7 @@ private:
 
 	// 视口/上下文
 	QRect m_viewport;
-	IconLoader* m_loader{ nullptr };
+	IconCache* m_cache{ nullptr };
 	QOpenGLFunctions* m_gl{ nullptr };
 	float m_dpr{ 1.0f };
 

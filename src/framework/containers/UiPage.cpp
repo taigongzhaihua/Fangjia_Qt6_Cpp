@@ -4,7 +4,7 @@
 
 #include <algorithm>
 #include <cmath>
-#include <IconLoader.h>
+#include <IconCache.h>
 #include <qcolor.h>
 #include <qfont.h>
 #include <qopenglfunctions.h>
@@ -48,7 +48,7 @@ void UiPage::updateLayout(const QSize& /*windowSize*/)
 
 void UiPage::updateResourceContext(IconCache& cache, QOpenGLFunctions* gl, float devicePixelRatio)
 {
-    m_loader = &loader; m_gl = gl; m_dpr = std::max(0.5f, devicePixelRatio);
+    m_cache = &cache; m_gl = gl; m_dpr = std::max(0.5f, devicePixelRatio);
     if (m_content) m_content->updateResourceContext(cache, gl, devicePixelRatio);
 }
 

@@ -2,7 +2,7 @@
 #include <algorithm>
 #include <cmath>
 #include <functional>
-#include <IconLoader.h>
+#include <IconCache.h>
 #include <qcolor.h>
 #include <qfont.h>
 #include <qopenglfunctions.h>

@@ -1,7 +1,7 @@
 #include "UiBoxLayout.h"
 #include <algorithm>
 #include <cmath>
-#include <IconLoader.h>
+#include <IconCache.h>
 #include <numeric>
 #include <qcolor.h>
 #include <qlogging.h>

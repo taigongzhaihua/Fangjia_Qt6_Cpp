@@ -81,7 +81,7 @@ protected:
 
 	IUiComponent* m_content{ nullptr };
 
-	IconLoader* m_loader{ nullptr };
+	IconCache* m_cache{ nullptr };
 	QOpenGLFunctions* m_gl{ nullptr };
 	float m_dpr{ 1.0f };
 	bool m_isDark{ false };

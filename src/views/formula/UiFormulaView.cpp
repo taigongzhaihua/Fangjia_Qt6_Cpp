@@ -3,7 +3,7 @@
 #include "FormulaViewModel.h"
 #include "UiTreeList.h"
 
-#include <IconLoader.h>
+#include <IconCache.h>
 #include <RenderData.hpp>
 
 #include <RebuildHost.h>
