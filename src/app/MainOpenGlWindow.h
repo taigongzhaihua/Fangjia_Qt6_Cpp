@@ -8,7 +8,7 @@
 
 #include "IconLoader.h"
 #include "NavViewModel.h"
-#include "PageRouter.h"
+#include "PageManager.h"
 #include "Renderer.h"
 #include "ThemeManager.h"
 #include "UiNav.h"
@@ -92,7 +92,7 @@ private:
 	UiRoot m_uiRoot;
 
 	// 页面管理
-	PageRouter m_pageRouter;
+	PageManager m_pageManager;
 
 	// 渲染
 	Renderer m_renderer;
