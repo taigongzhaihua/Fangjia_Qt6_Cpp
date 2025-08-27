@@ -131,7 +131,7 @@ void UiTopBar::updateResourceContext(IconLoader& loader, QOpenGLFunctions* gl, c
 		if (!m_loader || !m_gl) return;
 		constexpr int iconLogical = 18;
 		const int px = std::lround(iconLogical * m_dpr);
-		const QString key = iconCacheKey(themeBaseKey, iconLogical, m_dpr);
+		const QString key = RenderUtils::makeIconCacheKey(themeBaseKey, px);
 
 		QByteArray svg = RenderUtils::loadSvgCached(themePath);
 		const int tex = m_loader->ensureSvgPx(key, svg, QSize(px, px), QColor(255, 255, 255, 255), m_gl);
@@ -148,7 +148,7 @@ void UiTopBar::updateResourceContext(IconLoader& loader, QOpenGLFunctions* gl, c
 		if (!m_loader || !m_gl) return;
 		constexpr int iconLogical = 18;
 		const int px = std::lround(iconLogical * m_dpr);
-		const QString key = iconCacheKey(followBaseKey, iconLogical, m_dpr);
+		const QString key = RenderUtils::makeIconCacheKey(followBaseKey, px);
 
 		QByteArray svg = RenderUtils::loadSvgCached(followPath);
 		const int tex = m_loader->ensureSvgPx(key, svg, QSize(px, px), QColor(255, 255, 255, 255), m_gl);

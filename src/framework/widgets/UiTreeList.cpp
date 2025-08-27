@@ -277,3 +277,8 @@ bool UiTreeList::onMouseRelease(const QPoint& pos)
 	return (wasPressed >= 0);
 }
 
+bool UiTreeList::tick()
+{
+	// 当前没有内部动画
+	return false;
+}

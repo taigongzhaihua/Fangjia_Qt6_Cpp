@@ -8,13 +8,11 @@
 #include <qcolor.h>
 #include <qelapsedtimer.h>
 #include <qopenglfunctions.h>
-#include <qpoint.h>
 #include <qrect.h>
-#include <qsize.h>
 #include <qstring.h>
 #include <vector>
 
-class UiTreeList final : public IUiComponent, public IUiContent
+class UiTreeList : public IUiComponent, public IUiContent
 {
 public:
 	// 通用模型接口：由上层（如 UiFormulaView 内部的 VM 适配器）实现
@@ -79,6 +77,7 @@ public:
 	bool onMousePress(const QPoint& pos) override;
 	bool onMouseMove(const QPoint& pos) override;
 	bool onMouseRelease(const QPoint& pos) override;
+	bool tick() override; // 新增：实现动画推进（当前返回 false）
 	QRect bounds() const override { return m_viewport; }
 
 private:
