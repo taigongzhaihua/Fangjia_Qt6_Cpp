@@ -216,7 +216,7 @@ UiFormulaView::UiFormulaView()
 									->color(body)
 									->wrap(true)
 								)->padding(20, 0)
-							})->vertical()
+							})->horizontal()
 							->spacing(12)
 							->crossAxisAlignment(Alignment::Stretch)
 							->margin(20, 0);

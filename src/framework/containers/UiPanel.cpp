@@ -2,6 +2,7 @@
 #include <algorithm>
 
 #include "ILayoutable.hpp"
+#include <cmath>
 #include <IconLoader.h>
 #include <limits>
 #include <qopenglfunctions.h>
@@ -205,45 +206,187 @@ void UiPanel::updateLayout(const QSize& windowSize)
 	const bool isH = (m_orient == Orientation::Horizontal);
 	const int crossAvail = isH ? area.height() : area.width();
 
-	// 1) 测量所有可见子项
-	std::vector<QSize> desired(m_children.size(), QSize(0, 0));
-	for (size_t i = 0; i < m_children.size(); ++i)
-	{
-		const auto& ch = m_children[i];
-		if (!ch.visible || !ch.component) continue;
-		desired[i] = measureChild(ch.component, crossAvail);
+	// 可见子项索引
+	std::vector<size_t> vis;
+	vis.reserve(m_children.size());
+	for (size_t i = 0; i < m_children.size(); ++i) {
+		if (m_children[i].visible && m_children[i].component) vis.push_back(i);
+	}
+	const int nVis = static_cast<int>(vis.size());
+
+	// 交叉轴尺寸测量 + 主轴偏好与“最小”测量（可调子项才有 min<pref）
+	std::vector desired(nVis, QSize(0, 0));
+	std::vector prefMain(nVis, 0);
+	std::vector minMain(nVis, 0);
+	std::vector adjustable(nVis, false);
+	int spacingTotal = std::max(0, nVis - 1) * m_spacing;
+
+	auto measureWithMainMax = [&](IUiComponent* c, const int crossAvailLimit, const int mainMax) -> QSize {
+		if (auto* l = dynamic_cast<ILayoutable*>(c)) {
+			SizeConstraints cs;
+			cs.minW = 0; cs.minH = 0;
+			if (isH) {
+				cs.maxW = (mainMax >= 0 ? std::max(0, mainMax) : std::numeric_limits<int>::max() / 2);
+				cs.maxH = std::max(0, crossAvailLimit);
+			}
+			else {
+				cs.maxW = std::max(0, crossAvailLimit);
+				cs.maxH = (mainMax >= 0 ? std::max(0, mainMax) : std::numeric_limits<int>::max() / 2);
+			}
+			return l->measure(cs);
+		}
+		// 非 ILayoutable：固定尺寸，受交叉轴限制
+		QSize s = c->bounds().size();
+		if (isH) {
+			s.setHeight(std::min(std::max(0, s.height()), std::max(0, crossAvailLimit)));
+		}
+		else {
+			s.setWidth(std::min(std::max(0, s.width()), std::max(0, crossAvailLimit)));
+		}
+		return s;
+		};
+
+	// 首次测量：偏好尺寸（主轴无限制，交叉轴受限）
+	for (int k = 0; k < nVis; ++k) {
+		const auto idx = vis[k];
+		IUiComponent* comp = m_children[idx].component;
+		desired[k] = measureWithMainMax(comp, crossAvail, -1); // -1 表示主轴无上限
+		prefMain[k] = std::max(0, isH ? desired[k].width() : desired[k].height());
+		adjustable[k] = (dynamic_cast<ILayoutable*>(comp) != nullptr);
 	}
 
-	// 2) 排列：按测量尺寸依次放置（主轴不拉伸，交叉轴限制/可 Stretch）
+	// 可调子项的“最小”尺寸：把主轴上限设为 0 来探测（大多数组件会返回 0 或更小的自然最小值）
+	for (int k = 0; k < nVis; ++k) {
+		if (adjustable[k]) {
+			const auto idx = vis[k];
+			IUiComponent* comp = m_children[idx].component;
+			const QSize mn = measureWithMainMax(comp, crossAvail, 0);
+			minMain[k] = std::max(0, isH ? mn.width() : mn.height());
+		}
+		else {
+			minMain[k] = prefMain[k]; // 固定子项：不可缩
+		}
+	}
+
+	// 目标主轴可用空间（剔除 spacing）
+	const int mainAvail = std::max(0, (isH ? area.width() : area.height()));
+	const int mainAvailForSizes = std::max(0, mainAvail - spacingTotal);
+
+	// 计算总偏好和总最小
+	long long sumPref = 0, sumMin = 0, sumFixedPref = 0, sumCaps = 0;
+	for (int k = 0; k < nVis; ++k) {
+		sumPref += prefMain[k];
+		sumMin += minMain[k];
+		if (!adjustable[k]) sumFixedPref += prefMain[k];
+		else sumCaps += std::max(0, prefMain[k] - minMain[k]);
+	}
+
+	// 最终分配的主轴尺寸
+	std::vector finalMain(nVis, 0);
+
+	if (sumPref <= mainAvailForSizes) {
+		// 全部按偏好
+		for (int k = 0; k < nVis; ++k) finalMain[k] = prefMain[k];
+	}
+	else {
+		// 需要收缩
+		const long long budgetForAdjustables = std::max(0LL, static_cast<long long>(mainAvailForSizes) - sumFixedPref);
+		if (budgetForAdjustables <= 0) {
+			// 固定项已吃满甚至溢出：可调项全退到最小
+			for (int k = 0; k < nVis; ++k) finalMain[k] = minMain[k];
+		}
+		else {
+			// 线性配比：在 [min, pref] 之间分配总预算
+			// 初值设为 min
+			long long sumMinAdjustables = 0;
+			for (int k = 0; k < nVis; ++k) {
+				if (adjustable[k]) sumMinAdjustables += minMain[k];
+			}
+			long long remaining = std::max(0LL, budgetForAdjustables - sumMinAdjustables);
+			// caps = 每个可调的最大可增长量
+			long long capsTotal = 0;
+			for (int k = 0; k < nVis; ++k) {
+				if (adjustable[k]) capsTotal += std::max(0, prefMain[k] - minMain[k]);
+			}
+			for (int k = 0; k < nVis; ++k) {
+				if (!adjustable[k]) {
+					finalMain[k] = prefMain[k];
+				}
+				else {
+					const int cap = std::max(0, prefMain[k] - minMain[k]);
+					int add = 0;
+					if (capsTotal > 0 && remaining > 0 && cap > 0) {
+						// 按比例分配
+						const double share = static_cast<double>(cap) / static_cast<double>(capsTotal);
+						add = static_cast<int>(std::floor(share * static_cast<double>(remaining)));
+					}
+					finalMain[k] = std::clamp(minMain[k] + add, minMain[k], prefMain[k]);
+				}
+			}
+			// 由于取整，可能有少量剩余，把剩余 +1 逐个补齐
+			long long used = 0;
+			for (int k = 0; k < nVis; ++k) if (adjustable[k]) used += (finalMain[k] - minMain[k]);
+			long long residual = std::max(0LL, remaining - used);
+			for (int k = 0; k < nVis && residual > 0; ++k) {
+				if (adjustable[k] && finalMain[k] < prefMain[k]) {
+					finalMain[k] += 1;
+					--residual;
+				}
+			}
+		}
+	}
+
+	// 2) 排列：按分配好的主轴尺寸依次放
 	int cur = 0;
-	for (size_t i = 0; i < m_children.size(); ++i)
+	for (int k = 0; k < nVis; ++k)
 	{
-		const auto& [component, crossAlign, visible] = m_children[i];
-		if (!visible || !component) continue;
+		const auto idx = vis[k];
+		const auto& ch = m_children[idx];
+		const QSize d = desired[k];
+		const int mainSize = std::max(0, finalMain[k]);
 
-		const QRect r = placeChild(area, cur, desired[i], crossAlign);
-		m_childRects[i] = r;
+		QRect childRect;
+		if (isH) {
+			// 交叉轴：尽量不拉伸，除非是 Stretch
+			const int hFit = std::max(0, std::min(d.height(), area.height()));
+			int y;
+			switch (ch.crossAlign) {
+			case CrossAlign::Center: y = area.center().y() - hFit / 2; break;
+			case CrossAlign::End:    y = area.bottom() - hFit;         break;
+			case CrossAlign::Stretch:
+			default:                 y = area.top();                    break;
+			}
+			childRect = QRect(area.left() + cur, y, mainSize, (ch.crossAlign == CrossAlign::Stretch ? area.height() : hFit));
+		}
+		else {
+			const int wFit = std::max(0, std::min(d.width(), area.width()));
+			int x;
+			switch (ch.crossAlign) {
+			case CrossAlign::Center: x = area.center().x() - wFit / 2; break;
+			case CrossAlign::End:    x = area.right() - wFit;          break;
+			case CrossAlign::Stretch:
+			default:                 x = area.left();                   break;
+			}
+			childRect = QRect(x, area.top() + cur, (ch.crossAlign == CrossAlign::Stretch ? area.width() : wFit), mainSize);
+		}
 
-		// 前进主轴（加 spacing）
-		cur += (isH ? r.width() : r.height());
-		cur += m_spacing;
+		m_childRects[idx] = childRect;
+		cur += mainSize;
+		if (mainSize > 0 && k < nVis - 1) cur += m_spacing;
 	}
 
-	// 3) 将矩形下发：IUiContent -> viewport；ILayoutable -> arrange()；并推进子项 updateLayout
-	for (size_t i = 0; i < m_children.size(); ++i)
+	// 3) 下发矩形与子布局
+	for (int k = 0; k < nVis; ++k)
 	{
-		const auto& ch = m_children[i];
-		if (!ch.visible || !ch.component) continue;
-		const QRect r = m_childRects[i];
+		const auto idx = vis[k];
+		const auto& ch = m_children[idx];
+		const QRect r = m_childRects[idx];
 
-		if (auto* c = dynamic_cast<IUiContent*>(ch.component))
-		{
-			c->setViewportRect(r);
-		}
-		if (auto* l = dynamic_cast<ILayoutable*>(ch.component))
-		{
-			l->arrange(r);
-		}
+		// 关键：把下发给子项的 viewport 裁剪到父 panel contentRect 内
+		const QRect clipped = r.intersected(area);
+
+		if (auto* c = dynamic_cast<IUiContent*>(ch.component)) c->setViewportRect(clipped);
+		if (auto* l = dynamic_cast<ILayoutable*>(ch.component)) l->arrange(clipped);
 		ch.component->updateLayout(windowSize);
 	}
 }
