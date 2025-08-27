@@ -35,13 +35,13 @@ public:
 				  ->rows({AUTO, AUTO})
 				  ->colSpacing(32)
 				  ->rowSpacing(32)
-				  ->add(buildFeatureCard(":/icons/data_light.svg", "方剂数据", "查看和管理中医方剂"),
+				  ->add(buildFeatureCard(":/icons/data_light.svg", ":/icons/data_dark.svg", "方剂数据", "查看和管理中医方剂"),
 						0, 0, 1, 1, Grid::Center, Grid::Center)
-				  ->add(buildFeatureCard(":/icons/explore_light.svg", "探索发现", "发现新的方剂组合"),
+				  ->add(buildFeatureCard(":/icons/explore_light.svg", ":/icons/explore_dark.svg", "探索发现", "发现新的方剂组合"),
 						0, 1, 1, 1, Grid::Center, Grid::Center)
-				  ->add(buildFeatureCard(":/icons/fav_light.svg", "我的收藏", "管理收藏的方剂"),
+				  ->add(buildFeatureCard(":/icons/fav_light.svg", ":/icons/fav_dark.svg", "我的收藏", "管理收藏的方剂"),
 						1, 0, 1, 1, Grid::Center, Grid::Center)
-				  ->add(buildFeatureCard(":/icons/settings_light.svg", "系统设置", "自定义应用偏好"),
+				  ->add(buildFeatureCard(":/icons/settings_light.svg", ":/icons/settings_dark.svg", "系统设置", "自定义应用偏好"),
 						1, 1, 1, 1, Grid::Center, Grid::Center),
 
 			// 留白
@@ -54,15 +54,14 @@ public:
 	}
 
 private:
-	[[nodiscard]] WidgetPtr buildFeatureCard(const QString& iconPath, const QString& title, const QString& desc) const
+	[[nodiscard]] WidgetPtr buildFeatureCard(const QString& iconLight, const QString& iconDark, const QString& title, const QString& desc) const
 	{
 		// 注意：将 size(200,180) 施加在 card 外层，而不是内部 panel 上
 		return
 			card(panel({
-					icon(iconPath)->size(48)
-								  ->color(isDark
-											  ? QColor(100, 160, 220)
-											  : QColor(60, 120, 180)),
+					icon(iconLight)->themePaths(iconLight, iconDark)
+									  ->size(48)
+									  ->color(isDark ? QColor(100, 160, 220) : QColor(60, 120, 180)),
 					spacer(8),
 					text(title)->fontSize(16)
 							   ->fontWeight(QFont::Medium)

@@ -111,6 +111,7 @@ namespace UI {
 	public:
 		explicit Icon(QString path) : m_path(std::move(path)) {}
 
+		// 显式设色：一旦调用则不再跟随主题自动变色
 		std::shared_ptr<Icon> color(QColor c) {
 			m_color = c;
 			m_autoColor = false;
@@ -122,13 +123,26 @@ namespace UI {
 			return self<Icon>();
 		}
 
+		// 新增：设置按主题切换的两套 SVG 路径（浅色=linear，深色=fill）
+		std::shared_ptr<Icon> themePaths(QString lightPath, QString darkPath) {
+			m_lightPath = std::move(lightPath);
+			m_darkPath = std::move(darkPath);
+			m_useThemePaths = true;
+			return self<Icon>();
+		}
+
 		std::unique_ptr<IUiComponent> build() const override;
 
 	private:
 		QString m_path;
 		QColor m_color;
 		int m_size{ 24 };
-		bool m_autoColor{ true };       // 预留：如需可按主题自动变色
+		bool m_autoColor{ true }; // 主题自动着色
+
+		// 新增：主题路径
+		bool m_useThemePaths{ false };
+		QString m_lightPath;
+		QString m_darkPath;
 	};
 
 	// 容器组件

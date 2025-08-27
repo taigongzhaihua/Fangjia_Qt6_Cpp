@@ -360,12 +360,19 @@ namespace UI {
 		return decorate(std::move(comp));
 	}
 
-	// 图标组件实现（与之前相同，补上裁剪）
+	// 图标组件实现：增加主题路径能力
 	class IconComponent : public IUiComponent, public IUiContent, public ILayoutable {
 	public:
-		IconComponent(QString path, const QColor& color, const int size, const bool autoColor)
-			: m_path(std::move(path)), m_color(color), m_size(size), m_autoColor(autoColor) {
-		}
+		IconComponent(QString path,
+			const QColor& color, const int size, const bool autoColor,
+			bool useThemePaths, QString lightPath, QString darkPath)
+			: m_path(std::move(path))
+			, m_color(color)
+			, m_size(size)
+			, m_autoColor(autoColor)
+			, m_useThemePaths(useThemePaths)
+			, m_lightPath(std::move(lightPath))
+			, m_darkPath(std::move(darkPath)) {}
 
 		// IUiContent
 		void setViewportRect(const QRect& r) override { m_bounds = r; }
@@ -388,7 +395,14 @@ namespace UI {
 		}
 
 		void append(Render::FrameData& fd) const override {
-			if (!m_cache || !m_gl || m_path.isEmpty() || !m_bounds.isValid()) return;
+			if (!m_cache || !m_gl || !m_bounds.isValid()) return;
+
+			// 选择主题对应路径
+			QString pathToUse = m_path;
+			if (m_useThemePaths) {
+				pathToUse = m_isDark ? m_darkPath : m_lightPath;
+			}
+			if (pathToUse.isEmpty()) return;
 
 			// 目标逻辑尺寸：不超过自身 bounds，保持正方形
 			const int availW = std::max(0, m_bounds.width());
@@ -406,8 +420,8 @@ namespace UI {
 
 			// 生成/获取纹理
 			const int px = std::lround(static_cast<float>(logicalS) * m_dpr);
-			QByteArray svg = RenderUtils::loadSvgCached(m_path);
-			const QString key = RenderUtils::makeIconCacheKey(m_path, px);
+			QByteArray svg = RenderUtils::loadSvgCached(pathToUse);
+			const QString key = RenderUtils::makeIconCacheKey(pathToUse, px);
 			const int tex = m_cache->ensureSvgPx(key, svg, QSize(px, px), m_gl);
 			const QSize ts = m_cache->textureSizePx(tex);
 
@@ -433,6 +447,7 @@ namespace UI {
 		}
 
 		void onThemeChanged(const bool isDark) override {
+			m_isDark = isDark;
 			if (m_autoColor) {
 				// 简单的自动配色：可按需要调整
 				m_color = isDark ? QColor(100, 160, 220) : QColor(60, 120, 180);
@@ -445,6 +460,12 @@ namespace UI {
 		int     m_size{ 24 };
 		bool    m_autoColor{ true };
 
+		// 主题路径
+		bool    m_useThemePaths{ false };
+		QString m_lightPath;
+		QString m_darkPath;
+		bool    m_isDark{ false };
+
 		QRect m_bounds;
 		IconCache* m_cache{ nullptr };
 		QOpenGLFunctions* m_gl{ nullptr };
@@ -452,7 +473,8 @@ namespace UI {
 	};
 
 	std::unique_ptr<IUiComponent> Icon::build() const {
-		auto comp = std::make_unique<IconComponent>(m_path, m_color, m_size, m_autoColor);
+		auto comp = std::make_unique<IconComponent>(m_path, m_color, m_size, m_autoColor,
+			m_useThemePaths, m_lightPath, m_darkPath);
 		return decorate(std::move(comp));
 	}
 
