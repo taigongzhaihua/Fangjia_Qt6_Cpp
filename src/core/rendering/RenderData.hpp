@@ -48,31 +48,4 @@ namespace Render {
 		}
 	};
 
-	// 线程安全的数据总线：生产者提交最新帧，消费者在渲染线程取快照
-	class DataBus {
-	public:
-		// 提交一帧数据（覆盖旧的等待消费的数据）
-		void submit(const FrameData& fd) {
-			std::scoped_lock lk(m_mtx);
-			m_front = fd;
-			m_hasNew.store(true, std::memory_order_release);
-		}
-
-		// 消费最新帧。如果返回 true，out 中包含最新数据快照
-		bool consume(FrameData& out) {
-			if (!m_hasNew.load(std::memory_order_acquire)) {
-				return false;
-			}
-			std::scoped_lock lk(m_mtx);
-			out = std::move(m_front);
-			m_hasNew.store(false, std::memory_order_release);
-			return true;
-		}
-
-	private:
-		std::mutex m_mtx;
-		FrameData m_front;                  // 等待消费的前台数据
-		std::atomic<bool> m_hasNew{ false };
-	};
-
 }

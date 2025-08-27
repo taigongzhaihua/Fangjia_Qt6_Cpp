@@ -138,8 +138,8 @@ file(GLOB DECLARATIVE_SOURCES
     "${SRC_DIR}/framework/declarative/*.h"
 )
 
-add_library(declarative_ui STATIC ${DECLARATIVE_SOURCES})
-target_link_libraries(declarative_ui PUBLIC 
+add_library(ui_declarative STATIC ${DECLARATIVE_SOURCES})
+target_link_libraries(ui_declarative PUBLIC 
     ui_framework
     core_rendering
     Qt6::Core 
@@ -178,7 +178,7 @@ set(VIEW_SOURCES
 
 add_library(business_views STATIC ${VIEW_SOURCES})
 target_link_libraries(business_views PUBLIC 
-    declarative_ui
+    ui_declarative
     ui_framework 
     models 
     core_rendering

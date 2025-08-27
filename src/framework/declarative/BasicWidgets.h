@@ -131,29 +131,6 @@ namespace UI {
 		bool m_autoColor{ true };       // 预留：如需可按主题自动变色
 	};
 
-	// 按钮组件
-	class Button : public Widget {
-	public:
-		enum class ButtonStyle {
-			Primary,
-			Secondary,
-			Text,
-			Outlined
-		};
-		explicit Button(WidgetPtr child) : m_child(std::move(child)) {}
-
-		std::shared_ptr<Button> style(ButtonStyle s) {
-			m_style = s;
-			return self<Button>();
-		}
-
-		std::unique_ptr<IUiComponent> build() const override;
-
-	private:
-		WidgetPtr m_child;
-		ButtonStyle m_style{ ButtonStyle::Primary };
-	};
-
 	// 容器组件
 	class Container : public Widget {
 	public:
