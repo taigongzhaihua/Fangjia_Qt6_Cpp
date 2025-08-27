@@ -6,7 +6,7 @@
 #include <qcolor.h>
 #include <qpoint.h>
 #include <qrect.h>
-#include <qtypes.h>
+#include <qglobal.h>
 #include <utility>
 
 namespace Ui

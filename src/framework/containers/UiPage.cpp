@@ -13,7 +13,7 @@
 #include <qsize.h>
 #include <qstring.h>
 #include <qstringliteral.h>
-#include <qtypes.h>
+#include <qglobal.h>
 #include <RenderUtils.hpp>
 
 QRectF UiPage::cardRectF() const

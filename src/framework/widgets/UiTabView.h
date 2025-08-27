@@ -14,7 +14,7 @@
 #include <qrect.h>
 #include <qsize.h>
 #include <qstring.h>
-#include <qtypes.h>
+#include <qglobal.h>
 #include <unordered_map>
 #include <vector>
 
