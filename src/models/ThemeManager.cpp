@@ -60,7 +60,6 @@ void ThemeManager::setMode(const ThemeMode mode)
 	}
 
 	updateEffectiveColorScheme();
-	save();
 }
 
 void ThemeManager::updateEffectiveColorScheme()

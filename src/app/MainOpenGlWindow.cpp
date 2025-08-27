@@ -5,7 +5,6 @@
 #include "ExplorePage.h"
 #include "FavoritesPage.h"
 #include "HomePage.h"
-#include "ServiceLocator.h"
 #include "SettingsPage.h"
 #include "ThemeManager.h"
 
@@ -53,12 +52,14 @@ namespace {
 	}
 }
 
-MainOpenGlWindow::MainOpenGlWindow(const UpdateBehavior updateBehavior)
-	: QOpenGLWindow(updateBehavior)
+MainOpenGlWindow::MainOpenGlWindow(
+	std::shared_ptr<AppConfig> config,
+	std::shared_ptr<ThemeManager> themeManager,
+	const UpdateBehavior updateBehavior)
+	: QOpenGLWindow(updateBehavior), m_config(std::move(config)), m_themeMgr(std::move(themeManager))
 {
 	try {
 		qDebug() << "MainOpenGlWindow constructor start";
-		initializeServices();
 
 		// 设置动画定时器
 		connect(&m_animTimer, &QTimer::timeout, this, &MainOpenGlWindow::onAnimationTick);
@@ -266,17 +267,6 @@ void MainOpenGlWindow::mouseDoubleClickEvent(QMouseEvent* e)
 	QOpenGLWindow::mouseDoubleClickEvent(e);
 }
 
-void MainOpenGlWindow::initializeServices()
-{
-	// 从DI获取服务
-	m_config = DI.get<AppConfig>();
-	m_themeMgr = DI.get<ThemeManager>();
-
-	if (!m_themeMgr) {
-		m_themeMgr = std::make_shared<ThemeManager>();
-	}
-}
-
 void MainOpenGlWindow::initializeNavigation()
 {
 	// 设置导航项
@@ -308,6 +298,19 @@ void MainOpenGlWindow::initializeNavigation()
 
 	// 连接导航选择变化
 	connect(&m_navVm, &NavViewModel::selectedIndexChanged, this, &MainOpenGlWindow::onNavSelectionChanged);
+	
+	// 连接导航状态变化到配置保存
+	if (m_config) {
+		connect(&m_navVm, &NavViewModel::expandedChanged, m_config.get(), [this](const bool expanded) {
+			m_config->setNavExpanded(expanded);
+			m_config->save();
+		});
+		
+		connect(&m_navVm, &NavViewModel::selectedIndexChanged, m_config.get(), [this](const int index) {
+			m_config->setNavSelectedIndex(index);
+			m_config->save();
+		});
+	}
 }
 
 void MainOpenGlWindow::initializePages()
