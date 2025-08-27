@@ -4,7 +4,7 @@
 #include <qopenglshaderprogram.h>
 #include <qopenglvertexarrayobject.h>
 
-#include "IconLoader.h"
+#include "IconCache.h"
 #include "RenderData.hpp"
 
 // 负责：GL 资源（Program / VAO / VBO）与 FrameData 绘制
@@ -23,11 +23,11 @@ public:
 	void resize(int fbWpx, int fbHpx);
 
 	// 绘制一帧（像素清屏颜色由调用者控制）
-	void drawFrame(const Render::FrameData& fd, const IconLoader& iconLoader, float devicePixelRatio);
+	void drawFrame(const Render::FrameData& fd, const IconCache& iconCache, float devicePixelRatio);
 
 private:
 	void drawRoundedRect(const Render::RoundedRectCmd& cmd);
-	void drawImage(const Render::ImageCmd& img, const IconLoader& iconLoader);
+	void drawImage(const Render::ImageCmd& img, const IconCache& iconCache);
 
 	// 设置/恢复剪裁（逻辑像素矩形；宽高<=0 则禁用）
 	void applyClip(const QRectF& clipLogical);

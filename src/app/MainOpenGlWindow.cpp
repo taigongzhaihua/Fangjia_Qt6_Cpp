@@ -94,7 +94,7 @@ MainOpenGlWindow::~MainOpenGlWindow()
 #endif
 
 		makeCurrent();
-		m_iconLoader.releaseAll(this);
+		m_iconCache.releaseAll(this);
 		m_renderer.releaseGL();
 		doneCurrent();
 	}
@@ -195,7 +195,7 @@ void MainOpenGlWindow::paintGL()
 
 	Render::FrameData frameData;
 	m_uiRoot.append(frameData);
-	m_renderer.drawFrame(frameData, m_iconLoader, static_cast<float>(devicePixelRatio()));
+	m_renderer.drawFrame(frameData, m_iconCache, static_cast<float>(devicePixelRatio()));
 }
 
 void MainOpenGlWindow::mousePressEvent(QMouseEvent* e)
@@ -388,7 +388,7 @@ void MainOpenGlWindow::updateLayout()
 
 	// 更新所有组件布局
 	m_uiRoot.updateLayout(winSize);
-	m_uiRoot.updateResourceContext(m_iconLoader, this, static_cast<float>(devicePixelRatio()));
+	m_uiRoot.updateResourceContext(m_iconCache, this, static_cast<float>(devicePixelRatio()));
 
 #ifdef Q_OS_WIN
 	if (m_winChrome) m_winChrome->notifyLayoutChanged();
@@ -418,7 +418,7 @@ void MainOpenGlWindow::applyTheme()
 	m_uiRoot.propagateThemeChange(isDark);
 
 	// 更新资源上下文（图标可能需要重新加载）
-	m_uiRoot.updateResourceContext(m_iconLoader, this, static_cast<float>(devicePixelRatio()));
+	m_uiRoot.updateResourceContext(m_iconCache, this, static_cast<float>(devicePixelRatio()));
 
 	update();
 }
@@ -466,7 +466,7 @@ void MainOpenGlWindow::onNavSelectionChanged(const int index)
 
 				m_uiRoot.propagateThemeChange(m_theme == Theme::Dark);
 				// 更新资源上下文
-				newPage->updateResourceContext(m_iconLoader, this, static_cast<float>(devicePixelRatio()));
+				newPage->updateResourceContext(m_iconCache, this, static_cast<float>(devicePixelRatio()));
 
 			}
 		}

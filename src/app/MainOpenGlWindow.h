@@ -6,7 +6,7 @@
 #include <qopenglwindow.h>
 #include <qtimer.h>
 
-#include "IconLoader.h"
+#include "IconCache.h"
 #include "NavViewModel.h"
 #include "PageManager.h"
 #include "Renderer.h"
@@ -96,7 +96,7 @@ private:
 
 	// 渲染
 	Renderer m_renderer;
-	IconLoader m_iconLoader;
+	IconCache m_iconCache;
 	int m_fbWpx{ 0 };
 	int m_fbHpx{ 0 };
 
