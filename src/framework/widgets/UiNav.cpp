@@ -352,7 +352,7 @@ namespace Ui {
 				QByteArray svg = svgDataCached(path);
 				const QString key = iconCacheKey(vitems[i].id, iconPx, m_isDark);
 
-				const int tex = m_cache->ensureSvgPx(key, svg, QSize(iconPx, iconPx), QColor(255, 255, 255, 255), m_gl);
+				const int tex = m_cache->ensureSvgPx(key, svg, QSize(iconPx, iconPx), m_gl);
 				const QSize texSz = m_cache->textureSizePx(tex);
 
 				QRectF iconDst;
@@ -433,7 +433,7 @@ namespace Ui {
 				QByteArray svg = svgDataCached(path);
 				const QString key = iconCacheKey(m_items[i].id, iconPx, m_isDark);
 
-				const int tex = m_cache->ensureSvgPx(key, svg, QSize(iconPx, iconPx), QColor(255, 255, 255, 255), m_gl);
+				const int tex = m_cache->ensureSvgPx(key, svg, QSize(iconPx, iconPx), m_gl);
 				const QSize texSz = m_cache->textureSizePx(tex);
 
 				QRectF iconDst;
@@ -514,7 +514,7 @@ namespace Ui {
 		QByteArray svg = svgDataCached(svgPath);
 		const QString key = iconCacheKey(baseKey, px, false);
 
-		const int tex = m_cache->ensureSvgPx(key, svg, QSize(px, px), QColor(255, 255, 255, 255), m_gl);
+		const int tex = m_cache->ensureSvgPx(key, svg, QSize(px, px), m_gl);
 		const QSize texSz = m_cache->textureSizePx(tex);
 
 		// 居中放置（用固定逻辑尺寸，不依赖纹理像素大小）
