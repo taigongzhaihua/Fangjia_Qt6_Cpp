@@ -1,5 +1,4 @@
 #include "Layouts.h"
-#include <IconLoader.h>
 #include <memory>
 #include <qopenglfunctions.h>
 #include <qpoint.h>
@@ -7,6 +6,7 @@
 #include <qsize.h>
 #include <RenderData.hpp>
 #include <UiComponent.hpp>
+#include <UiGrid.h>
 #include <UiPanel.h>
 #include <utility>
 
@@ -16,19 +16,16 @@ namespace UI {
 		auto layout = std::make_unique<UiPanel>(m_orient);
 		layout->setSpacing(m_spacing);
 
-		// 逐个添加子项（交叉轴对齐统一使用当前 Panel 的 crossAxisAlignment）
 		const auto cross = toCross(m_crossAlign);
 		for (const auto& child : m_children) {
 			if (!child) continue;
 			auto comp = child->build();
 			layout->addChild(comp.release(), cross);
 		}
-
-		// Panel 自身的装饰器（背景/圆角/内边距等）交给通用 DecoratedBox（如有设置）
 		return decorate(std::move(layout));
 	}
 
-	// Spacer -> 固定大小的空组件（对 Panel 来说就是占位/留白）
+	// Spacer
 	class SpacerComponent : public IUiComponent {
 	public:
 		explicit SpacerComponent(int size) : m_size(size) {}
@@ -44,7 +41,51 @@ namespace UI {
 	private:
 		int m_size;
 	};
-
 	std::unique_ptr<IUiComponent> Spacer::build() const { return std::make_unique<SpacerComponent>(m_size); }
+
+	// ============ Grid ============
+	static UiGrid::TrackDef toDef(const Grid::Track& t) {
+		switch (t.type) {
+		case Grid::TrackType::Pixel: return UiGrid::TrackDef::Px(static_cast<int>(std::round(t.value)));
+		case Grid::TrackType::Star:  return UiGrid::TrackDef::Star(t.value <= 0.0f ? 1.0f : t.value);
+		case Grid::TrackType::Auto:
+		default:                      return UiGrid::TrackDef::Auto();
+		}
+	}
+	static UiGrid::Align toAlign(const Grid::CellAlign a) {
+		switch (a) {
+		case Grid::CellAlign::Start:   return UiGrid::Align::Start;
+		case Grid::CellAlign::Center:  return UiGrid::Align::Center;
+		case Grid::CellAlign::End:     return UiGrid::Align::End;
+		case Grid::CellAlign::Stretch:
+		default:                       return UiGrid::Align::Stretch;
+		}
+	}
+
+	std::unique_ptr<IUiComponent> Grid::build() const {
+		auto layout = std::make_unique<UiGrid>();
+
+		std::vector<UiGrid::TrackDef> rs; rs.reserve(m_rows.size());
+		for (const auto& r : m_rows) rs.push_back(toDef(r));
+		std::vector<UiGrid::TrackDef> cs; cs.reserve(m_cols.size());
+		for (const auto& c : m_cols) cs.push_back(toDef(c));
+
+		layout->setRowDefs(std::move(rs));
+		layout->setColDefs(std::move(cs));
+		layout->setRowSpacing(m_rowSpacing);
+		layout->setColSpacing(m_colSpacing);
+
+		for (const auto& it : m_items) {
+			if (!it.widget) continue;
+			auto comp = it.widget->build();
+			layout->addChild(
+				comp.release(),
+				std::max(0, it.row), std::max(0, it.col),
+				std::max(1, it.rowSpan), std::max(1, it.colSpan),
+				toAlign(it.h), toAlign(it.v)
+			);
+		}
+		return decorate(std::move(layout));
+	}
 
 } // namespace UI

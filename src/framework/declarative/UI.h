@@ -16,11 +16,12 @@ namespace UI {
 	inline auto container(WidgetPtr child = nullptr) { return make_widget<Container>(child); }
 	inline auto card(WidgetPtr child) { return make_widget<Card>(child); }
 
-	// 新：Panel（替代 Row/Column）
+	// Panel / Spacer
 	inline auto panel(WidgetList children = {}) { return make_widget<Panel>(children); }
-
-	// Spacer 仍可用
 	inline auto spacer(int size = 0) { return make_widget<Spacer>(size); }
+
+	// Grid
+	inline auto grid() { return make_widget<Grid>(); }
 
 	inline auto listTile() { return make_widget<ListTile>(); }
 	inline auto tabView() { return make_widget<TabView>(); }
