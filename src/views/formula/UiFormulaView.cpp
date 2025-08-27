@@ -215,18 +215,17 @@ UiFormulaView::UiFormulaView()
 									->fontSize(14)
 									->color(body)
 									->wrap(true)
-								)->padding(20, 0)
+								)->padding(20, 0, 0, 0)
 							})->vertical()
 							->spacing(12)
-							->crossAxisAlignment(Alignment::Stretch)
-							->margin(20, 0);
+							->crossAxisAlignment(Alignment::Stretch);
 					};
 
 				bodyWidget = panel({
 						text(detail->name)->fontSize(22)
 										  ->fontWeight(QFont::Bold)
 										  ->color(title),
-						container()->height(16),
+						spacer(8),
 						section("出处", detail->source),
 						section("组成", detail->composition),
 						section("用法", detail->usage),

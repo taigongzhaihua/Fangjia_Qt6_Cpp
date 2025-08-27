@@ -110,7 +110,35 @@ void UiContainer::updateResourceContext(IconLoader& loader, QOpenGLFunctions* gl
 
 void UiContainer::append(Render::FrameData& fd) const
 {
-	if (m_child) m_child->append(fd);
+	if (!m_child) return;
+
+	const int rr0 = static_cast<int>(fd.roundedRects.size());
+	const int im0 = static_cast<int>(fd.images.size());
+
+	m_child->append(fd);
+
+	// 新增：对子项追加命令叠加父裁剪（容器 viewport）
+	const QRectF parentClip = QRectF(m_viewport);
+	if (parentClip.width() > 0.0 && parentClip.height() > 0.0) {
+		for (int i = rr0; i < static_cast<int>(fd.roundedRects.size()); ++i) {
+			auto& cmd = fd.roundedRects[i];
+			if (cmd.clipRect.width() > 0.0 && cmd.clipRect.height() > 0.0) {
+				cmd.clipRect = cmd.clipRect.intersected(parentClip);
+			}
+			else {
+				cmd.clipRect = parentClip;
+			}
+		}
+		for (int i = im0; i < static_cast<int>(fd.images.size()); ++i) {
+			auto& cmd = fd.images[i];
+			if (cmd.clipRect.width() > 0.0 && cmd.clipRect.height() > 0.0) {
+				cmd.clipRect = cmd.clipRect.intersected(parentClip);
+			}
+			else {
+				cmd.clipRect = parentClip;
+			}
+		}
+	}
 }
 
 bool UiContainer::onMousePress(const QPoint& pos)

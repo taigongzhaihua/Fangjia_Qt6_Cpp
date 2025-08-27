@@ -153,8 +153,35 @@ namespace UI
 			}
 		}
 
-		// 子内容
-		if (m_child) m_child->append(fd);
+		// 新增：对子内容追加命令叠加内容区裁剪（m_contentRect）
+		if (m_child) {
+			const int rr0 = static_cast<int>(fd.roundedRects.size());
+			const int im0 = static_cast<int>(fd.images.size());
+
+			m_child->append(fd);
+
+			const QRectF contentClip = QRectF(m_contentRect);
+			if (contentClip.width() > 0.0 && contentClip.height() > 0.0) {
+				for (int i = rr0; i < static_cast<int>(fd.roundedRects.size()); ++i) {
+					auto& cmd = fd.roundedRects[i];
+					if (cmd.clipRect.width() > 0.0 && cmd.clipRect.height() > 0.0) {
+						cmd.clipRect = cmd.clipRect.intersected(contentClip);
+					}
+					else {
+						cmd.clipRect = contentClip;
+					}
+				}
+				for (int i = im0; i < static_cast<int>(fd.images.size()); ++i) {
+					auto& cmd = fd.images[i];
+					if (cmd.clipRect.width() > 0.0 && cmd.clipRect.height() > 0.0) {
+						cmd.clipRect = cmd.clipRect.intersected(contentClip);
+					}
+					else {
+						cmd.clipRect = contentClip;
+					}
+				}
+			}
+		}
 	}
 
 	bool DecoratedBox::onMousePress(const QPoint& pos)

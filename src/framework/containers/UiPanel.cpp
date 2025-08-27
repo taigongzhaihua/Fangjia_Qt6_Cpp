@@ -130,7 +130,7 @@ QSize UiPanel::measure(const SizeConstraints& cs)
 
 		QSize desired(0, 0);
 		if (auto* l = dynamic_cast<ILayoutable*>(ch.component)) {
-			SizeConstraints childCs{};
+			SizeConstraints childCs = {};
 			if (isH) {
 				childCs.minW = 0; childCs.minH = 0;
 				childCs.maxW = std::numeric_limits<int>::max() / 2;
@@ -274,7 +274,42 @@ void UiPanel::append(Render::FrameData& fd) const
 				});
 		}
 	}
-	for (const auto& ch : m_children) if (ch.visible && ch.component) ch.component->append(fd);
+
+	// 新增：对子项追加的命令统一叠加“父裁剪”（Panel 的内容区），防止主轴溢出
+	const QRectF parentClip = QRectF(contentRect());
+	const bool parentClipValid = parentClip.width() > 0.0 && parentClip.height() > 0.0;
+
+	for (size_t i = 0; i < m_children.size(); ++i) {
+		const auto& ch = m_children[i];
+		if (!ch.visible || !ch.component) continue;
+
+		const int rr0 = static_cast<int>(fd.roundedRects.size());
+		const int im0 = static_cast<int>(fd.images.size());
+
+		ch.component->append(fd);
+
+		if (!parentClipValid) continue;
+
+		// 与父裁剪求交（若命令无 clip，则直接赋予父裁剪）
+		for (int k = rr0; k < static_cast<int>(fd.roundedRects.size()); ++k) {
+			auto& cmd = fd.roundedRects[k];
+			if (cmd.clipRect.width() > 0.0 && cmd.clipRect.height() > 0.0) {
+				cmd.clipRect = cmd.clipRect.intersected(parentClip);
+			}
+			else {
+				cmd.clipRect = parentClip;
+			}
+		}
+		for (int k = im0; k < static_cast<int>(fd.images.size()); ++k) {
+			auto& cmd = fd.images[k];
+			if (cmd.clipRect.width() > 0.0 && cmd.clipRect.height() > 0.0) {
+				cmd.clipRect = cmd.clipRect.intersected(parentClip);
+			}
+			else {
+				cmd.clipRect = parentClip;
+			}
+		}
+	}
 }
 
 bool UiPanel::onMousePress(const QPoint& pos)

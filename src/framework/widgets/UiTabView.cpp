@@ -244,7 +244,7 @@ void UiTabView::append(Render::FrameData& fd) const
 			.rect = bar.adjusted(m_tabBarMargin.left(), m_tabBarMargin.top(), -m_tabBarMargin.right(), -m_tabBarMargin.bottom()),
 			.radiusPx = 8.0f,
 			.color = m_pal.barBg,
-			.clipRect = QRectF(m_viewport) // 新增：裁剪到整个 TabView 区域
+			.clipRect = QRectF(m_viewport) // 裁剪到整个 TabView 区域
 			});
 	}
 
@@ -259,21 +259,17 @@ void UiTabView::append(Render::FrameData& fd) const
 			});
 	}
 
-	// 整体高亮单元
+	// 整体高亮单元（保持不变）...
 	if (m_viewSelected >= 0 && m_viewSelected < tabCount() && m_highlightCenterX >= 0.0f) {
 		const QRectF rSelTmpl = tabRectF(m_viewSelected);
-
-
 		const float bgW = std::max(8.0f, static_cast<float>(rSelTmpl.width()));
 		const float bgH = std::max(8.0f, static_cast<float>(rSelTmpl.height()));
-
 		const QRectF bgRect(
 			m_highlightCenterX - bgW * 0.5f,
 			rSelTmpl.top(),
 			bgW,
 			bgH
 		);
-
 		if (m_indicatorStyle == IndicatorStyle::Full || m_pal.tabSelectedBg.alpha() > 0) {
 			fd.roundedRects.push_back(Render::RoundedRectCmd{
 				.rect = bgRect,
@@ -282,12 +278,9 @@ void UiTabView::append(Render::FrameData& fd) const
 				.clipRect = bgRect
 				});
 		}
-
-		// 指示条
 		if (m_indicatorStyle != IndicatorStyle::Full) {
 			const float indW = std::clamp(bgW * 0.5f, 24.0f, std::max(24.0f, bgW - 10.0f));
 			constexpr float indH = 3.0f;
-
 			QRectF indRect;
 			if (m_indicatorStyle == IndicatorStyle::Bottom) {
 				constexpr float indOffsetUp = 4.0f;
@@ -298,7 +291,7 @@ void UiTabView::append(Render::FrameData& fd) const
 					indH
 				);
 			}
-			else { // Top
+			else {
 				constexpr float indOffsetDown = 4.0f;
 				indRect = QRectF(
 					bgRect.center().x() - indW * 0.5f,
@@ -307,7 +300,6 @@ void UiTabView::append(Render::FrameData& fd) const
 					indH
 				);
 			}
-
 			fd.roundedRects.push_back(Render::RoundedRectCmd{
 				.rect = indRect,
 				.radiusPx = indH * 0.5f,
@@ -317,11 +309,11 @@ void UiTabView::append(Render::FrameData& fd) const
 		}
 	}
 
-	// hover/press 背景
+	// hover/press 背景与标签绘制（保持不变）...
+
 	const int n = tabCount();
 	for (int i = 0; i < n; ++i) {
 		if (i == m_viewSelected) continue;
-
 		const QRectF r = tabRectF(i);
 		if (i == m_pressed) {
 			fd.roundedRects.push_back(Render::RoundedRectCmd{
@@ -374,9 +366,35 @@ void UiTabView::append(Render::FrameData& fd) const
 			});
 	}
 
+	// 当前内容 + 父裁剪叠加到内容区
 	int curIdx = selectedIndex();
 	if (IUiComponent* curContent = content(curIdx)) {
-		curContent->append(fd); // 子内容自身会裁剪
+		const int rr0 = static_cast<int>(fd.roundedRects.size());
+		const int im0 = static_cast<int>(fd.images.size());
+
+		curContent->append(fd);
+
+		const QRectF contentClip = contentRectF();
+		if (contentClip.width() > 0.0 && contentClip.height() > 0.0) {
+			for (int i = rr0; i < static_cast<int>(fd.roundedRects.size()); ++i) {
+				auto& cmd = fd.roundedRects[i];
+				if (cmd.clipRect.width() > 0.0 && cmd.clipRect.height() > 0.0) {
+					cmd.clipRect = cmd.clipRect.intersected(contentClip);
+				}
+				else {
+					cmd.clipRect = contentClip;
+				}
+			}
+			for (int i = im0; i < static_cast<int>(fd.images.size()); ++i) {
+				auto& cmd = fd.images[i];
+				if (cmd.clipRect.width() > 0.0 && cmd.clipRect.height() > 0.0) {
+					cmd.clipRect = cmd.clipRect.intersected(contentClip);
+				}
+				else {
+					cmd.clipRect = contentClip;
+				}
+			}
+		}
 	}
 }
 

@@ -63,7 +63,7 @@ void UiPage::append(Render::FrameData& fd) const
 		.rect = card,
 		.radiusPx = m_cornerRadius,
 		.color = m_pal.cardBg,
-		.clipRect = QRectF(m_viewport) // 新增：裁剪到页面 viewport
+		.clipRect = QRectF(m_viewport) // 裁剪到页面 viewport
 		});
 
 	// 标题文字
@@ -93,12 +93,37 @@ void UiPage::append(Render::FrameData& fd) const
 		.textureId = tex,
 		.srcRectPx = QRectF(0, 0, ts.width(), ts.height()),
 		.tint = QColor(255,255,255,255),
-		.clipRect = card // 新增：标题裁剪到卡片
+		.clipRect = card // 标题裁剪到卡片
 		});
 
-	// 让内容组件在卡片内绘制自身内容（它已知道自己的 viewport）
+	// 内容裁剪到内容区
 	if (m_content) {
+		const int rr0 = static_cast<int>(fd.roundedRects.size());
+		const int im0 = static_cast<int>(fd.images.size());
+
 		m_content->append(fd);
+
+		const QRectF contentClip = contentRectF();
+		if (contentClip.width() > 0.0 && contentClip.height() > 0.0) {
+			for (int i = rr0; i < static_cast<int>(fd.roundedRects.size()); ++i) {
+				auto& cmd = fd.roundedRects[i];
+				if (cmd.clipRect.width() > 0.0 && cmd.clipRect.height() > 0.0) {
+					cmd.clipRect = cmd.clipRect.intersected(contentClip);
+				}
+				else {
+					cmd.clipRect = contentClip;
+				}
+			}
+			for (int i = im0; i < static_cast<int>(fd.images.size()); ++i) {
+				auto& cmd = fd.images[i];
+				if (cmd.clipRect.width() > 0.0 && cmd.clipRect.height() > 0.0) {
+					cmd.clipRect = cmd.clipRect.intersected(contentClip);
+				}
+				else {
+					cmd.clipRect = contentClip;
+				}
+			}
+		}
 	}
 }
 

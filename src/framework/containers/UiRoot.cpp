@@ -42,7 +42,37 @@ void UiRoot::updateResourceContext(IconLoader& loader, QOpenGLFunctions* gl, con
 
 void UiRoot::append(Render::FrameData& fd) const
 {
-	for (const auto* c : m_children) c->append(fd);
+	// 根级可选：对子项命令叠加“子项自身边界”的裁剪，避免顶层越界
+	for (const auto* c : m_children) {
+		if (!c) continue;
+
+		const int rr0 = static_cast<int>(fd.roundedRects.size());
+		const int im0 = static_cast<int>(fd.images.size());
+
+		c->append(fd);
+
+		const QRectF clip = QRectF(c->bounds());
+		if (clip.width() <= 0.0 || clip.height() <= 0.0) continue;
+
+		for (int i = rr0; i < static_cast<int>(fd.roundedRects.size()); ++i) {
+			auto& cmd = fd.roundedRects[i];
+			if (cmd.clipRect.width() > 0.0 && cmd.clipRect.height() > 0.0) {
+				cmd.clipRect = cmd.clipRect.intersected(clip);
+			}
+			else {
+				cmd.clipRect = clip;
+			}
+		}
+		for (int i = im0; i < static_cast<int>(fd.images.size()); ++i) {
+			auto& cmd = fd.images[i];
+			if (cmd.clipRect.width() > 0.0 && cmd.clipRect.height() > 0.0) {
+				cmd.clipRect = cmd.clipRect.intersected(clip);
+			}
+			else {
+				cmd.clipRect = clip;
+			}
+		}
+	}
 }
 
 bool UiRoot::onMousePress(const QPoint& pos)

@@ -79,7 +79,8 @@ private:
 				})->vertical()
 				->crossAxisAlignment(Alignment::Center)
 				->spacing(10)
-				->size(200, 160)
+				->size(200, 140)
+				->padding(10)
 			)->elevation(2.0f)
 			->backgroundTheme(QColor(240, 245, 255), QColor(10, 15, 25)); // 固定“卡片外层”尺寸，保证大小稳定
 	}
