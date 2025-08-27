@@ -56,12 +56,13 @@ public:
 	WidgetPtr buildUI() const
 	{
 		return tabView()
-			->tabs(QStringList({ "方剂", "中药", "经典", "医案", "内科", "诊断" }))
-			->selectedIndex(0)
+			// 切换为 VM 模式（替代 fallback tabs/selectedIndex）
+			->viewModel(const_cast<TabViewModel*>(&tabsVm))
 			->indicatorStyle(UiTabView::IndicatorStyle::Bottom)
 			->tabHeight(43)
 			->animationDuration(220)
 			->contents(WidgetList{
+				// 仅为前几个 Tab 提供示例内容，其他 Tab 可按需补充
 				wrap(formulaView.get()),
 				container(
 					text("中药功能开发中")
@@ -73,8 +74,15 @@ public:
 				})
 			->onChanged([this](int idx)
 				{
-					// 非 VM 模式的回调
+					// VM 模式下此回调仍会触发，可用于埋点/日志（无需再显式 setSelectedIndex）
 					qDebug() << "Tab changed to" << idx;
+					if (auto config = DI.get<AppConfig>()) {
+						const auto items = tabsVm.items();
+						if (idx >= 0 && idx < items.size()) {
+							config->setRecentTab(items[idx].id);
+							config->save();
+						}
+					}
 				});
 	}
 };
