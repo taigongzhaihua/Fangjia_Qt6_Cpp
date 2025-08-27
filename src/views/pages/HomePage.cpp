@@ -31,25 +31,18 @@ public:
 
 			spacer(15),
 			// 功能卡片网格
-			panel({
-				// 第一行
-				panel({
-					buildFeatureCard(":/icons/data_light.svg", "方剂数据", "查看和管理中医方剂"),
-					spacer(16),
-					buildFeatureCard(":/icons/explore_light.svg", "探索发现", "发现新的方剂组合")
-				})->horizontal()
-				  ->crossAxisAlignment(Alignment::Stretch),
-
-				spacer(16),
-
-					// 第二行
-					panel({
-						buildFeatureCard(":/icons/fav_light.svg", "我的收藏", "管理收藏的方剂"),
-						spacer(16),
-						buildFeatureCard(":/icons/settings_light.svg", "系统设置", "自定义应用偏好")
-					})->horizontal()
-					  ->crossAxisAlignment(Alignment::Stretch)
-				}),
+			grid()->columns({Grid::Star(1), Grid::Star(1)})
+				  ->rows({Grid::Auto(), Grid::Auto()})
+				  ->colSpacing(16)
+				  ->rowSpacing(16)
+				  ->add(buildFeatureCard(":/icons/data_light.svg", "方剂数据", "查看和管理中医方剂"),
+						0, 0, 1, 1, Grid::CellAlign::Center, Grid::CellAlign::Center)
+				  ->add(buildFeatureCard(":/icons/explore_light.svg", "探索发现", "发现新的方剂组合"),
+						0, 1, 1, 1, Grid::CellAlign::Center, Grid::CellAlign::Center)
+				  ->add(buildFeatureCard(":/icons/fav_light.svg", "我的收藏", "管理收藏的方剂"),
+						1, 0, 1, 1, Grid::CellAlign::Center, Grid::CellAlign::Center)
+				  ->add(buildFeatureCard(":/icons/settings_light.svg", "系统设置", "自定义应用偏好"),
+						1, 1, 1, 1, Grid::CellAlign::Center, Grid::CellAlign::Center),
 
 			// 留白
 			spacer(8)
