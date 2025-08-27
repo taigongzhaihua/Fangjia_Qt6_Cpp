@@ -209,7 +209,7 @@ UiFormulaView::UiFormulaView()
 								->fontSize(13)
 								->fontWeight(QFont::DemiBold)
 								->color(label)
-								->align(Qt::AlignTop),
+								->align(Qt::AlignVCenter | Qt::AlignLeft),
 								container(
 									text(content)
 									->fontSize(14)
