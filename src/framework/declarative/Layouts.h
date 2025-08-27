@@ -16,16 +16,16 @@ namespace UI {
 	class Panel : public Widget {
 	public:
 		Panel(WidgetList children = {}) : m_children(std::move(children)) {}
-		std::shared_ptr<Panel> orientation(UiPanel::Orientation o) { m_orient = o; return self<Panel>(); }
+		std::shared_ptr<Panel> orientation(const UiPanel::Orientation o) { m_orient = o; return self<Panel>(); }
 		std::shared_ptr<Panel> vertical() { m_orient = UiPanel::Orientation::Vertical; return self<Panel>(); }
 		std::shared_ptr<Panel> horizontal() { m_orient = UiPanel::Orientation::Horizontal; return self<Panel>(); }
-		std::shared_ptr<Panel> spacing(int s) { m_spacing = std::max(0, s); return self<Panel>(); }
-		std::shared_ptr<Panel> crossAxisAlignment(Alignment a) { m_crossAlign = a; return self<Panel>(); }
+		std::shared_ptr<Panel> spacing(const int s) { m_spacing = std::max(0, s); return self<Panel>(); }
+		std::shared_ptr<Panel> crossAxisAlignment(const Alignment a) { m_crossAlign = a; return self<Panel>(); }
 		std::shared_ptr<Panel> children(WidgetList children) { m_children = std::move(children); return self<Panel>(); }
 		std::unique_ptr<IUiComponent> build() const override;
 
 	private:
-		static UiPanel::CrossAlign toCross(Alignment a) {
+		static UiPanel::CrossAlign toCross(const Alignment a) {
 			switch (a) {
 			case Alignment::Center:  return UiPanel::CrossAlign::Center;
 			case Alignment::End:     return UiPanel::CrossAlign::End;
@@ -50,7 +50,7 @@ namespace UI {
 	// 简单占位
 	class Spacer : public Widget {
 	public:
-		explicit Spacer(int size = 0) : m_size(size) {}
+		explicit Spacer(const int size = 0) : m_size(size) {}
 		std::unique_ptr<IUiComponent> build() const override;
 	private:
 		int m_size;
@@ -64,8 +64,8 @@ namespace UI {
 			TrackType type{ TrackType::Auto };
 			float value{ 0.0f }; // Pixel->像素；Star->权重
 			static Track Auto() { return { TrackType::Auto, 0.0f }; }
-			static Track Px(int px) { return { TrackType::Pixel, static_cast<float>(std::max(0, px)) }; }
-			static Track Star(float w = 1.0f) { return { TrackType::Star, std::max(0.0f, w) }; }
+			static Track Px(const int px) { return { Pixel, static_cast<float>(std::max(0, px)) }; }
+			static Track Star(const float w = 1.0f) { return { TrackType::Star, std::max(0.0f, w) }; }
 		};
 
 		enum class CellAlign { Start, Center, End, Stretch };
@@ -74,37 +74,48 @@ namespace UI {
 			WidgetPtr widget;
 			int row{ 0 }, col{ 0 };
 			int rowSpan{ 1 }, colSpan{ 1 };
-			CellAlign h{ CellAlign::Stretch }, v{ CellAlign::Stretch };
+			CellAlign h{ Stretch }, v{ Stretch };
 		};
 
 		Grid() = default;
 
 		std::shared_ptr<Grid> rows(std::vector<Track> defs) { m_rows = std::move(defs); return self<Grid>(); }
 		std::shared_ptr<Grid> columns(std::vector<Track> defs) { m_cols = std::move(defs); return self<Grid>(); }
-		std::shared_ptr<Grid> rowSpacing(int px) { m_rowSpacing = std::max(0, px); return self<Grid>(); }
-		std::shared_ptr<Grid> colSpacing(int px) { m_colSpacing = std::max(0, px); return self<Grid>(); }
+		std::shared_ptr<Grid> rowSpacing(const int px) { m_rowSpacing = std::max(0, px); return self<Grid>(); }
+		std::shared_ptr<Grid> colSpacing(const int px) { m_colSpacing = std::max(0, px); return self<Grid>(); }
 
 		// 添加子项
-		std::shared_ptr<Grid> add(WidgetPtr w, int row, int col, int rowSpan = 1, int colSpan = 1,
-			CellAlign h = CellAlign::Stretch, CellAlign v = CellAlign::Stretch) {
+		std::shared_ptr<Grid> add(WidgetPtr w, const int row, const int col, const int rowSpan = 1, const int colSpan = 1,
+			const CellAlign h = Stretch, const CellAlign v = Stretch) {
 			m_items.push_back(Item{ std::move(w), row, col, rowSpan, colSpan, h, v });
 			return self<Grid>();
 		}
 
 		std::unique_ptr<IUiComponent> build() const override;
 
-		// 便捷静态构造器
-		static Track Auto() { return Track::Auto(); }
-		static Track Px(int px) { return Track::Px(px); }
-		static Track Star(float w = 1.0f) { return Track::Star(w); }
-
+		using enum CellAlign;
+		using enum TrackType;
 	private:
 		std::vector<Track> m_rows;
 		std::vector<Track> m_cols;
 		int m_rowSpacing{ 8 };
 		int m_colSpacing{ 8 };
 		std::vector<Item> m_items;
+
 	};
 
+	inline Grid::Track AUTO = Grid::Track::Auto();
+
+	inline Grid::Track operator""_px(const unsigned long long v) noexcept {
+		return Grid::Track::Px(static_cast<int>(v));
+	}
+
+	inline Grid::Track operator""_fr(const unsigned long long v) noexcept {
+		return Grid::Track::Star(static_cast<float>(v));
+	}
+
+	inline Grid::Track operator""_fr(const long double v) noexcept {
+		return Grid::Track::Star(static_cast<float>(v));
+	}
 
 } // namespace UI
