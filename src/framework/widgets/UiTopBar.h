@@ -5,13 +5,10 @@
 #include "UiComponent.hpp"
 
 #include <cstdint>
-#include <qbytearray.h>
 #include <qcolor.h>
 #include <qelapsedtimer.h>
 #include <qopenglfunctions.h>
-#include <qpoint.h>
 #include <qrect.h>
-#include <qsize.h>
 #include <qstring.h>
 #include <qtypes.h>
 
@@ -94,8 +91,6 @@ private:
 
 	void startAnimSequence(bool followOn);
 	void beginPhase(AnimPhase ph, int durationMs);
-
-	QString iconCacheKey(const QString& baseKey, int logicalPx, float dpr) const;
 
 	static Palette getDarkPalette() {
 		return Palette{

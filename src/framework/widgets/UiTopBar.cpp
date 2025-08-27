@@ -13,8 +13,8 @@
 #include <qsize.h>
 #include <qstring.h>
 #include <qtypes.h>
-#include <utility>
 #include <RenderUtils.hpp>
+#include <utility>
 
 UiTopBar::UiTopBar()
 {
@@ -165,7 +165,7 @@ void UiTopBar::updateResourceContext(IconLoader& loader, QOpenGLFunctions* gl, c
 		btn.setIconPainter([this, baseKey, path, logicalPx](const QRectF& r, Render::FrameData& fd, const QColor& iconColor, float) {
 			if (!m_loader || !m_gl) return;
 			const int px = std::lround(static_cast<float>(logicalPx) * m_dpr);
-			const QString key = iconCacheKey(baseKey, logicalPx, m_dpr);
+			const QString key = RenderUtils::makeIconCacheKey(baseKey, px);
 
 			QByteArray svg = RenderUtils::loadSvgCached(path);
 			const int tex = m_loader->ensureSvgPx(key, svg, QSize(px, px), QColor(255, 255, 255, 255), m_gl);
@@ -316,10 +316,4 @@ void UiTopBar::beginPhase(const AnimPhase ph, const int durationMs)
 	m_animPhase = ph;
 	m_animDurationMs = durationMs;
 	m_phaseStartMs = m_animClock.elapsed();
-}
-
-QString UiTopBar::iconCacheKey(const QString& baseKey, const int logicalPx, const float dpr) const
-{
-	const int px = std::lround(static_cast<float>(logicalPx) * dpr);
-	return RenderUtils::makeIconCacheKey(baseKey, px);
 }
