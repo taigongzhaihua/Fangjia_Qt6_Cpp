@@ -1,6 +1,6 @@
 #include "AppConfig.h"
 #include "DataPage.h"
-#include "ServiceLocator.h"
+#include "DataViewModel.h"
 #include "UI.h"
 #include "UiFormulaView.h"
 #include <BasicWidgets.h>
@@ -19,45 +19,25 @@
 class DataPage::Impl
 {
 public:
-	TabViewModel tabsVm;
+	std::unique_ptr<DataViewModel> dataViewModel;
 	std::unique_ptr<UiFormulaView> formulaView;
 	std::unique_ptr<IUiComponent> builtComponent;
 	bool isDark = false;
 
-	Impl()
+	explicit Impl(AppConfig* config)
 	{
-		// 初始化标签页
-		tabsVm.setItems(QVector<TabViewModel::TabItem>{
-			{.id = "formula", .label = "方剂", .tooltip = "中医方剂数据库"},
-			{ .id = "herb", .label = "中药", .tooltip = "中药材信息" },
-			{ .id = "classic", .label = "经典", .tooltip = "经典医籍" },
-			{ .id = "case", .label = "医案", .tooltip = "临床医案记录" },
-			{ .id = "internal", .label = "内科", .tooltip = "内科诊疗" },
-			{ .id = "diagnosis", .label = "诊断", .tooltip = "诊断方法" }
-		});
+		// 创建 DataViewModel，负责标签页状态和配置交互
+		dataViewModel = std::make_unique<DataViewModel>(*config);
 
 		// 创建方剂视图
 		formulaView = std::make_unique<UiFormulaView>();
-
-		// 从配置恢复
-		if (auto config = DI.get<AppConfig>())
-		{
-			if (!config->recentTab().isEmpty())
-			{
-				int tabIdx = tabsVm.findById(config->recentTab());
-				if (tabIdx >= 0)
-				{
-					tabsVm.setSelectedIndex(tabIdx);
-				}
-			}
-		}
 	}
 
 	WidgetPtr buildUI() const
 	{
 		return tabView()
-			// 切换为 VM 模式（替代 fallback tabs/selectedIndex）
-			->viewModel(const_cast<TabViewModel*>(&tabsVm))
+			// 使用 DataViewModel 中的 TabViewModel（移除对 ServiceLocator 的依赖）
+			->viewModel(dataViewModel->tabs())
 			->indicatorStyle(UiTabView::IndicatorStyle::Bottom)
 			->tabHeight(43)
 			->animationDuration(220)
@@ -74,21 +54,15 @@ public:
 				})
 			->onChanged([this](int idx)
 				{
-					// VM 模式下此回调仍会触发，可用于埋点/日志（无需再显式 setSelectedIndex）
-					qDebug() << "Tab changed to" << idx;
-					if (auto config = DI.get<AppConfig>()) {
-						const auto items = tabsVm.items();
-						if (idx >= 0 && idx < items.size()) {
-							config->setRecentTab(items[idx].id);
-							config->save();
-						}
-					}
+					// VM 模式下此回调仍会触发，可用于埋点/日志
+					// 持久化逻辑已移到 DataViewModel 中处理
+					qDebug() << "DataPage: Tab changed to" << idx;
 				});
 	}
 };
 
 // DataPage 实现
-DataPage::DataPage() : m_impl(std::make_unique<Impl>())
+DataPage::DataPage(AppConfig* config) : m_impl(std::make_unique<Impl>(config))
 {
 	setTitle("数据");
 	DataPage::initializeContent();
@@ -119,5 +93,5 @@ void DataPage::applyPageTheme(bool isDark)
 
 TabViewModel* DataPage::tabViewModel() const
 {
-	return &m_impl->tabsVm;
+	return m_impl->dataViewModel->tabs();
 }

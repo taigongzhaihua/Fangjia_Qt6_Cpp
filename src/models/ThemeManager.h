@@ -5,6 +5,17 @@
 #include <qobjectdefs.h>
 #include <qtmetamacros.h>
 
+// Compatibility for Qt 6.4.x - ColorScheme was added in Qt 6.5
+#if QT_VERSION < QT_VERSION_CHECK(6, 5, 0)
+namespace Qt {
+    enum class ColorScheme {
+        Unknown,
+        Light,
+        Dark
+    };
+}
+#endif
+
 class ThemeManager final : public QObject
 {
 	Q_OBJECT

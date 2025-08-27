@@ -317,9 +317,9 @@ void MainOpenGlWindow::initializePages()
 {
 	try
 	{
-		// 创建并注册所有页面
+		// 创建并注册所有页面（通过构造函数注入配置依赖）
 		m_pageManager.registerPage("home", std::make_unique<HomePage>());
-		m_pageManager.registerPage("data", std::make_unique<DataPage>());
+		m_pageManager.registerPage("data", std::make_unique<DataPage>(m_config.get()));
 		m_pageManager.registerPage("explore", std::make_unique<ExplorePage>());
 		m_pageManager.registerPage("favorites", std::make_unique<FavoritesPage>());
 		m_pageManager.registerPage("settings", std::make_unique<SettingsPage>());
