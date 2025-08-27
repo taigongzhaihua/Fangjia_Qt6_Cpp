@@ -30,7 +30,10 @@ class MainOpenGlWindow final : public QOpenGLWindow, protected QOpenGLFunctions
 public:
 	enum class Theme { Light, Dark };
 
-	explicit MainOpenGlWindow(UpdateBehavior updateBehavior = NoPartialUpdate);
+	explicit MainOpenGlWindow(
+		std::shared_ptr<AppConfig> config,
+		std::shared_ptr<ThemeManager> themeManager,
+		UpdateBehavior updateBehavior = NoPartialUpdate);
 	~MainOpenGlWindow() override;
 
 	// 主题管理
@@ -56,7 +59,6 @@ protected:
 
 private:
 	// 初始化
-	void initializeServices();
 	void initializeNavigation();
 	void initializePages();
 	void initializeTopBar();

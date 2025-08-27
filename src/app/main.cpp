@@ -1,14 +1,37 @@
 #include "AppConfig.h"
 #include "MainOpenGlWindow.h"
-#include "ServiceRegistry.h"
+#include "ServiceLocator.h"
+#include "ThemeManager.h"
 #include <exception>
+#include <memory>
 #include <qapplication.h>
 #include <qbytearray.h>
 #include <qcoreapplication.h>
 #include <qlogging.h>
+#include <qobject.h>
+#include <qstring.h>
 #include <qstringliteral.h>
 #include <qsurfaceformat.h>
-#include <ServiceLocator.h>
+
+namespace {
+	// Helper function to convert ThemeMode to string
+	QString modeToString(const ThemeManager::ThemeMode m) {
+		switch (m) {
+		case ThemeManager::ThemeMode::FollowSystem: return "system";
+		case ThemeManager::ThemeMode::Light: return "light";
+		case ThemeManager::ThemeMode::Dark: return "dark";
+		}
+		return "system";
+	}
+
+	// Helper function to convert string to ThemeMode
+	ThemeManager::ThemeMode stringToMode(const QString& s) {
+		const auto v = s.toLower();
+		if (v == "light") return ThemeManager::ThemeMode::Light;
+		if (v == "dark")  return ThemeManager::ThemeMode::Dark;
+		return ThemeManager::ThemeMode::FollowSystem;
+	}
+}
 
 int main(int argc, char* argv[])
 {
@@ -27,27 +50,48 @@ int main(int argc, char* argv[])
 		fmt.setProfile(QSurfaceFormat::CoreProfile);
 		QSurfaceFormat::setDefaultFormat(fmt);
 
-		qDebug() << "Registering services...";
-		// 注册所有服务（DI）
-		ServiceRegistry::registerAll();
+		qDebug() << "Creating shared dependencies...";
+		
+		// 创建配置管理器
+		auto config = std::make_shared<AppConfig>();
+		config->load();
+
+		// 创建主题管理器
+		auto themeManager = std::make_shared<ThemeManager>();
+
+		// 从配置中恢复主题设置
+		const auto mode = config->themeMode();
+		if (mode == "light") {
+			themeManager->setMode(ThemeManager::ThemeMode::Light);
+		}
+		else if (mode == "dark") {
+			themeManager->setMode(ThemeManager::ThemeMode::Dark);
+		}
+		else {
+			themeManager->setMode(ThemeManager::ThemeMode::FollowSystem);
+		}
+
+		// 连接主题变化到配置保存
+		QObject::connect(themeManager.get(), &ThemeManager::modeChanged,
+			config.get(), [config](const ThemeManager::ThemeMode themeMode) {
+				QString modeStr = modeToString(themeMode);
+				config->setThemeMode(modeStr);
+				config->save();
+			});
+
+		// Register AppConfig in ServiceLocator for backwards compatibility with existing pages
+		DI.registerSingleton<AppConfig>(config);
 
 		qDebug() << "Creating main window...";
-		// 创建主窗口
-		MainOpenGlWindow window;
+		// 创建主窗口并注入依赖
+		MainOpenGlWindow window(config, themeManager);
 
 		// 从配置恢复窗口大小
-		if (auto config = DI.get<AppConfig>()) {
-			// QOpenGLWindow 没有 restoreGeometry，我们只恢复大小
-			// 可以保存 x, y, width, height 分别
-			QByteArray geo = config->windowGeometry();
-			if (!geo.isEmpty() && geo.size() == sizeof(int) * 4) {
-				const int* data = reinterpret_cast<const int*>(geo.data());
-				window.setPosition(data[0], data[1]);
-				window.resize(data[2], data[3]);
-			}
-			else {
-				window.resize(1200, 760);
-			}
+		QByteArray geo = config->windowGeometry();
+		if (!geo.isEmpty() && geo.size() == sizeof(int) * 4) {
+			const int* data = reinterpret_cast<const int*>(geo.data());
+			window.setPosition(data[0], data[1]);
+			window.resize(data[2], data[3]);
 		}
 		else {
 			window.resize(1200, 760);
@@ -59,8 +103,11 @@ int main(int argc, char* argv[])
 		int result = QApplication::exec();
 
 		qDebug() << "Cleaning up...";
-		// 清理服务
-		ServiceRegistry::cleanup();
+		// 保存配置
+		config->save();
+		
+		// Clear service locator
+		DI.clear();
 
 		return result;
 	}
