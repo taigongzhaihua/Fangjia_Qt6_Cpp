@@ -5,6 +5,7 @@
 #include "Layouts.h"
 #include "TabView.h"
 #include "Widget.h"
+#include "Binding.h"    // 新增：导出 BindingHost API
 
 namespace UI {
 
@@ -27,6 +28,9 @@ namespace UI {
 	inline auto when(bool condition, WidgetPtr ifTrue, WidgetPtr ifFalse = nullptr) {
 		return make_widget<Conditional>(condition, ifTrue, ifFalse);
 	}
+
+	// 绑定宿主（变化即重建）
+	inline auto bindingHost(BindingHost::Builder b) { return make_widget<BindingHost>(std::move(b)); }
 
 } // namespace UI
 
