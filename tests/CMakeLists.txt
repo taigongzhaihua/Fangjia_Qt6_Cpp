@@ -16,6 +16,7 @@ set(TEST_SOURCES
     framework/test_ui_components.cpp
     framework/test_box_layout.cpp
     framework/test_animations.cpp
+    framework/test_page_router.cpp
     integration/test_integration.cpp
 )
 
@@ -62,7 +63,7 @@ set_tests_properties(AllTests PROPERTIES
 # 添加分组测试
 add_test(NAME CoreTests COMMAND FangJia_Tests -o junit_core.xml,junitxml TestServiceLocator TestAppConfig TestRenderer)
 add_test(NAME ModelTests COMMAND FangJia_Tests -o junit_models.xml,junitxml TestNavViewModel TestTabViewModel TestFormulaViewModel)
-add_test(NAME FrameworkTests COMMAND FangJia_Tests -o junit_framework.xml,junitxml TestUiComponents TestBoxLayout TestAnimations)
+add_test(NAME FrameworkTests COMMAND FangJia_Tests -o junit_framework.xml,junitxml TestUiComponents TestBoxLayout TestAnimations TestPageRouter)
 add_test(NAME IntegrationTests COMMAND FangJia_Tests -o junit_integration.xml,junitxml TestIntegration)
 
 # 代码覆盖率（可选）
