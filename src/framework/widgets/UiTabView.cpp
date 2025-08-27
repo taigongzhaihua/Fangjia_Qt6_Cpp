@@ -598,7 +598,7 @@ void UiTabView::ensureCurrentContentSynced() const
 	cur->updateLayout(m_viewport.size());
 
 	// 再补资源上下文（如可用）
-	if (m_loader && m_gl) {
-		cur->updateResourceContext(*m_loader, m_gl, m_dpr);
+	if (m_cache && m_gl) {
+		cur->updateResourceContext(*m_cache, m_gl, m_dpr);
 	}
 }

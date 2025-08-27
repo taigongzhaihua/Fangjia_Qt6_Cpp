@@ -30,7 +30,7 @@ namespace UI {
 	public:
 		explicit SpacerComponent(int size) : m_size(size) {}
 		void updateLayout(const QSize&) override {}
-		void updateResourceContext(IconLoader&, QOpenGLFunctions*, float) override {}
+		void updateResourceContext(IconCache&, QOpenGLFunctions*, float) override {}
 		void append(Render::FrameData&) const override {}
 		bool onMousePress(const QPoint&) override { return false; }
 		bool onMouseMove(const QPoint&) override { return false; }

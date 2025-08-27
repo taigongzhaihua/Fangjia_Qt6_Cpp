@@ -68,15 +68,15 @@ void UiPage::append(Render::FrameData& fd) const
         });
 
     // 标题文字
-    if (!m_loader || !m_gl) return;
+    if (!m_cache || !m_gl) return;
 
     QFont font;
     const int headingPx = std::lround(24.0f * m_dpr);
     font.setPixelSize(headingPx);
 
     const QString key = RenderUtils::makeTextCacheKey(QStringLiteral("heading|") + m_title, headingPx, m_pal.headingColor);
-    const int tex = m_loader->ensureTextPx(key, font, m_title, m_pal.headingColor, m_gl);
-    const QSize ts = m_loader->textureSizePx(tex);
+    const int tex = m_cache->ensureTextPx(key, font, m_title, m_pal.headingColor, m_gl);
+    const QSize ts = m_cache->textureSizePx(tex);
 
     // 逻辑尺寸
     const float wLogical = static_cast<float>(ts.width()) / m_dpr;
