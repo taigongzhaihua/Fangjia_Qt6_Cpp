@@ -1,4 +1,4 @@
-#include "IconLoader.h"
+#include "IconCache.h"
 #include "RenderData.hpp"
 #include "UiComponent.hpp"
 #include "UiRoot.h"
@@ -34,9 +34,9 @@ void UiRoot::updateLayout(const QSize& windowSize) const
     for (auto* c : m_children) c->updateLayout(windowSize);
 }
 
-void UiRoot::updateResourceContext(IconLoader& loader, QOpenGLFunctions* gl, const float devicePixelRatio) const
+void UiRoot::updateResourceContext(IconCache& cache, QOpenGLFunctions* gl, const float devicePixelRatio) const
 {
-    for (auto* c : m_children) c->updateResourceContext(loader, gl, devicePixelRatio);
+    for (auto* c : m_children) c->updateResourceContext(cache, gl, devicePixelRatio);
 }
 
 void UiRoot::append(Render::FrameData& fd) const

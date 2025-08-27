@@ -1,5 +1,5 @@
 #pragma once
-#include "IconLoader.h"
+#include "IconCache.h"
 #include "RenderData.hpp"
 #include "UiComponent.hpp"
 
@@ -16,7 +16,7 @@ public:
 	void clear();
 
 	void updateLayout(const QSize& windowSize) const;
-	void updateResourceContext(IconLoader& loader, QOpenGLFunctions* gl, float devicePixelRatio) const;
+	void updateResourceContext(IconCache& cache, QOpenGLFunctions* gl, float devicePixelRatio) const;
 
 	void append(Render::FrameData& fd) const;
 

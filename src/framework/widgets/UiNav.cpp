@@ -2,7 +2,7 @@
 #include "RenderData.hpp"
 #include "UiNav.h"
 
-#include "IconLoader.h"
+#include "IconCache.h"
 #include <algorithm>
 #include <cmath>
 #include <cstdlib>
@@ -323,7 +323,7 @@ namespace Ui {
 		}
 
 		// 3) 各项内容与状态（不再绘制“选中项专属背景”，避免与整体高亮重复）
-		if (!m_loader || !m_gl) return;
+		if (!m_cache || !m_gl) return;
 
 		const int iconPx = std::lround(static_cast<float>(m_iconLogical) * m_dpr);
 		const bool isExpanded = expanded();
@@ -352,8 +352,8 @@ namespace Ui {
 				QByteArray svg = svgDataCached(path);
 				const QString key = iconCacheKey(vitems[i].id, iconPx, m_isDark);
 
-				const int tex = m_loader->ensureSvgPx(key, svg, QSize(iconPx, iconPx), QColor(255, 255, 255, 255), m_gl);
-				const QSize texSz = m_loader->textureSizePx(tex);
+				const int tex = m_cache->ensureSvgPx(key, svg, QSize(iconPx, iconPx), QColor(255, 255, 255, 255), m_gl);
+				const QSize texSz = m_cache->textureSizePx(tex);
 
 				QRectF iconDst;
 				if (isExpanded) {
@@ -382,8 +382,8 @@ namespace Ui {
 
 					// 缓存键加入颜色（避免主题切换后复用旧颜色）
 					const QString tKey = textCacheKey(vitems[i].id + "|" + vitems[i].label, fontPx, m_pal.labelColor);
-					const int textTex = m_loader->ensureTextPx(tKey, font, vitems[i].label, m_pal.labelColor, m_gl);
-					const QSize ts = m_loader->textureSizePx(textTex);
+					const int textTex = m_cache->ensureTextPx(tKey, font, vitems[i].label, m_pal.labelColor, m_gl);
+					const QSize ts = m_cache->textureSizePx(textTex);
 
 					// 将像素尺寸换成逻辑像素放置
 					float wLogical = static_cast<float>(ts.width()) / m_dpr;
@@ -433,8 +433,8 @@ namespace Ui {
 				QByteArray svg = svgDataCached(path);
 				const QString key = iconCacheKey(m_items[i].id, iconPx, m_isDark);
 
-				const int tex = m_loader->ensureSvgPx(key, svg, QSize(iconPx, iconPx), QColor(255, 255, 255, 255), m_gl);
-				const QSize texSz = m_loader->textureSizePx(tex);
+				const int tex = m_cache->ensureSvgPx(key, svg, QSize(iconPx, iconPx), QColor(255, 255, 255, 255), m_gl);
+				const QSize texSz = m_cache->textureSizePx(tex);
 
 				QRectF iconDst;
 				if (isExpanded) {
@@ -464,8 +464,8 @@ namespace Ui {
 
 					// 缓存键加入颜色（避免主题切换后复用旧颜色）
 					const QString tKey = textCacheKey(m_items[i].id + "|" + m_items[i].label, fontPx, m_pal.labelColor);
-					const int textTex = m_loader->ensureTextPx(tKey, font, m_items[i].label, m_pal.labelColor, m_gl);
-					const QSize ts = m_loader->textureSizePx(textTex);
+					const int textTex = m_cache->ensureTextPx(tKey, font, m_items[i].label, m_pal.labelColor, m_gl);
+					const QSize ts = m_cache->textureSizePx(textTex);
 
 					// 将像素尺寸换成逻辑像素放置
 					float wLogical = static_cast<float>(ts.width()) / m_dpr;
@@ -514,8 +514,8 @@ namespace Ui {
 		QByteArray svg = svgDataCached(svgPath);
 		const QString key = iconCacheKey(baseKey, px, false);
 
-		const int tex = m_loader->ensureSvgPx(key, svg, QSize(px, px), QColor(255, 255, 255, 255), m_gl);
-		const QSize texSz = m_loader->textureSizePx(tex);
+		const int tex = m_cache->ensureSvgPx(key, svg, QSize(px, px), QColor(255, 255, 255, 255), m_gl);
+		const QSize texSz = m_cache->textureSizePx(tex);
 
 		// 居中放置（用固定逻辑尺寸，不依赖纹理像素大小）
 		const QRectF iconDst(

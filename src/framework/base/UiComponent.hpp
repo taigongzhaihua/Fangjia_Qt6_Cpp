@@ -1,7 +1,7 @@
 #pragma once
 #include "IThemeAware.hpp"
 #include "RenderData.hpp"
-class IconLoader;
+class IconCache;
 class QOpenGLFunctions;
 
 #include <qrect.h>
@@ -14,8 +14,8 @@ public:
 	// 基于窗口逻辑尺寸的布局更新
 	virtual void updateLayout(const QSize& windowSize) = 0;
 
-	// 资源上下文（IconLoader / GL / DPR）更新
-	virtual void updateResourceContext(IconLoader& loader, QOpenGLFunctions* gl, float devicePixelRatio) = 0;
+	// 资源上下文（IconCache / GL / DPR）更新
+	virtual void updateResourceContext(IconCache& cache, QOpenGLFunctions* gl, float devicePixelRatio) = 0;
 
 	// 将自身的绘制命令追加到帧数据
 	virtual void append(Render::FrameData& fd) const = 0;

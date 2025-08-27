@@ -1,4 +1,4 @@
-#include "IconLoader.h"
+#include "IconCache.h"
 #include "RenderData.hpp"
 #include "TabView.h"
 #include "UiContent.hpp"
@@ -93,7 +93,7 @@ namespace UI {
 			m_view.updateLayout(windowSize);
 		}
 
-		void updateResourceContext(IconLoader& loader, QOpenGLFunctions* gl, float devicePixelRatio) override {
+		void updateResourceContext(IconCache& cache, QOpenGLFunctions* gl, float devicePixelRatio) override {
 			m_view.updateResourceContext(loader, gl, devicePixelRatio);
 			// 子内容资源上下文 UiTabView 内部已在当前选项卡上处理
 		}

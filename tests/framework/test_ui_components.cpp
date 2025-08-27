@@ -12,7 +12,7 @@ public:
         m_bounds = QRect(0, 0, windowSize.width() / 2, windowSize.height() / 2);
     }
     
-    void updateResourceContext(IconLoader& loader, QOpenGLFunctions* gl, float devicePixelRatio) override {
+    void updateResourceContext(IconCache& cache, QOpenGLFunctions* gl, float devicePixelRatio) override {
         m_dpr = devicePixelRatio;
     }
     

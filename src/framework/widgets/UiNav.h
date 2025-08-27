@@ -1,5 +1,5 @@
 #pragma once
-#include "IconLoader.h"
+#include "IconCache.h"
 #include "RenderData.hpp"
 #include "UiComponent.hpp"
 
@@ -74,8 +74,8 @@ namespace Ui {
 		bool expanded() const noexcept { return m_expandT > 0.5f; }
 
 		void updateLayout(const QSize& windowSize) override { m_rect = QRect(0, 0, currentWidth(), windowSize.height()); }
-		void updateResourceContext(IconLoader& iconLoader, QOpenGLFunctions* gl, float devicePixelRatio) override {
-			m_loader = &iconLoader; m_gl = gl; m_dpr = std::max(0.5f, devicePixelRatio);
+		void updateResourceContext(IconCache& iconCache, QOpenGLFunctions* gl, float devicePixelRatio) override {
+			m_cache = &iconCache; m_gl = gl; m_dpr = std::max(0.5f, devicePixelRatio);
 		}
 		void append(Render::FrameData& fd) const override;
 		bool onMousePress(const QPoint& pos) override;
@@ -176,7 +176,7 @@ namespace Ui {
 		ScalarAnim m_animExpand;
 		QElapsedTimer m_clock;
 
-		IconLoader* m_loader{ nullptr };
+		IconCache* m_cache{ nullptr };
 		QOpenGLFunctions* m_gl{ nullptr };
 		float m_dpr{ 1.0f };
 

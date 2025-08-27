@@ -3,7 +3,7 @@
 #include <QOffscreenSurface>
 #include <QOpenGLFunctions>
 #include "../../src/core/rendering/Renderer.h"
-#include "../../src/core/rendering/IconLoader.h"
+#include "../../src/core/rendering/IconCache.h"
 #include "../../src/core/rendering/RenderData.hpp"
 
 class TestRenderer : public QObject, protected QOpenGLFunctions
@@ -14,7 +14,7 @@ private:
     QOpenGLContext* m_context{nullptr};
     QOffscreenSurface* m_surface{nullptr};
     Renderer m_renderer;
-    IconLoader m_iconLoader;
+    IconCache m_iconCache;
     
 private slots:
     void initTestCase() {
@@ -38,7 +38,7 @@ private slots:
     void cleanupTestCase() {
         m_context->makeCurrent(m_surface);
         m_renderer.releaseGL();
-        m_iconLoader.releaseAll(this);
+        m_iconCache.releaseAll(this);
         
         delete m_context;
         delete m_surface;
@@ -72,7 +72,7 @@ private slots:
         QVERIFY(fd.empty());
     }
     
-    void testIconLoader() {
+    void testIconCache() {
         m_context->makeCurrent(m_surface);
         
         // 测试文本纹理
@@ -81,19 +81,19 @@ private slots:
         QString text = "Test";
         QColor color(255, 255, 255);
         
-        int texId = m_iconLoader.ensureTextPx(
+        int texId = m_iconCache.ensureTextPx(
             "test_key", font, text, color, this
         );
         
         QVERIFY(texId > 0);
         
         // 测试纹理尺寸查询
-        QSize size = m_iconLoader.textureSizePx(texId);
+        QSize size = m_iconCache.textureSizePx(texId);
         QVERIFY(size.width() > 0);
         QVERIFY(size.height() > 0);
         
         // 测试缓存（再次请求应返回相同ID）
-        int texId2 = m_iconLoader.ensureTextPx(
+        int texId2 = m_iconCache.ensureTextPx(
             "test_key", font, text, color, this
         );
         QCOMPARE(texId2, texId);
@@ -115,7 +115,7 @@ private slots:
         
         // 测试绘制（不会崩溃即可）
         m_context->makeCurrent(m_surface);
-        m_renderer.drawFrame(fd, m_iconLoader, 1.0f);
+        m_renderer.drawFrame(fd, m_iconCache, 1.0f);
     }
     
     void testDataBus() {

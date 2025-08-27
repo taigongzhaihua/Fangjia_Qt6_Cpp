@@ -1,5 +1,5 @@
 #pragma once
-#include "IconLoader.h"
+#include "IconCache.h"
 #include "RenderData.hpp"
 #include "UiComponent.hpp"
 #include "UiContent.hpp"
@@ -72,7 +72,7 @@ public:
 
 	// IUiComponent
 	void updateLayout(const QSize& windowSize) override;
-	void updateResourceContext(IconLoader& loader, QOpenGLFunctions* gl, float devicePixelRatio) override;
+	void updateResourceContext(IconCache& cache, QOpenGLFunctions* gl, float devicePixelRatio) override;
 	void append(Render::FrameData& fd) const override;
 	bool onMousePress(const QPoint& pos) override;
 	bool onMouseMove(const QPoint& pos) override;
@@ -114,7 +114,7 @@ private:
 	int m_pressed{ -1 };
 
 	// 资源上下文
-	IconLoader* m_loader{ nullptr };
+	IconCache* m_cache{ nullptr };
 	QOpenGLFunctions* m_gl{ nullptr };
 	float m_dpr{ 1.0f };
 

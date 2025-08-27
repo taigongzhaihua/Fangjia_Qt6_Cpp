@@ -1,7 +1,7 @@
 #include "UiBoxLayout.h"
 #include <algorithm>
 #include <cmath>
-#include <IconLoader.h>
+#include <IconCache.h>
 #include <numeric>
 #include <qcolor.h>
 #include <qlogging.h>
@@ -277,11 +277,11 @@ void UiBoxLayout::updateLayout(const QSize& windowSize)
 	}
 }
 
-void UiBoxLayout::updateResourceContext(IconLoader& loader, QOpenGLFunctions* gl, float devicePixelRatio)
+void UiBoxLayout::updateResourceContext(IconCache& cache, QOpenGLFunctions* gl, float devicePixelRatio)
 {
 	for (const auto& child : m_children) {
 		if (child.component) {
-			child.component->updateResourceContext(loader, gl, devicePixelRatio);
+			child.component->updateResourceContext(cache, gl, devicePixelRatio);
 		}
 	}
 }

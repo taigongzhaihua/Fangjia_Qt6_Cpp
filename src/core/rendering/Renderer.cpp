@@ -1,6 +1,6 @@
 #include "Renderer.h"
 
-#include "IconLoader.h"
+#include "IconCache.h"
 #include "RenderData.hpp"
 
 #include <algorithm>
@@ -216,7 +216,7 @@ void Renderer::drawRoundedRect(const Render::RoundedRectCmd& cmd)
 	restoreClip();
 }
 
-void Renderer::drawImage(const Render::ImageCmd& img, const IconLoader& iconLoader)
+void Renderer::drawImage(const Render::ImageCmd& img, const IconCache& iconCache)
 {
 	if (!m_progTex || !m_gl || img.textureId == 0 || m_fbWpx <= 0 || m_fbHpx <= 0) return;
 
@@ -236,7 +236,7 @@ void Renderer::drawImage(const Render::ImageCmd& img, const IconLoader& iconLoad
 	m_progTex->setUniformValue(m_texLocDstRect, QVector4D(static_cast<float>(dstPx.x()), static_cast<float>(dstPx.y()), static_cast<float>(dstPx.width()), static_cast<float>(dstPx.height())));
 	m_progTex->setUniformValue(m_texLocSrcRect, QVector4D(static_cast<float>(img.srcRectPx.x()), static_cast<float>(img.srcRectPx.y()),
 		static_cast<float>(img.srcRectPx.width()), static_cast<float>(img.srcRectPx.height())));
-	const QSize texSz = iconLoader.textureSizePx(img.textureId);
+	const QSize texSz = iconCache.textureSizePx(img.textureId);
 	m_progTex->setUniformValue(m_texLocTexSize, QVector2D(static_cast<float>(texSz.width()), static_cast<float>(texSz.height())));
 	m_progTex->setUniformValue(m_texLocTint, QVector4D(img.tint.redF(), img.tint.greenF(), img.tint.blueF(), img.tint.alphaF()));
 	m_progTex->setUniformValue(m_texLocSampler, 0);
@@ -252,10 +252,10 @@ void Renderer::drawImage(const Render::ImageCmd& img, const IconLoader& iconLoad
 	restoreClip();
 }
 
-void Renderer::drawFrame(const Render::FrameData& fd, const IconLoader& iconLoader, const float devicePixelRatio)
+void Renderer::drawFrame(const Render::FrameData& fd, const IconCache& iconCache, const float devicePixelRatio)
 {
 	m_currentDpr = std::max(0.5f, devicePixelRatio);
 
 	for (const auto& rr : fd.roundedRects) drawRoundedRect(rr);
-	for (const auto& im : fd.images)       drawImage(im, iconLoader);
+	for (const auto& im : fd.images)       drawImage(im, iconCache);
 }

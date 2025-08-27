@@ -424,9 +424,9 @@ void UiGrid::updateLayout(const QSize& windowSize) {
 	}
 }
 
-void UiGrid::updateResourceContext(IconLoader& loader, QOpenGLFunctions* gl, const float devicePixelRatio) {
-	m_loader = &loader; m_gl = gl; m_dpr = std::max(0.5f, devicePixelRatio);
-	for (const auto& ch : m_children) if (ch.component) ch.component->updateResourceContext(loader, gl, devicePixelRatio);
+void UiGrid::updateResourceContext(IconCache& cache, QOpenGLFunctions* gl, const float devicePixelRatio) {
+	m_cache = &cache; m_gl = gl; m_dpr = std::max(0.5f, devicePixelRatio);
+	for (const auto& ch : m_children) if (ch.component) ch.component->updateResourceContext(cache, gl, devicePixelRatio);
 }
 
 void UiGrid::append(Render::FrameData& fd) const {

@@ -1,5 +1,5 @@
 #include "BasicWidgets.h"
-#include "IconLoader.h"
+#include "IconCache.h"
 #include "Layouts.h"
 #include "RenderData.hpp"
 #include "UiContainer.h"
@@ -124,14 +124,14 @@ namespace UI {
 
 		void updateLayout(const QSize&) override {}
 
-		void updateResourceContext(IconLoader& loader, QOpenGLFunctions* gl, const float dpr) override {
-			m_loader = &loader;
+		void updateResourceContext(IconCache& cache, QOpenGLFunctions* gl, const float dpr) override {
+			m_cache = &loader;
 			m_gl = gl;
 			m_dpr = std::max(0.5f, dpr);
 		}
 
 		void append(Render::FrameData& fd) const override {
-			if (!m_loader || !m_gl || m_text.isEmpty() || !m_bounds.isValid()) return;
+			if (!m_cache || !m_gl || m_text.isEmpty() || !m_bounds.isValid()) return;
 
 			QFont font;
 			font.setPixelSize(std::lround(static_cast<float>(m_fontSize) * m_dpr));
@@ -149,8 +149,8 @@ namespace UI {
 
 			auto makeTex = [&](const QString& s) -> Line {
 				const QString key = QString("text_%1_%2_%3").arg(s).arg(m_fontSize).arg(m_color.name(QColor::HexArgb));
-				const int tex = m_loader->ensureTextPx(key, font, s, m_color, m_gl);
-				const QSize ts = m_loader->textureSizePx(tex);
+				const int tex = m_cache->ensureTextPx(key, font, s, m_color, m_gl);
+				const QSize ts = m_cache->textureSizePx(tex);
 				return Line{ .text = s, .tex = tex, .texPx = ts, .drawWpx = ts.width() };
 				};
 			auto elideRight = [&](const QString& s, const int maxWpx) -> QString {
@@ -345,7 +345,7 @@ namespace UI {
 		QColor m_colorLight{ 30,35,40 };
 		QColor m_colorDark{ 240,245,250 };
 
-		IconLoader* m_loader{ nullptr };
+		IconCache* m_cache{ nullptr };
 		QOpenGLFunctions* m_gl{ nullptr };
 		float m_dpr{ 1.0f };
 	};
@@ -381,14 +381,14 @@ namespace UI {
 
 		void updateLayout(const QSize&) override {}
 
-		void updateResourceContext(IconLoader& loader, QOpenGLFunctions* gl, const float dpr) override {
-			m_loader = &loader;
+		void updateResourceContext(IconCache& cache, QOpenGLFunctions* gl, const float dpr) override {
+			m_cache = &loader;
 			m_gl = gl;
 			m_dpr = std::max(0.5f, dpr);
 		}
 
 		void append(Render::FrameData& fd) const override {
-			if (!m_loader || !m_gl || m_path.isEmpty() || !m_bounds.isValid()) return;
+			if (!m_cache || !m_gl || m_path.isEmpty() || !m_bounds.isValid()) return;
 
 			// 目标逻辑尺寸：不超过自身 bounds，保持正方形
 			const int availW = std::max(0, m_bounds.width());
@@ -408,8 +408,8 @@ namespace UI {
 			const int px = std::lround(static_cast<float>(logicalS) * m_dpr);
 			QByteArray svg = RenderUtils::loadSvgCached(m_path);
 			const QString key = RenderUtils::makeIconCacheKey(m_path, px);
-			const int tex = m_loader->ensureSvgPx(key, svg, QSize(px, px), QColor(255, 255, 255, 255), m_gl);
-			const QSize ts = m_loader->textureSizePx(tex);
+			const int tex = m_cache->ensureSvgPx(key, svg, QSize(px, px), m_gl);
+			const QSize ts = m_cache->textureSizePx(tex);
 
 			fd.images.push_back(Render::ImageCmd{
 				.dstRect = dst,
@@ -446,7 +446,7 @@ namespace UI {
 		bool    m_autoColor{ true };
 
 		QRect m_bounds;
-		IconLoader* m_loader{ nullptr };
+		IconCache* m_cache{ nullptr };
 		QOpenGLFunctions* m_gl{ nullptr };
 		float m_dpr{ 1.0f };
 	};

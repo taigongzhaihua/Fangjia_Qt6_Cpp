@@ -2,7 +2,7 @@
 #include <algorithm>
 #include <cmath>
 #include <functional>
-#include <IconLoader.h>
+#include <IconCache.h>
 #include <qcolor.h>
 #include <qfont.h>
 #include <qopenglfunctions.h>
@@ -24,9 +24,9 @@ void UiTreeList::updateLayout(const QSize& /*windowSize*/)
 	updateVisibleNodes();
 }
 
-void UiTreeList::updateResourceContext(IconLoader& loader, QOpenGLFunctions* gl, float devicePixelRatio)
+void UiTreeList::updateResourceContext(IconCache& cache, QOpenGLFunctions* gl, float devicePixelRatio)
 {
-	m_loader = &loader;
+	m_cache = &cache;
 	m_gl = gl;
 	m_dpr = std::max(0.5f, devicePixelRatio);
 }
@@ -108,7 +108,7 @@ QRect UiTreeList::expandIconRect(const QRect& nodeRect, int depth) const
 
 void UiTreeList::append(Render::FrameData& fd) const
 {
-	if (!m_loader || !m_gl) return;
+	if (!m_cache || !m_gl) return;
 
 	// 背景
 	if (m_pal.bg.alpha() > 0 && m_viewport.isValid()) {
@@ -185,8 +185,8 @@ void UiTreeList::append(Render::FrameData& fd) const
 		const QColor textColor = (info.level == 2) ? m_pal.textPrimary : m_pal.textSecondary;
 		const QString key = QString("tree|%1|%2").arg(info.label).arg(textColor.name());
 
-		const int tex = m_loader->ensureTextPx(key, font, info.label, textColor, m_gl);
-		const QSize ts = m_loader->textureSizePx(tex);
+		const int tex = m_cache->ensureTextPx(key, font, info.label, textColor, m_gl);
+		const QSize ts = m_cache->textureSizePx(tex);
 
 		const float wLogical = static_cast<float>(ts.width()) / m_dpr;
 		const float hLogical = static_cast<float>(ts.height()) / m_dpr;
