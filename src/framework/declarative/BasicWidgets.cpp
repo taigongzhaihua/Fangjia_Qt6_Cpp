@@ -28,6 +28,8 @@
 #include <qhash.h>
 #include <qiodevice.h>
 
+#include "RenderUtils.hpp"
+
 namespace UI {
 
 	// 简单的文本组件实现（支持换行 / 裁切 / 省略）
@@ -404,8 +406,8 @@ namespace UI {
 
 			// 生成/获取纹理
 			const int px = std::lround(static_cast<float>(logicalS) * m_dpr);
-			QByteArray svg = svgDataCached(m_path);
-			const QString key = QString("icon:%1@%2px").arg(m_path).arg(px);
+			QByteArray svg = RenderUtils::loadSvgCached(m_path);
+			const QString key = RenderUtils::makeIconCacheKey(m_path, px);
 			const int tex = m_loader->ensureSvgPx(key, svg, QSize(px, px), QColor(255, 255, 255, 255), m_gl);
 			const QSize ts = m_loader->textureSizePx(tex);
 
@@ -435,17 +437,6 @@ namespace UI {
 				// 简单的自动配色：可按需要调整
 				m_color = isDark ? QColor(100, 160, 220) : QColor(60, 120, 180);
 			}
-		}
-
-	private:
-		static QByteArray svgDataCached(const QString& path) {
-			static thread_local QHash<QString, QByteArray> cache;
-			if (const auto it = cache.find(path); it != cache.end()) return it.value();
-			QFile f(path);
-			if (!f.open(QIODevice::ReadOnly)) return {};
-			QByteArray data = f.readAll();
-			cache.insert(path, data);
-			return data;
 		}
 
 	private:

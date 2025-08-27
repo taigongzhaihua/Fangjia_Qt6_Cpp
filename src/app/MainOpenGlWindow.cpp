@@ -315,15 +315,10 @@ void MainOpenGlWindow::initializePages()
 	try
 	{
 		// 创建并注册所有页面
-		qDebug() << "registering home...\n";
 		m_pageManager.registerPage("home", std::make_unique<HomePage>());
-		qDebug() << "registering data...\n";
 		m_pageManager.registerPage("data", std::make_unique<DataPage>());
-		qDebug() << "registering explore...\n";
 		m_pageManager.registerPage("explore", std::make_unique<ExplorePage>());
-		qDebug() << "registering favorites...\n";
 		m_pageManager.registerPage("favorites", std::make_unique<FavoritesPage>());
-		qDebug() << "registering favorites...\n";
 		m_pageManager.registerPage("settings", std::make_unique<SettingsPage>());
 
 		// 切换到初始页面

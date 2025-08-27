@@ -7,8 +7,6 @@
 #include <cmath>
 #include <qbytearray.h>
 #include <qcolor.h>
-#include <qfile.h>
-#include <qiodevice.h>
 #include <qopenglfunctions.h>
 #include <qpoint.h>
 #include <qrect.h>
@@ -16,6 +14,7 @@
 #include <qstring.h>
 #include <qtypes.h>
 #include <utility>
+#include <RenderUtils.hpp>
 
 UiTopBar::UiTopBar()
 {
@@ -146,9 +145,9 @@ void UiTopBar::updateResourceContext(IconLoader& loader, QOpenGLFunctions* gl, c
 		if (!m_loader || !m_gl) return;
 		constexpr int iconLogical = 18;
 		const int px = std::lround(iconLogical * m_dpr);
-		const QString key = iconCacheKey(themeBaseKey, iconLogical, m_dpr); // 已带 @v2
+		const QString key = iconCacheKey(themeBaseKey, iconLogical, m_dpr); // 已带 @px
 
-		QByteArray svg = svgDataCached(themePath);
+		QByteArray svg = RenderUtils::loadSvgCached(themePath);
 		const int tex = m_loader->ensureSvgPx(key, svg, QSize(px, px), QColor(255, 255, 255, 255), m_gl);
 		const QSize texSz = m_loader->textureSizePx(tex);
 
@@ -165,7 +164,7 @@ void UiTopBar::updateResourceContext(IconLoader& loader, QOpenGLFunctions* gl, c
 		const int px = std::lround(iconLogical * m_dpr);
 		const QString key = iconCacheKey(followBaseKey, iconLogical, m_dpr);
 
-		QByteArray svg = svgDataCached(followPath);
+		QByteArray svg = RenderUtils::loadSvgCached(followPath);
 		const int tex = m_loader->ensureSvgPx(key, svg, QSize(px, px), QColor(255, 255, 255, 255), m_gl);
 		const QSize texSz = m_loader->textureSizePx(tex);
 
@@ -183,15 +182,15 @@ void UiTopBar::updateResourceContext(IconLoader& loader, QOpenGLFunctions* gl, c
 			const int px = std::lround(static_cast<float>(logicalPx) * m_dpr);
 			const QString key = iconCacheKey(baseKey, logicalPx, m_dpr);
 
-			QByteArray svg = svgDataCached(path);
+			QByteArray svg = RenderUtils::loadSvgCached(path);
 			const int tex = m_loader->ensureSvgPx(key, svg, QSize(px, px), QColor(255, 255, 255, 255), m_gl);
 			const QSize texSz = m_loader->textureSizePx(tex);
 
 			const QRectF dst(
 				r.center().x() - static_cast<qreal>(logicalPx) * 0.5,
 				r.center().y() - static_cast<qreal>(logicalPx) * 0.5,
-				static_cast<qreal>(logicalPx),
-				static_cast<qreal>(logicalPx)
+				logicalPx,
+				logicalPx
 			);
 
 			fd.images.push_back(Render::ImageCmd{
@@ -344,15 +343,10 @@ void UiTopBar::beginPhase(const AnimPhase ph, const int durationMs)
 QString UiTopBar::iconCacheKey(const QString& baseKey, const int logicalPx, const float dpr) const
 {
 	const int px = std::lround(static_cast<float>(logicalPx) * dpr);
-	return QString("%1@%2px").arg(baseKey).arg(px);
+	return RenderUtils::makeIconCacheKey(baseKey, px);
 }
 
 QByteArray UiTopBar::svgDataCached(const QString& path) const
 {
-	if (const auto it = m_svgDataCache.find(path); it != m_svgDataCache.end()) return it.value();
-	QFile f(path);
-	if (!f.open(QIODevice::ReadOnly)) return {};
-	QByteArray data = f.readAll();
-	m_svgDataCache.insert(path, data);
-	return data;
+	return RenderUtils::loadSvgCached(path);
 }

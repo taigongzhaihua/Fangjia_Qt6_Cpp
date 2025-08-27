@@ -21,6 +21,8 @@
 #include <utility>
 #include <vector>
 
+#include "RenderUtils.hpp"
+
 namespace Ui {
 
 	void NavRail::setItems(std::vector<NavItem> items)
@@ -600,24 +602,18 @@ namespace Ui {
 
 	QByteArray NavRail::svgDataCached(const QString& path) const
 	{
-		if (const auto it = m_svgCache.find(path); it != m_svgCache.end()) return it.value();
-		QFile f(path);
-		if (!f.open(QIODevice::ReadOnly)) return {};
-		QByteArray data = f.readAll();
-		m_svgCache.insert(path, data);
-		return data;
+		return RenderUtils::loadSvgCached(path);
 	}
 
 	QString NavRail::iconCacheKey(const QString& baseKey, const int px, const bool dark) const
 	{
-		return QString("%1@%2@%3px").arg(baseKey, dark ? "dark" : "light").arg(px);
+		return RenderUtils::makeIconCacheKey(baseKey, px, dark ? QStringLiteral("dark") : QStringLiteral("light"));
 	}
 
 	// 修正：将颜色编码入缓存键（含 alpha，HexArgb）
 	QString NavRail::textCacheKey(const QString& baseKey, const int px, const QColor& color) const
 	{
-		const QString colorKey = color.name(QColor::HexArgb); // 形如 #AARRGGBB
-		return QString("txt:%1@%2px@%3").arg(baseKey).arg(px).arg(colorKey);
+		return RenderUtils::makeTextCacheKey(baseKey, px, color);
 	}
 
 } // namespace Ui

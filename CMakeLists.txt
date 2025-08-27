@@ -116,32 +116,19 @@ endif()
 # ========================================
 file(GLOB UI_FRAMEWORK_SOURCES
     "${SRC_DIR}/framework/base/*.hpp"
+    "${SRC_DIR}/framework/base/*.cpp"
+    "${SRC_DIR}/framework/base/*.h"
     "${SRC_DIR}/framework/containers/*.cpp"
     "${SRC_DIR}/framework/containers/*.h"
     "${SRC_DIR}/framework/widgets/*.cpp"
     "${SRC_DIR}/framework/widgets/*.h"
+    "${SRC_DIR}/framework/declarative/*.cpp"
+    "${SRC_DIR}/framework/declarative/*.h"
 )
 
 add_library(ui_framework STATIC ${UI_FRAMEWORK_SOURCES})
 target_link_libraries(ui_framework PUBLIC 
     core_rendering 
-    Qt6::Core 
-    Qt6::Gui 
-    Qt6::Widgets
-)
-
-# ========================================
-# 添加声明式UI库
-# ========================================
-file(GLOB DECLARATIVE_SOURCES
-    "${SRC_DIR}/framework/declarative/*.cpp"
-    "${SRC_DIR}/framework/declarative/*.h"
-)
-
-add_library(ui_declarative STATIC ${DECLARATIVE_SOURCES})
-target_link_libraries(ui_declarative PUBLIC 
-    ui_framework
-    core_rendering
     Qt6::Core 
     Qt6::Gui 
     Qt6::Widgets
@@ -178,7 +165,6 @@ set(VIEW_SOURCES
 
 add_library(business_views STATIC ${VIEW_SOURCES})
 target_link_libraries(business_views PUBLIC 
-    ui_declarative
     ui_framework 
     models 
     core_rendering

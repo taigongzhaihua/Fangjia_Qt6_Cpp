@@ -20,6 +20,8 @@
 #include <unordered_map>
 #include <vector>
 
+#include "RenderUtils.hpp"
+
 void UiTabView::setViewModel(TabViewModel* vm)
 {
 	if (m_vm == vm) return;
@@ -230,7 +232,6 @@ QRectF UiTabView::tabRectF(const int i) const
 		bar.height() - m_tabBarPadding.top() - m_tabBarPadding.bottom()
 	};
 }
-
 void UiTabView::append(Render::FrameData& fd) const
 {
 	if (!m_viewport.isValid() || m_viewport.width() <= 0 || m_viewport.height() <= 0) return;
@@ -374,27 +375,7 @@ void UiTabView::append(Render::FrameData& fd) const
 
 		curContent->append(fd);
 
-		const QRectF contentClip = contentRectF();
-		if (contentClip.width() > 0.0 && contentClip.height() > 0.0) {
-			for (int i = rr0; i < static_cast<int>(fd.roundedRects.size()); ++i) {
-				auto& cmd = fd.roundedRects[i];
-				if (cmd.clipRect.width() > 0.0 && cmd.clipRect.height() > 0.0) {
-					cmd.clipRect = cmd.clipRect.intersected(contentClip);
-				}
-				else {
-					cmd.clipRect = contentClip;
-				}
-			}
-			for (int i = im0; i < static_cast<int>(fd.images.size()); ++i) {
-				auto& cmd = fd.images[i];
-				if (cmd.clipRect.width() > 0.0 && cmd.clipRect.height() > 0.0) {
-					cmd.clipRect = cmd.clipRect.intersected(contentClip);
-				}
-				else {
-					cmd.clipRect = contentClip;
-				}
-			}
-		}
+		RenderUtils::applyParentClip(fd, rr0, im0, contentRectF());
 	}
 }
 
@@ -567,10 +548,8 @@ void UiTabView::startHighlightAnim(const float toCenterX)
 
 QString UiTabView::textCacheKey(const QString& baseKey, const int px, const QColor& color)
 {
-	const QString colorKey = color.name(QColor::HexArgb);  // 包含 alpha 通道
-	return QString("tabview:%1@%2px@%3").arg(baseKey).arg(px).arg(colorKey);
+	return RenderUtils::makeTextCacheKey(baseKey, px, color);
 }
-
 float UiTabView::easeInOut(float t)
 {
 	t = std::clamp(t, 0.0f, 1.0f);
