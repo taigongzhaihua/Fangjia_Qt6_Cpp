@@ -22,7 +22,7 @@ namespace UI {
 			if (m_wrapped) m_wrapped->updateLayout(windowSize);
 		}
 		void updateResourceContext(IconCache& cache, QOpenGLFunctions* gl, float dpr) override {
-			if (m_wrapped) m_wrapped->updateResourceContext(loader, gl, dpr);
+			if (m_wrapped) m_wrapped->updateResourceContext(cache, gl, dpr);
 		}
 		void append(Render::FrameData& fd) const override {
 			if (m_wrapped) m_wrapped->append(fd);

@@ -57,9 +57,9 @@ public:
     }
 
     void updateResourceContext(IconCache& cache, QOpenGLFunctions* gl, float devicePixelRatio) override {
-        m_cache = &loader; m_gl = gl; m_dpr = devicePixelRatio;
+        m_cache = &cache; m_gl = gl; m_dpr = devicePixelRatio;
         m_hasCtx = true;
-        if (m_child) m_child->updateResourceContext(loader, gl, devicePixelRatio);
+        if (m_child) m_child->updateResourceContext(cache, gl, devicePixelRatio);
     }
 
     void append(Render::FrameData& fd) const override {

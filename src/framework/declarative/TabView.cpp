@@ -94,7 +94,7 @@ namespace UI {
 		}
 
 		void updateResourceContext(IconCache& cache, QOpenGLFunctions* gl, float devicePixelRatio) override {
-			m_view.updateResourceContext(loader, gl, devicePixelRatio);
+			m_view.updateResourceContext(cache, gl, devicePixelRatio);
 			// 子内容资源上下文 UiTabView 内部已在当前选项卡上处理
 		}
 

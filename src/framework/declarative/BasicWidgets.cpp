@@ -125,7 +125,7 @@ namespace UI {
 		void updateLayout(const QSize&) override {}
 
 		void updateResourceContext(IconCache& cache, QOpenGLFunctions* gl, const float dpr) override {
-			m_cache = &loader;
+			m_cache = &cache;
 			m_gl = gl;
 			m_dpr = std::max(0.5f, dpr);
 		}
@@ -382,7 +382,7 @@ namespace UI {
 		void updateLayout(const QSize&) override {}
 
 		void updateResourceContext(IconCache& cache, QOpenGLFunctions* gl, const float dpr) override {
-			m_cache = &loader;
+			m_cache = &cache;
 			m_gl = gl;
 			m_dpr = std::max(0.5f, dpr);
 		}

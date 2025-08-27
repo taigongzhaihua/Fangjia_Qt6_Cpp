@@ -91,7 +91,7 @@ public:
 	{
 	}
 
-	void updateResourceContext(IconLoader&, QOpenGLFunctions*, float) override
+	void updateResourceContext(IconCache&, QOpenGLFunctions*, float) override
 	{
 	}
 
@@ -152,7 +152,7 @@ public:
 
 	void updateResourceContext(IconCache& cache, QOpenGLFunctions* gl, float dpr) override
 	{
-		if (m_child) m_child->updateResourceContext(loader, gl, dpr);
+		if (m_child) m_child->updateResourceContext(cache, gl, dpr);
 	}
 
 	void append(Render::FrameData& fd) const override { if (m_child) m_child->append(fd); }
