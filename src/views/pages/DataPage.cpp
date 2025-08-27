@@ -77,17 +77,6 @@ public:
 					qDebug() << "Tab changed to" << idx;
 				});
 	}
-
-private:
-	void rebuildContent() const
-	{
-		// 这里需要通知父组件重新构建
-		// 暂时通过保存配置触发
-		if (const auto config = DI.get<AppConfig>())
-		{
-			config->setRecentTab(tabsVm.selectedId());
-		}
-	}
 };
 
 // DataPage 实现

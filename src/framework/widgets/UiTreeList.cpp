@@ -277,12 +277,3 @@ bool UiTreeList::onMouseRelease(const QPoint& pos)
 	return (wasPressed >= 0);
 }
 
-bool UiTreeList::tick()
-{
-	if (!m_expandAnim.active) return false;
-	if (!m_animClock.isValid()) m_animClock.start();
-
-	// 简单的展开/折叠动画（留空或后续扩展）
-	m_expandAnim.active = false;
-	return false;
-}

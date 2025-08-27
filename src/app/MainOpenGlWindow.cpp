@@ -352,37 +352,6 @@ void MainOpenGlWindow::initializeTopBar()
 	m_topBar.setFollowSystem(followSystem, false);  // false = 无动画
 }
 
-void MainOpenGlWindow::initializeTheme()
-{
-	// 设置顶栏
-	m_topBar.setCornerRadius(8.0f);
-	m_topBar.setSvgPaths(":/icons/sun.svg", ":/icons/moon.svg",
-		":/icons/follow_on.svg", ":/icons/follow_off.svg");
-	m_topBar.setSystemButtonSvgPaths(":/icons/sys_min.svg",
-		":/icons/sys_max.svg",
-		":/icons/sys_close.svg");
-
-	// 监听主题变化
-	if (m_themeMgr) {
-		connect(m_themeMgr.get(), &ThemeManager::effectiveColorSchemeChanged, this,
-			[this](const Qt::ColorScheme s) {
-				setTheme(schemeToTheme(s));
-			});
-
-		connect(m_themeMgr.get(), &ThemeManager::modeChanged, this,
-			[this](const ThemeManager::ThemeMode mode) {
-				const bool follow = (mode == ThemeManager::ThemeMode::FollowSystem);
-				m_topBar.setFollowSystem(follow, true);
-				updateLayout();
-				update();
-			});
-	}
-
-	// 应用初始主题
-	setTheme(schemeToTheme(m_themeMgr ? m_themeMgr->effectiveColorScheme() : Qt::ColorScheme::Light));
-	m_topBar.setFollowSystem(m_themeMgr && m_themeMgr->mode() == ThemeManager::ThemeMode::FollowSystem, false);
-}
-
 void MainOpenGlWindow::setupThemeListeners()
 {
 	// 监听主题变化

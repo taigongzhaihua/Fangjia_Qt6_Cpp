@@ -103,16 +103,6 @@ bool UiRoot::tick() const
     return any;
 }
 
-QRect UiRoot::boundsUnion() const
-{
-    if (m_children.empty()) return {};
-    QRect u = m_children.front()->bounds();
-    for (size_t i = 1; i < m_children.size(); ++i) {
-        u = u.united(m_children[i]->bounds());
-    }
-    return u;
-}
-
 void UiRoot::propagateThemeChange(bool isDark) const
 {
     for (auto* c : m_children) {

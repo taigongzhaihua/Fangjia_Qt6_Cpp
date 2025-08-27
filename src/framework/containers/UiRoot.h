@@ -26,9 +26,6 @@ public:
 
 	[[nodiscard]] bool tick() const;
 
-	// 简单聚合边界（union）
-	[[nodiscard]] QRect boundsUnion() const;
-
 	// 新增：传播主题变化到所有子组件
 	void propagateThemeChange(bool isDark) const;
 

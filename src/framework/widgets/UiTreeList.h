@@ -79,7 +79,6 @@ public:
 	bool onMousePress(const QPoint& pos) override;
 	bool onMouseMove(const QPoint& pos) override;
 	bool onMouseRelease(const QPoint& pos) override;
-	bool tick() override;
 	QRect bounds() const override { return m_viewport; }
 
 private:
@@ -120,13 +119,5 @@ private:
 	QOpenGLFunctions* m_gl{ nullptr };
 	float m_dpr{ 1.0f };
 
-	// 简单动画（如需要可扩展）
-	struct NodeAnim {
-		bool active{ false };
-		int nodeIdx{ -1 };
-		float progress{ 0.0f };
-		bool expanding{ true };
-	};
-	NodeAnim m_expandAnim;
 	QElapsedTimer m_animClock;
 };

@@ -19,7 +19,6 @@
 class WinWindowChrome;
 #endif
 #include <qsystemdetection.h>
-#include <qevent.h>
 #include <qrect.h>
 
 // 前向声明
@@ -61,7 +60,6 @@ private:
 	void initializeNavigation();
 	void initializePages();
 	void initializeTopBar();
-	void initializeTheme();
 	void setupThemeListeners();
 
 	// 布局和渲染
