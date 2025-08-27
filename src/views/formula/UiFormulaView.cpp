@@ -209,13 +209,13 @@ UiFormulaView::UiFormulaView()
 								->fontSize(13)
 								->fontWeight(QFont::DemiBold)
 								->color(label)
-								->align(Qt::AlignTop),
+								->align(Qt::AlignVCenter | Qt::AlignLeft),
 								container(
 									text(content)
 									->fontSize(14)
 									->color(body)
 									->wrap(true)
-								)->padding(20, 0)
+								)->padding(20, 0, 0, 0)
 							})->vertical()
 							->spacing(12)
 							->crossAxisAlignment(Alignment::Stretch)
