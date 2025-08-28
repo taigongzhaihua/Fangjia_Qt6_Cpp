@@ -1,4 +1,5 @@
 #include "IconCache.h"
+#include "ILayoutable.hpp"
 #include "RenderData.hpp"
 #include "TabView.h"
 #include "UiContent.hpp"
@@ -18,7 +19,7 @@
 namespace UI {
 
 	// 运行期组件：拥有 UiTabView 与其内容，转发 IUiComponent/IUiContent
-	class TabViewComponent : public IUiComponent, public IUiContent {
+	class TabViewComponent : public IUiComponent, public IUiContent, public ILayoutable {
 	public:
 		struct Props {
 			TabViewModel* vm{ nullptr };
@@ -122,6 +123,57 @@ namespace UI {
 		}
 
 		QRect bounds() const override { return m_view.bounds(); }
+
+		// ILayoutable
+		QSize measure(const SizeConstraints& cs) override {
+			// 计算 TabView 总体的垂直边距/内边距
+			const int verticalMargins = m_props.margin.top() + m_props.margin.bottom() +
+									   m_props.padding.top() + m_props.padding.bottom() +
+									   m_props.tabBarMargin.top() + m_props.tabBarMargin.bottom() +
+									   m_props.contentMargin.top() + m_props.contentMargin.bottom() +
+									   m_props.contentPadding.top() + m_props.contentPadding.bottom();
+			
+			// TabBar 高度 + 间距
+			const int tabBarHeight = m_props.tabHeight;
+			const int spacing = m_props.spacing;
+			
+			// 尝试测量当前选中 Tab 的内容高度
+			int contentHeight = 240; // 默认内容高度
+			const int selectedIdx = m_view.selectedIndex();
+			if (selectedIdx >= 0 && selectedIdx < static_cast<int>(m_contents.size()) && m_contents[selectedIdx]) {
+				if (auto* layoutable = dynamic_cast<ILayoutable*>(m_contents[selectedIdx].get())) {
+					// 如果内容实现了 ILayoutable，用宽度受限的测量
+					const int availableWidth = std::max(0, cs.maxW - (m_props.margin.left() + m_props.margin.right() +
+						m_props.padding.left() + m_props.padding.right() +
+						m_props.contentMargin.left() + m_props.contentMargin.right() +
+						m_props.contentPadding.left() + m_props.contentPadding.right()));
+					
+					SizeConstraints contentCs = SizeConstraints::widthBounded(availableWidth);
+					QSize contentSize = layoutable->measure(contentCs);
+					contentHeight = contentSize.height();
+				} else {
+					// 退回使用 bounds 高度
+					const QSize boundsSize = m_contents[selectedIdx]->bounds().size();
+					if (boundsSize.height() > 0) {
+						contentHeight = boundsSize.height();
+					}
+				}
+			}
+			
+			// 合成总高度：边距 + TabBar + 间距 + 内容高度
+			const int totalHeight = verticalMargins + tabBarHeight + spacing + contentHeight;
+			
+			// 宽度遵循父约束
+			const int width = std::clamp(cs.maxW, cs.minW, cs.maxW);
+			const int height = std::clamp(totalHeight, cs.minH, cs.maxH);
+			
+			return QSize(width, height);
+		}
+
+		void arrange(const QRect& finalRect) override {
+			// 将最终矩形下发给 UiTabView
+			m_view.setViewportRect(finalRect);
+		}
 
 		void onThemeChanged(bool isDark) override {
 			m_view.onThemeChanged(isDark);
