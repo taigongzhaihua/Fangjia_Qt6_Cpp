@@ -1,8 +1,8 @@
 #include "UiFormulaView.h"
 
 #include "FormulaViewModel.h"
-#include "UiTreeList.h"
 #include "UiScrollView.h"
+#include "UiTreeList.h"
 
 #include <IconCache.h>
 #include <RenderData.hpp>
