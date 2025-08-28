@@ -362,3 +362,6 @@ MigrationBackup/
 # Fody - auto-generated XML schema
 FodyWeavers.xsdbuild/
 build/
+
+# Test executables
+test_wheel_logic

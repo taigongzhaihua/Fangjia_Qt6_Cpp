@@ -389,6 +389,17 @@ bool UiTabView::onMouseRelease(const QPoint& pos)
 	return (wasPressed >= 0);
 }
 
+bool UiTabView::onWheel(const QPoint& pos, const QPoint& angleDelta)
+{
+	if (!m_viewport.contains(pos)) return false;
+	const QRect contentR = contentRectF().toRect();
+	if (contentR.contains(pos)) {
+		if (IUiComponent* cur = content(selectedIndex())) {
+			return cur->onWheel(pos, angleDelta);
+		}
+	}
+	return false;
+}
 
 bool UiTabView::tick()
 {
