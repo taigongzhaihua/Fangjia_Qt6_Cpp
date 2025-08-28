@@ -159,6 +159,7 @@ public:
 	bool onMousePress(const QPoint& pos) override { return m_child ? m_child->onMousePress(pos) : false; }
 	bool onMouseMove(const QPoint& pos) override { return m_child ? m_child->onMouseMove(pos) : false; }
 	bool onMouseRelease(const QPoint& pos) override { return m_child ? m_child->onMouseRelease(pos) : false; }
+	bool onWheel(const QPoint& pos, const QPoint& angleDelta) override { return m_child ? m_child->onWheel(pos, angleDelta) : false; }
 	bool tick() override { return m_child ? m_child->tick() : false; }
 	QRect bounds() const override { return { 0, 0, std::max(0, m_prefW), 0 }; }
 	void onThemeChanged(bool isDark) override { if (m_child) m_child->onThemeChanged(isDark); }

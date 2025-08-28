@@ -37,7 +37,7 @@ public:
 
 	// 外观与布局
 	void setViewportRect(const QRect& r) override { m_viewport = r; }
-	void setOrientation(Orientation o) { m_orient = o; }
+	void setOrientation(const Orientation o) { m_orient = o; }
 	void setMargins(const QMargins& m) { m_margins = m; }
 	void setPadding(const QMargins& p) { m_padding = p; }
 	void setSpacing(int px) { m_spacing = std::max(0, px); }
