@@ -44,13 +44,11 @@ public:
 	UiTabView() = default;
 	~UiTabView() override = default;
 
-	// 接入 ViewModel（推荐方式）
+	// 接入 ViewModel（必须设置）
 	void setViewModel(TabViewModel* vm);
 	[[nodiscard]] TabViewModel* viewModel() const noexcept { return m_vm; }
 
-	// 兼容旧接口（未接 VM 时使用）
-	void setTabs(const QStringList& labels);
-	void setSelectedIndex(int idx);
+	// 获取当前选中索引（仅在设置 VM 后有效）
 	[[nodiscard]] int selectedIndex() const noexcept;
 
 	// IUiContent
@@ -122,10 +120,6 @@ private:
 	QMargins m_contentPadding{ 4,4,4,4 };
 	qreal m_tabBarSpacing{ 4 };
 	qreal m_spacing{ 8 };
-
-	// 兼容模式数据（未接 VM 时使用）
-	QStringList m_fallbackTabs;
-	int m_fallbackSelected{ 0 };
 
 	// 交互状态
 	int m_hover{ -1 };

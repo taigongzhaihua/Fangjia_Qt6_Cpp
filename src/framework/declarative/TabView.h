@@ -11,24 +11,14 @@
 
 namespace UI {
 
-	// 声明式 TabView：包装 UiTabView
+	// 声明式 TabView：包装 UiTabView（仅支持 VM 模式）
 	class TabView : public Widget {
 	public:
 		TabView() = default;
 
-		// 配置：VM 或 fallback tabs（二选一；同时存在以 VM 为准）
+		// 配置：必须设置 VM
 		std::shared_ptr<TabView> viewModel(TabViewModel* vm) {
 			m_vm = vm;
-			return self<TabView>();
-		}
-
-		std::shared_ptr<TabView> tabs(QStringList labels) {
-			m_tabs = std::move(labels);
-			return self<TabView>();
-		}
-
-		std::shared_ptr<TabView> selectedIndex(int idx) {
-			m_selectedIndex = idx;
 			return self<TabView>();
 		}
 
@@ -62,7 +52,7 @@ namespace UI {
 			return self<TabView>();
 		}
 
-		// 非 VM 模式下使用（VM 模式下也会触发回调）
+		// VM 模式下的回调（当 VM 状态变化时触发）
 		std::shared_ptr<TabView> onChanged(std::function<void(int)> cb) {
 			m_onChanged = std::move(cb);
 			return self<TabView>();
@@ -89,8 +79,6 @@ namespace UI {
 
 	private:
 		TabViewModel* m_vm{ nullptr };
-		QStringList m_tabs;
-		int m_selectedIndex{ 0 };
 		UiTabView::IndicatorStyle m_indicatorStyle{ UiTabView::IndicatorStyle::Bottom };
 		int m_tabHeight{ 43 };
 		int m_animDuration{ 220 };
