@@ -130,3 +130,7 @@ private slots:
         QVERIFY(qFuzzyCompare(state.y, 50.0f));
     }
 };
+
+#include "test_animations.moc"
+
+QTEST_MAIN(TestAnimations)

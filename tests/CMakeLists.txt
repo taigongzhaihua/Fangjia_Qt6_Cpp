@@ -6,17 +6,7 @@ find_package(Qt6 REQUIRED COMPONENTS Test Core Gui OpenGL Widgets)
 
 # 收集所有测试源文件
 set(TEST_SOURCES
-    test_main.cpp
-    core/test_service_locator.cpp
-    core/test_app_config.cpp
-    core/test_renderer.cpp
-    models/test_nav_viewmodel.cpp
-    models/test_tab_viewmodel.cpp
-    models/test_formula_viewmodel.cpp
-    framework/test_ui_components.cpp
-    framework/test_box_layout.cpp
-    framework/test_animations.cpp
-    integration/test_integration.cpp
+    framework/test_binding_host.cpp
 )
 
 # 创建测试可执行文件

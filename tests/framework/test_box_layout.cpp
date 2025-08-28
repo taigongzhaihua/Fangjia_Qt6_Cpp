@@ -168,3 +168,7 @@ private slots:
         QVERIFY(!fd.roundedRects.empty());
     }
 };
+
+#include "test_box_layout.moc"
+
+QTEST_MAIN(TestBoxLayout)

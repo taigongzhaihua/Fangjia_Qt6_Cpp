@@ -92,3 +92,7 @@ private slots:
         // QCOMPARE(vm.selectedIndex(), 0);
     }
 };
+
+#include "test_nav_viewmodel.moc"
+
+QTEST_MAIN(TestNavViewModel)

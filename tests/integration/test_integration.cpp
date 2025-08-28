@@ -219,3 +219,7 @@ private slots:
         QVERIFY(fd.roundedRects.size() >= buttonCount);
     }
 };
+
+#include "test_integration.moc"
+
+QTEST_MAIN(TestIntegration)

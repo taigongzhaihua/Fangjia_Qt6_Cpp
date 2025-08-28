@@ -80,3 +80,7 @@ private slots:
         QVERIFY(vm.selectedId().isEmpty());
     }
 };
+
+#include "test_tab_viewmodel.moc"
+
+QTEST_MAIN(TestTabViewModel)

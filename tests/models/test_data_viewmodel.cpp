@@ -105,5 +105,6 @@ private slots:
     }
 };
 
-QTEST_MAIN(TestDataViewModel)
 #include "test_data_viewmodel.moc"
+
+QTEST_MAIN(TestDataViewModel)

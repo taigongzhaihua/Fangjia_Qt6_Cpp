@@ -118,3 +118,7 @@ private slots:
         QCOMPARE(successCount, threadCount * iterations);
     }
 };
+
+#include "test_service_locator.moc"
+
+QTEST_MAIN(TestServiceLocator)

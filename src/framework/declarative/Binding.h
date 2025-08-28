@@ -52,7 +52,7 @@ private:
 };
 
 // 便捷工厂
-inline WidgetPtr bindingHost(BindingHost::Builder b) {
+inline std::shared_ptr<BindingHost> bindingHost(BindingHost::Builder b) {
     return make_widget<BindingHost>(std::move(b));
 }
 
