@@ -81,6 +81,10 @@ private:
 	void startThumbDrag(const QPoint& pos);
 	void handleTrackClick(const QPoint& pos);
 
+	// 重复滚动按钮区域
+	QRect getUpButtonRect() const;
+	QRect getDownButtonRect() const;
+
 	// 内容拖拽
 	void startContentDrag(const QPoint& pos);
 
@@ -113,10 +117,22 @@ private:
 	bool m_thumbHovered{ false };
 	bool m_thumbPressed{ false };
 
+	// 重复按钮状态
+	bool m_repeatUp{ false };      // 是否正在按住上按钮
+	bool m_repeatDown{ false };    // 是否正在按住下按钮
+	qint64 m_repeatStartMs{ 0 };   // 开始按住的时间
+	qint64 m_lastRepeatMs{ 0 };    // 上次重复滚动的时间
+
 	// 滚动条配置 - 更符合 Fluent 设计
 	static constexpr int SCROLLBAR_WIDTH = 6;   // 更细的滚动条
 	static constexpr int THUMB_MIN_HEIGHT = 20;
 	static constexpr int THUMB_RADIUS = 3;      // 圆角半径
+
+	// 重复滚动按钮配置
+	static constexpr int BUTTON_HEIGHT = 14;                    // 顶/底按钮高度（仅命中，不绘制）
+	static constexpr int REPEAT_INITIAL_DELAY_MS = 300;         // 首次按下后的延时
+	static constexpr int REPEAT_INTERVAL_MS = 50;               // 重复间隔
+	static constexpr int REPEAT_STEP_PX = 32;                   // 每次重复滚动步长
 
 	// 滚动条动画/显隐
 	float m_thumbAlpha{ 0.0f };     // 0..1（乘以颜色 alpha 使用）

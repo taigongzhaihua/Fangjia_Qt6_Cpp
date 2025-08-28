@@ -132,10 +132,23 @@ void UiTreeList::append(Render::FrameData& fd) const
 
 		// 背景（选中/悬停）
 		if (vn.index == selectedId) {
+			// 选中背景：圆角矩形，内缩 5 像素，半径 6
+			const QRectF sel = QRectF(vn.rect).adjusted(5, 3, -5, -3);
 			fd.roundedRects.push_back(Render::RoundedRectCmd{
-				.rect = QRectF(vn.rect),
-				.radiusPx = 0.0f,
+				.rect = sel,
+				.radiusPx = 6.0f,
 				.color = m_pal.itemSelected,
+				.clipRect = QRectF(m_viewport)
+				});
+			
+			// 左侧指示条：宽 3 像素，高度为选中背景的 60%，垂直居中
+			const float indW = 3.0f;
+			const float indH = std::clamp(sel.height() * 0.6, 12.0, sel.height() - 6.0);
+			const QRectF ind(sel.left() + 4.0f, sel.center().y() - indH * 0.5f, indW, indH);
+			fd.roundedRects.push_back(Render::RoundedRectCmd{
+				.rect = ind,
+				.radiusPx = indW * 0.5f,
+				.color = m_pal.indicator,
 				.clipRect = QRectF(m_viewport)
 				});
 		}
