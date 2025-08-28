@@ -77,6 +77,7 @@ public:
 	bool onMousePress(const QPoint& pos) override;
 	bool onMouseMove(const QPoint& pos) override;
 	bool onMouseRelease(const QPoint& pos) override;
+	bool onWheel(const QPoint& pos, const QPoint& angleDelta) override;
 	bool tick() override; // 新增：实现动画推进（当前返回 false）
 	QRect bounds() const override { return m_viewport; }
 

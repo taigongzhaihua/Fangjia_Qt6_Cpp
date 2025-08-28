@@ -23,6 +23,7 @@
 // Framework tests
 #include "framework/containers/UiScrollView.h"
 #include "framework/containers/UiPage.h"
+#include "framework/widgets/UiTreeList.h"
 #include "framework/base/ILayoutable.hpp"
 
 class SimpleTestRunner : public QObject
@@ -303,6 +304,138 @@ public slots:
         
         qDebug() << "UiPage wheel event tests PASSED ✅";
     }
+    
+    void runUiTreeListWheelTests()
+    {
+        qDebug() << "=== Testing UiTreeList Wheel Events ===";
+        
+        // Mock model for testing
+        class MockTreeModel : public UiTreeList::Model {
+        public:
+            struct MockNode {
+                QString label;
+                int level;
+                bool expanded;
+                QVector<int> children;
+            };
+            
+            QMap<int, MockNode> nodes;
+            int selectedId = -1;
+            
+            void addNode(int id, const QString& label, int level = 0, bool expanded = false) {
+                nodes[id] = MockNode{label, level, expanded, {}};
+            }
+            
+            QVector<int> rootIndices() const override {
+                QVector<int> roots;
+                for (auto it = nodes.begin(); it != nodes.end(); ++it) {
+                    bool isRoot = true;
+                    for (auto parentIt = nodes.begin(); parentIt != nodes.end(); ++parentIt) {
+                        if (parentIt.value().children.contains(it.key())) {
+                            isRoot = false;
+                            break;
+                        }
+                    }
+                    if (isRoot) {
+                        roots.append(it.key());
+                    }
+                }
+                std::sort(roots.begin(), roots.end());
+                return roots;
+            }
+            
+            QVector<int> childIndices(int nodeId) const override {
+                if (nodes.contains(nodeId)) {
+                    return nodes[nodeId].children;
+                }
+                return {};
+            }
+            
+            UiTreeList::NodeInfo nodeInfo(int nodeId) const override {
+                if (nodes.contains(nodeId)) {
+                    const auto& node = nodes[nodeId];
+                    return UiTreeList::NodeInfo{node.label, node.level, node.expanded};
+                }
+                return UiTreeList::NodeInfo{"", 0, false};
+            }
+            
+            int selectedId() const override {
+                return selectedId;
+            }
+            
+            void setSelectedId(int nodeId) override {
+                selectedId = nodeId;
+            }
+            
+            void setExpanded(int nodeId, bool on) override {
+                if (nodes.contains(nodeId)) {
+                    nodes[nodeId].expanded = on;
+                }
+            }
+        };
+        
+        // Set up tree list with test data
+        UiTreeList treeList;
+        MockTreeModel model;
+        
+        // Create test data: 10 root nodes
+        for (int i = 0; i < 10; ++i) {
+            model.addNode(i, QString("Node %1").arg(i), 0, false);
+        }
+        
+        treeList.setModel(&model);
+        treeList.setViewportRect(QRect(0, 0, 200, 144)); // 4 items visible (36px each)
+        
+        // Test initial state
+        QCOMPARE(treeList.scrollOffset(), 0);
+        QCOMPARE(treeList.contentHeight(), 360); // 10 items * 36px
+        
+        // Test wheel event inside bounds
+        bool consumed = treeList.onWheel(QPoint(100, 50), QPoint(0, 120)); // Scroll down one notch
+        QVERIFY(consumed); // Should consume event when there's scrollable content
+        QCOMPARE(treeList.scrollOffset(), 48); // 120/120 * 48 = 48px scroll
+        
+        // Test wheel event outside bounds
+        int previousScroll = treeList.scrollOffset();
+        consumed = treeList.onWheel(QPoint(300, 300), QPoint(0, 120));
+        QVERIFY(!consumed); // Should not consume event outside bounds
+        QCOMPARE(treeList.scrollOffset(), previousScroll); // Should not change scroll
+        
+        // Test scroll up
+        consumed = treeList.onWheel(QPoint(100, 50), QPoint(0, -120)); // Scroll up one notch
+        QVERIFY(consumed);
+        QCOMPARE(treeList.scrollOffset(), 0); // Should go back to 0 (48 - 48)
+        
+        // Test scroll limiting at top
+        consumed = treeList.onWheel(QPoint(100, 50), QPoint(0, -120)); // Try to scroll above top
+        QVERIFY(consumed); // Still consumes event but doesn't scroll beyond limit
+        QCOMPARE(treeList.scrollOffset(), 0); // Should stay at 0
+        
+        // Test scroll to bottom limit
+        int maxScroll = 360 - 144; // contentHeight - viewportHeight = 216
+        treeList.setScrollOffset(maxScroll);
+        QCOMPARE(treeList.scrollOffset(), maxScroll);
+        
+        // Test scroll limiting at bottom
+        consumed = treeList.onWheel(QPoint(100, 50), QPoint(0, 120)); // Try to scroll below bottom
+        QVERIFY(consumed); // Still consumes event but doesn't scroll beyond limit
+        QCOMPARE(treeList.scrollOffset(), maxScroll); // Should stay at max
+        
+        // Test with no scrollable content (small tree)
+        MockTreeModel smallModel;
+        smallModel.addNode(0, "Single Node", 0, false);
+        treeList.setModel(&smallModel);
+        
+        consumed = treeList.onWheel(QPoint(100, 50), QPoint(0, 120));
+        QVERIFY(!consumed); // Should not consume event when no scrolling needed
+        
+        // Test with zero angleDelta
+        treeList.setModel(&model); // Back to larger model
+        consumed = treeList.onWheel(QPoint(100, 50), QPoint(0, 0));
+        QVERIFY(!consumed); // Should not consume event with no delta
+        
+        qDebug() << "UiTreeList wheel event tests PASSED ✅";
+    }
 };
 
 int main(int argc, char *argv[])
@@ -327,6 +460,7 @@ int main(int argc, char *argv[])
         runner.runRebuildHostTests();
         runner.runUiScrollViewTests();
         runner.runUiPageWheelTests();
+        runner.runUiTreeListWheelTests();
         
         qDebug() << "===========================================";
         qDebug() << "ALL CORE TESTS PASSED ✅";
