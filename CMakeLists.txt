@@ -32,6 +32,7 @@ include_directories(
     ${SRC_DIR}/core/platform/windows
     ${SRC_DIR}/core/config
     ${SRC_DIR}/core/di
+    ${SRC_DIR}/core/vm
     ${SRC_DIR}/framework
     ${SRC_DIR}/framework/base
     ${SRC_DIR}/framework/containers

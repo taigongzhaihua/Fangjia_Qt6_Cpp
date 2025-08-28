@@ -14,7 +14,7 @@
 #include <qpoint.h>
 #include <qsize.h>
 #include <qstring.h>
-#include <qtypes.h>
+#include <qglobal.h>
 #include <utility>
 #include <vector>
 

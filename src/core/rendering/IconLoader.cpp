@@ -14,7 +14,7 @@
 #include <qsize.h>
 #include <qstring.h>
 #include <qsvgrenderer.h>
-#include <qtypes.h>
+#include <qglobal.h>
 
 QImage IconLoader::toWhiteMask(const QImage& srcRgba8888)
 {

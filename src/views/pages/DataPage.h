@@ -3,10 +3,13 @@
 #include "UiPage.h"
 #include <memory>
 
+// 前向声明
+class AppConfig;
+
 class DataPage : public UiPage
 {
 public:
-	DataPage();
+	explicit DataPage(AppConfig* config);
 	~DataPage() override;
 
 	TabViewModel* tabViewModel() const;
