@@ -115,3 +115,7 @@ private slots:
         QVERIFY(dataSpy.count() > 0);
     }
 };
+
+#include "test_formula_viewmodel.moc"
+
+QTEST_MAIN(TestFormulaViewModel)

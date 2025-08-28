@@ -125,3 +125,7 @@ private slots:
         QCOMPARE(spy.at(0).at(0).toInt(), 75);
     }
 };
+
+#include "test_app_config.moc"
+
+QTEST_MAIN(TestAppConfig)

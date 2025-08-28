@@ -141,3 +141,7 @@ private slots:
         QVERIFY(!bus.consume(fd2));
     }
 };
+
+#include "test_renderer.moc"
+
+QTEST_MAIN(TestRenderer)

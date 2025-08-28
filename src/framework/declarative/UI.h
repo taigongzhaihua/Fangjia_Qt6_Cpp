@@ -29,8 +29,7 @@ namespace UI {
 		return make_widget<Conditional>(condition, ifTrue, ifFalse);
 	}
 
-	// 绑定宿主（变化即重建）
-	inline auto bindingHost(BindingHost::Builder b) { return make_widget<BindingHost>(std::move(b)); }
+
 
 } // namespace UI
 
