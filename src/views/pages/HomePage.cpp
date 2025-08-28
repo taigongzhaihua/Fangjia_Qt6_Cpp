@@ -8,6 +8,7 @@
 #include <qlogging.h>
 
 #include "UI.h"
+#include "UiScrollView.h"
 #include <exception>
 #include <qfont.h>
 #include <qstring.h>
@@ -37,10 +38,12 @@ class HomePage::Impl
 public:
 	bool isDark = false;
 	std::unique_ptr<IUiComponent> builtComponent;
+	std::unique_ptr<UiScrollView> scrollView;  // 新增：滚动容器
 	std::unique_ptr<CounterViewModel> counterVM;  // 新增：计数器ViewModel
 
 	Impl() {
 		counterVM = std::make_unique<CounterViewModel>();
+		scrollView = std::make_unique<UiScrollView>();
 	}
 
 	[[nodiscard]] WidgetPtr buildUI() const
@@ -180,7 +183,12 @@ void HomePage::initializeContent()
 		if (const auto widget = m_impl->buildUI())
 		{
 			m_impl->builtComponent = widget->build();
-			setContent(m_impl->builtComponent.get());
+			
+			// 将构建的组件设置为滚动视图的子组件
+			m_impl->scrollView->setChild(m_impl->builtComponent.get());
+			
+			// 将滚动视图设置为页面内容
+			setContent(m_impl->scrollView.get());
 		}
 	}
 	catch (const std::exception& e)
@@ -193,7 +201,7 @@ void HomePage::initializeContent()
 void HomePage::applyPageTheme(bool isDark)
 {
 	m_impl->isDark = isDark;
-	if (m_impl->builtComponent) m_impl->builtComponent->onThemeChanged(isDark);
+	if (m_impl->scrollView) m_impl->scrollView->onThemeChanged(isDark);
 }
 
 void HomePage::onAppear()
