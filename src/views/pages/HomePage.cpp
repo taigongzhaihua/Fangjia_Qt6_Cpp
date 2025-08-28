@@ -214,4 +214,3 @@ void HomePage::onDisappear()
 }
 
 // CounterViewModel 实现已在此文件中，需要包含 MOC
-#include "HomePage

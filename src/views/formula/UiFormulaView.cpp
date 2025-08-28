@@ -240,9 +240,9 @@ UiFormulaView::UiFormulaView()
 			auto root =
 				container(bodyWidget)->alignment(Alignment::Stretch)
 				->background(cardBg, 0.0f);
-			
+
 			// 使用声明式 ScrollView 包装内容
-			return scrollView(wrap(root))->build();
+			return scrollView(root)->build();
 		});
 	// 重要：首次构建一次（避免初始为空）
 	m_detailHost->requestRebuild();
@@ -361,7 +361,7 @@ void UiFormulaView::setViewportRect(const QRect& r)
 
 	if (m_treeWrap) m_treeWrap->setPreferredWidth(leftW);
 	if (m_detailWrap) m_detailWrap->setPreferredWidth(rightW);
-	
+
 	// 重要修复：在 viewport 设置后立即触发重建，确保详情区域能立即获得有效的绘制上下文
 	if (m_detailHost) m_detailHost->requestRebuild();
 }
