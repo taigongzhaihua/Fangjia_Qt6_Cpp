@@ -221,6 +221,13 @@ target_link_libraries(FangJia PRIVATE ${APP_LIBS})
 add_subdirectory(tests)
 
 # ========================================
+# 示例子项目（如果存在）
+# ========================================
+if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/examples")
+    add_subdirectory(examples)
+endif()
+
+# ========================================
 # 输出配置信息
 # ========================================
 message(STATUS "===========================================")

@@ -1,0 +1,243 @@
+#include <QtTest>
+#include <QSignalSpy>
+#include <QObject>
+#include "framework/declarative/RebuildHost.h"
+#include "framework/base/UiComponent.hpp"
+#include "core/rendering/RenderData.hpp"
+
+// Test ViewModel for binding tests
+class DummyViewModel : public QObject
+{
+    Q_OBJECT
+public:
+    explicit DummyViewModel(QObject* parent = nullptr) : QObject(parent) {}
+    
+    int value() const { return m_value; }
+    void setValue(int v) {
+        if (m_value != v) {
+            m_value = v;
+            emit valueChanged();
+        }
+    }
+
+signals:
+    void valueChanged();
+
+private:
+    int m_value = 0;
+};
+
+// Simple test component that counts rebuilds
+class TestComponent : public UI::IUiComponent
+{
+public:
+    TestComponent() = default;
+    
+    int buildCount() const { return m_buildCount; }
+    
+    // IUiComponent interface
+    void updateLayout(const QSize&) override { ++m_buildCount; }
+    void updateResourceContext(IconCache&, QOpenGLFunctions*, float) override {}
+    void append(Render::FrameData&) const override {}
+    bool onMousePress(const QPoint&) override { return false; }
+    bool onMouseMove(const QPoint&) override { return false; }
+    bool onMouseRelease(const QPoint&) override { return false; }
+    bool tick() override { return false; }
+    QRect bounds() const override { return QRect(); }
+    void onThemeChanged(bool) override {}
+
+private:
+    mutable int m_buildCount = 0;
+};
+
+class TestRebuildHost : public QObject
+{
+    Q_OBJECT
+
+private slots:
+    void testBasicConstruction()
+    {
+        UI::RebuildHost host;
+        
+        // Test that default construction works
+        QVERIFY(true); // Just verify it doesn't crash
+    }
+
+    void testBuilderSetup()
+    {
+        UI::RebuildHost host;
+        int buildCallCount = 0;
+        
+        // Set up builder that creates a test component and counts calls
+        host.setBuilder([&buildCallCount]() -> std::unique_ptr<UI::IUiComponent> {
+            buildCallCount++;
+            return std::make_unique<TestComponent>();
+        });
+        
+        // Initial state - builder is set but not called yet
+        QCOMPARE(buildCallCount, 0);
+        
+        // Request rebuild should call builder
+        host.requestRebuild();
+        QCOMPARE(buildCallCount, 1);
+        
+        // Another rebuild should call builder again
+        host.requestRebuild();
+        QCOMPARE(buildCallCount, 2);
+    }
+
+    void testRebuildRequest()
+    {
+        UI::RebuildHost host;
+        auto testComponent = std::make_unique<TestComponent>();
+        TestComponent* componentPtr = testComponent.get();
+        
+        bool builderCalled = false;
+        host.setBuilder([&builderCalled, &testComponent]() -> std::unique_ptr<UI::IUiComponent> {
+            builderCalled = true;
+            return std::move(testComponent);
+        });
+        
+        // Request rebuild
+        host.requestRebuild();
+        QVERIFY(builderCalled);
+        
+        // Test that the component was properly set up
+        // Since we moved the component, we can't access it directly anymore
+        // But we can verify the builder was called
+    }
+
+    void testViewModelSignalBinding()
+    {
+        UI::RebuildHost host;
+        DummyViewModel viewModel;
+        int rebuildCount = 0;
+        
+        // Set up builder
+        host.setBuilder([&rebuildCount]() -> std::unique_ptr<UI::IUiComponent> {
+            rebuildCount++;
+            return std::make_unique<TestComponent>();
+        });
+        
+        // Connect ViewModel signal to requestRebuild
+        QObject::connect(&viewModel, &DummyViewModel::valueChanged, 
+                        &host, &UI::RebuildHost::requestRebuild);
+        
+        // Initial state
+        QCOMPARE(rebuildCount, 0);
+        
+        // Change ViewModel value should trigger rebuild
+        viewModel.setValue(42);
+        QCOMPARE(rebuildCount, 1);
+        
+        // Another change should trigger another rebuild
+        viewModel.setValue(100);
+        QCOMPARE(rebuildCount, 2);
+        
+        // Setting same value should not trigger rebuild (if ViewModel is implemented correctly)
+        viewModel.setValue(100);
+        QCOMPARE(rebuildCount, 2); // Should still be 2
+    }
+
+    void testMultipleSignalConnections()
+    {
+        UI::RebuildHost host;
+        DummyViewModel viewModel1;
+        DummyViewModel viewModel2;
+        int rebuildCount = 0;
+        
+        // Set up builder
+        host.setBuilder([&rebuildCount]() -> std::unique_ptr<UI::IUiComponent> {
+            rebuildCount++;
+            return std::make_unique<TestComponent>();
+        });
+        
+        // Connect multiple ViewModels to the same host
+        QObject::connect(&viewModel1, &DummyViewModel::valueChanged, 
+                        &host, &UI::RebuildHost::requestRebuild);
+        QObject::connect(&viewModel2, &DummyViewModel::valueChanged, 
+                        &host, &UI::RebuildHost::requestRebuild);
+        
+        // Changes to either ViewModel should trigger rebuilds
+        viewModel1.setValue(1);
+        QCOMPARE(rebuildCount, 1);
+        
+        viewModel2.setValue(2);
+        QCOMPARE(rebuildCount, 2);
+        
+        viewModel1.setValue(3);
+        QCOMPARE(rebuildCount, 3);
+    }
+
+    void testBoundsAndEvents()
+    {
+        UI::RebuildHost host;
+        
+        // Set up simple builder
+        host.setBuilder([]() -> std::unique_ptr<UI::IUiComponent> {
+            return std::make_unique<TestComponent>();
+        });
+        
+        // Build once
+        host.requestRebuild();
+        
+        // Test bounds (should return viewport or delegate to child)
+        QRect bounds = host.bounds();
+        // Should not crash and return a valid rect
+        
+        // Test event handling (should not crash)
+        bool mouseResult = host.onMousePress(QPoint(10, 10));
+        QVERIFY(mouseResult == false); // TestComponent returns false
+        
+        mouseResult = host.onMouseMove(QPoint(15, 15));
+        QVERIFY(mouseResult == false);
+        
+        mouseResult = host.onMouseRelease(QPoint(20, 20));
+        QVERIFY(mouseResult == false);
+        
+        // Test tick
+        bool tickResult = host.tick();
+        QVERIFY(tickResult == false); // TestComponent returns false
+    }
+
+    void testEnvironmentContextPassing()
+    {
+        UI::RebuildHost host;
+        bool builderCalled = false;
+        
+        host.setBuilder([&builderCalled]() -> std::unique_ptr<UI::IUiComponent> {
+            builderCalled = true;
+            return std::make_unique<TestComponent>();
+        });
+        
+        // Set viewport before building
+        host.setViewportRect(QRect(0, 0, 800, 600));
+        
+        // Set layout size
+        host.updateLayout(QSize(1024, 768));
+        
+        // Set theme
+        host.onThemeChanged(true); // dark theme
+        
+        // Now rebuild - the child should receive all the context
+        host.requestRebuild();
+        QVERIFY(builderCalled);
+        
+        // The test verifies that no crashes occur when context is passed to child
+        // In a real implementation, we would verify the child received the context
+    }
+
+    void testBuilderCalledOnlyWhenSet()
+    {
+        UI::RebuildHost host;
+        
+        // Requesting rebuild without builder should not crash
+        host.requestRebuild();
+        
+        // No verification needed - just ensure it doesn't crash
+        QVERIFY(true);
+    }
+};
+
+#include "TestRebuildHost.moc"
+QTEST_MAIN(TestRebuildHost)

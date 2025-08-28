@@ -8,6 +8,11 @@ find_package(Qt6 REQUIRED COMPONENTS Test Core Gui OpenGL Widgets)
 set(TEST_SOURCES
     framework/test_binding_host.cpp
     test_page_router.cpp
+    TestThemeManager.cpp
+    TestAppConfig.cpp
+    TestTabViewModel.cpp
+    TestFormulaViewModel.cpp
+    TestRebuildHost.cpp
 )
 
 # 创建测试可执行文件
