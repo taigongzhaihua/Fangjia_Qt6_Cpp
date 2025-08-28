@@ -1,8 +1,8 @@
 #include "HomePage.h"
 #include <AdvancedWidgets.h>
 #include <BasicWidgets.h>
+#include <Binding.h>
 #include <Layouts.h>
-#include <Binding.h>  // 新增：引入绑定功能
 #include <memory>
 #include <qcolor.h>
 #include <qlogging.h>
@@ -10,7 +10,11 @@
 #include "UI.h"
 #include <exception>
 #include <qfont.h>
+#include <qnamespace.h>
+#include <qobject.h>
 #include <qstring.h>
+#include <qtmetamacros.h>
+#include <RebuildHost.h>
 #include <UiComponent.hpp>
 #include <Widget.h>
 using namespace UI;
@@ -20,16 +24,16 @@ CounterViewModel::CounterViewModel(QObject* parent) : QObject(parent) {}
 
 void CounterViewModel::increment()
 {
-    m_count++;
-    emit countChanged();
+	m_count++;
+	emit countChanged();
 }
 
 void CounterViewModel::decrement()
 {
-    if (m_count > 0) {
-        m_count--;
-        emit countChanged();
-    }
+	if (m_count > 0) {
+		m_count--;
+		emit countChanged();
+	}
 }
 
 class HomePage::Impl
@@ -90,7 +94,7 @@ private:
 		return card(panel({
 			text("声明式绑定演示")->fontSize(18)->fontWeight(QFont::Medium),
 			spacer(10),
-			
+
 			// 使用 bindingHost 创建可重建的内容区域
 			bindingHost([this]() -> WidgetPtr {
 				// 这个lambda会在每次计数器变化时重新执行
@@ -111,28 +115,28 @@ private:
 			}),
 
 			spacer(10),
-			
-			// 按钮区域（不使用绑定，演示混合用法）
-			panel({
-				text("递增")->fontSize(14)
-					->onTap([this]() { counterVM->increment(); })
-					->padding(8, 4)
-					->background(QColor(100, 160, 220), 4.0f),
-				spacer(10),
-				text("递减")->fontSize(14)
-					->onTap([this]() { counterVM->decrement(); })
-					->padding(8, 4)
-					->background(QColor(220, 100, 100), 4.0f)
-			})->horizontal()->crossAxisAlignment(Alignment::Center),
 
-			spacer(5),
-			text("点击按钮观察绑定效果 - UI会自动重建")->fontSize(12)
-				->themeColor(QColor(120, 120, 120), QColor(160, 160, 160))
-				->align(Qt::AlignCenter)
-				
-		})->vertical()->crossAxisAlignment(Alignment::Center)->padding(15))
-		->elevation(1.0f)
-		->backgroundTheme(QColor(250, 250, 255), QColor(20, 25, 35));
+				// 按钮区域（不使用绑定，演示混合用法）
+				panel({
+					text("递增")->fontSize(14)
+						->onTap([this]() { counterVM->increment(); })
+						->padding(8, 4)
+						->background(QColor(100, 160, 220), 4.0f),
+					spacer(10),
+					text("递减")->fontSize(14)
+						->onTap([this]() { counterVM->decrement(); })
+						->padding(8, 4)
+						->background(QColor(220, 100, 100), 4.0f)
+				})->horizontal()->crossAxisAlignment(Alignment::Center),
+
+				spacer(5),
+				text("点击按钮观察绑定效果 - UI会自动重建")->fontSize(12)
+					->themeColor(QColor(120, 120, 120), QColor(160, 160, 160))
+					->align(Qt::AlignCenter)
+
+			})->vertical()->crossAxisAlignment(Alignment::Center)->padding(15))
+			->elevation(1.0f)
+			->backgroundTheme(QColor(250, 250, 255), QColor(20, 25, 35));
 	}
 	[[nodiscard]] WidgetPtr buildFeatureCard(const QString& iconLight, const QString& iconDark, const QString& title, const QString& desc) const
 	{
@@ -181,7 +185,7 @@ void HomePage::initializeContent()
 		if (const auto widget = m_impl->buildUI())
 		{
 			m_impl->builtComponent = widget->build();
-			
+
 			// 直接将声明式构建的组件（已包含 ScrollView）设置为页面内容
 			setContent(m_impl->builtComponent.get());
 		}
@@ -210,4 +214,4 @@ void HomePage::onDisappear()
 }
 
 // CounterViewModel 实现已在此文件中，需要包含 MOC
-#include "HomePage.moc"
+#include "HomePage
