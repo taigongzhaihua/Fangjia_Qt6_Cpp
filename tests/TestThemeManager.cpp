@@ -1,3 +1,4 @@
+#pragma once
 #include <QtTest>
 #include <QSignalSpy>
 #include <QApplication>
@@ -120,6 +121,3 @@ private slots:
         settings.clear();
     }
 };
-
-#include "TestThemeManager.moc"
-QTEST_MAIN(TestThemeManager)

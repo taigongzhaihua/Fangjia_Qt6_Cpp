@@ -141,6 +141,8 @@ target_link_libraries(ui_framework PUBLIC
 file(GLOB MODEL_SOURCES
     "${SRC_DIR}/models/*.cpp"
     "${SRC_DIR}/models/*.h"
+    "${SRC_DIR}/core/vm/*.cpp"
+    "${SRC_DIR}/core/vm/*.hpp"
 )
 
 add_library(models STATIC ${MODEL_SOURCES})

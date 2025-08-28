@@ -160,4 +160,4 @@ private slots:
 };
 
 #include "TestTabViewModel.moc"
-QTEST_MAIN(TestTabViewModel)
+// Don't use QTEST_MAIN here - will be included in test_main.cpp

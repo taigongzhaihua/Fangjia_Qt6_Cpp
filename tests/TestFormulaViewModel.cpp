@@ -256,4 +256,4 @@ private slots:
 };
 
 #include "TestFormulaViewModel.moc"
-QTEST_MAIN(TestFormulaViewModel)
+// Don't use QTEST_MAIN here - will be included in test_main.cpp

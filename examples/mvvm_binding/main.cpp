@@ -4,6 +4,7 @@
 #include <QDebug>
 #include <iostream>
 #include "framework/declarative/RebuildHost.h"
+#include "framework/declarative/Binding.h"
 #include "framework/base/UiComponent.hpp"
 #include "core/rendering/RenderData.hpp"
 
@@ -39,7 +40,7 @@ private:
 };
 
 // 简单的测试组件，用于演示重建
-class SimpleTestComponent : public UI::IUiComponent
+class SimpleTestComponent : public IUiComponent
 {
 public:
     explicit SimpleTestComponent(int counter) : m_counter(counter) {
@@ -77,14 +78,14 @@ int main(int argc, char *argv[])
     UI::RebuildHost rebuildHost;
     
     // 设置 builder 函数
-    rebuildHost.setBuilder([&counterVm]() -> std::unique_ptr<UI::IUiComponent> {
+    rebuildHost.setBuilder([&counterVm]() -> std::unique_ptr<IUiComponent> {
         std::cout << "🔄 Rebuilding UI component..." << std::endl;
         return std::make_unique<SimpleTestComponent>(counterVm.count());
     });
     
     // 连接 ViewModel 的信号到 RebuildHost 的重建请求
     QObject::connect(&counterVm, &CounterViewModel::countChanged,
-                     &rebuildHost, &UI::RebuildHost::requestRebuild);
+                     [&rebuildHost]() { rebuildHost.requestRebuild(); });
     
     std::cout << "✅ MVVM binding established!" << std::endl;
     std::cout << "Counter changes will now trigger UI rebuilds." << std::endl;

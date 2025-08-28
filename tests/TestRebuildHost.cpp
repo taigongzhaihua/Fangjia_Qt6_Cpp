@@ -2,6 +2,7 @@
 #include <QSignalSpy>
 #include <QObject>
 #include "framework/declarative/RebuildHost.h"
+#include "framework/declarative/Binding.h"
 #include "framework/base/UiComponent.hpp"
 #include "core/rendering/RenderData.hpp"
 
@@ -28,7 +29,7 @@ private:
 };
 
 // Simple test component that counts rebuilds
-class TestComponent : public UI::IUiComponent
+class TestComponent : public IUiComponent
 {
 public:
     TestComponent() = default;
@@ -69,7 +70,7 @@ private slots:
         int buildCallCount = 0;
         
         // Set up builder that creates a test component and counts calls
-        host.setBuilder([&buildCallCount]() -> std::unique_ptr<UI::IUiComponent> {
+        host.setBuilder([&buildCallCount]() -> std::unique_ptr<IUiComponent> {
             buildCallCount++;
             return std::make_unique<TestComponent>();
         });
@@ -93,7 +94,7 @@ private slots:
         TestComponent* componentPtr = testComponent.get();
         
         bool builderCalled = false;
-        host.setBuilder([&builderCalled, &testComponent]() -> std::unique_ptr<UI::IUiComponent> {
+        host.setBuilder([&builderCalled, &testComponent]() -> std::unique_ptr<IUiComponent> {
             builderCalled = true;
             return std::move(testComponent);
         });
@@ -114,14 +115,14 @@ private slots:
         int rebuildCount = 0;
         
         // Set up builder
-        host.setBuilder([&rebuildCount]() -> std::unique_ptr<UI::IUiComponent> {
+        host.setBuilder([&rebuildCount]() -> std::unique_ptr<IUiComponent> {
             rebuildCount++;
             return std::make_unique<TestComponent>();
         });
         
-        // Connect ViewModel signal to requestRebuild
-        QObject::connect(&viewModel, &DummyViewModel::valueChanged, 
-                        &host, &UI::RebuildHost::requestRebuild);
+        // Connect ViewModel signal to requestRebuild using observe
+        UI::observe(&viewModel, &DummyViewModel::valueChanged, 
+                   [&host]() { host.requestRebuild(); });
         
         // Initial state
         QCOMPARE(rebuildCount, 0);
@@ -147,16 +148,16 @@ private slots:
         int rebuildCount = 0;
         
         // Set up builder
-        host.setBuilder([&rebuildCount]() -> std::unique_ptr<UI::IUiComponent> {
+        host.setBuilder([&rebuildCount]() -> std::unique_ptr<IUiComponent> {
             rebuildCount++;
             return std::make_unique<TestComponent>();
         });
         
         // Connect multiple ViewModels to the same host
-        QObject::connect(&viewModel1, &DummyViewModel::valueChanged, 
-                        &host, &UI::RebuildHost::requestRebuild);
-        QObject::connect(&viewModel2, &DummyViewModel::valueChanged, 
-                        &host, &UI::RebuildHost::requestRebuild);
+        UI::observe(&viewModel1, &DummyViewModel::valueChanged, 
+                   [&host]() { host.requestRebuild(); });
+        UI::observe(&viewModel2, &DummyViewModel::valueChanged, 
+                   [&host]() { host.requestRebuild(); });
         
         // Changes to either ViewModel should trigger rebuilds
         viewModel1.setValue(1);
@@ -174,7 +175,7 @@ private slots:
         UI::RebuildHost host;
         
         // Set up simple builder
-        host.setBuilder([]() -> std::unique_ptr<UI::IUiComponent> {
+        host.setBuilder([]() -> std::unique_ptr<IUiComponent> {
             return std::make_unique<TestComponent>();
         });
         
@@ -205,7 +206,7 @@ private slots:
         UI::RebuildHost host;
         bool builderCalled = false;
         
-        host.setBuilder([&builderCalled]() -> std::unique_ptr<UI::IUiComponent> {
+        host.setBuilder([&builderCalled]() -> std::unique_ptr<IUiComponent> {
             builderCalled = true;
             return std::make_unique<TestComponent>();
         });
@@ -240,4 +241,4 @@ private slots:
 };
 
 #include "TestRebuildHost.moc"
-QTEST_MAIN(TestRebuildHost)
+// Don't use QTEST_MAIN here - will be included in test_main.cpp

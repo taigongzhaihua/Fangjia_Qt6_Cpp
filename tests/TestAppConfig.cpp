@@ -193,4 +193,4 @@ private slots:
 };
 
 #include "TestAppConfig.moc"
-QTEST_MAIN(TestAppConfig)
+// Don't use QTEST_MAIN here - will be included in test_main.cpp
