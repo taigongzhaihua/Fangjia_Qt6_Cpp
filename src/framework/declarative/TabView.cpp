@@ -163,8 +163,8 @@ namespace UI {
 			// 合成总高度：边距 + TabBar + 间距 + 内容高度
 			const int totalHeight = verticalMargins + tabBarHeight + spacing + contentHeight;
 			
-			// 宽度遵循父约束
-			const int width = std::clamp(cs.maxW, cs.minW, cs.maxW);
+			// 宽度取最大可用宽度，高度根据内容需求
+			const int width = cs.maxW;
 			const int height = std::clamp(totalHeight, cs.minH, cs.maxH);
 			
 			return QSize(width, height);
