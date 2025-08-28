@@ -92,6 +92,3 @@ SystemHeaders: false
 # 允许的诊断抑制格式
 # 支持 // NOLINT 和 // NOLINTNEXTLINE(rule-name)
 UseColor: true
-
-# 输出格式
-OutputColumnLimit: 120

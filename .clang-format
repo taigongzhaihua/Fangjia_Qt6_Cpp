@@ -98,4 +98,4 @@ ReflowComments: true
 SortUsingDeclarations: true
 
 # 特定语言设置
-Standard: c++23
+Standard: Latest
