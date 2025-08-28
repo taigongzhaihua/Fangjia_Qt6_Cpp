@@ -8,7 +8,6 @@
 #include <cmath>
 #include <memory>
 #include <qcolor.h>
-#include <qfile.h>
 #include <qfont.h>
 #include <qfontmetrics.h>
 #include <qnamespace.h>
@@ -25,8 +24,6 @@
 #include "ILayoutable.hpp"
 #include <qbytearray.h>
 #include <qchar.h>
-#include <qhash.h>
-#include <qiodevice.h>
 
 #include "RenderUtils.hpp"
 
@@ -289,7 +286,7 @@ namespace UI {
 				if (lineTop >= static_cast<float>(m_bounds.bottom())) break;
 				if (lineTop + hLogical <= static_cast<float>(m_bounds.top())) continue;
 
-				const QRectF dst(x, lineTop, drawW, hLogical);
+				const QRectF dst(std::round(x), std::round(lineTop), std::round(drawW), std::round(hLogical));
 				if (dst.width() <= 0.0 || dst.height() <= 0.0) continue;
 
 				fd.images.push_back(Render::ImageCmd{
@@ -372,7 +369,8 @@ namespace UI {
 			, m_autoColor(autoColor)
 			, m_useThemePaths(useThemePaths)
 			, m_lightPath(std::move(lightPath))
-			, m_darkPath(std::move(darkPath)) {}
+			, m_darkPath(std::move(darkPath)) {
+		}
 
 		// IUiContent
 		void setViewportRect(const QRect& r) override { m_bounds = r; }
