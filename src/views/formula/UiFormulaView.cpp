@@ -2,6 +2,7 @@
 
 #include "FormulaViewModel.h"
 #include "UiTreeList.h"
+#include "UiScrollView.h"
 
 #include <IconCache.h>
 #include <RenderData.hpp>
@@ -181,8 +182,10 @@ UiFormulaView::UiFormulaView()
 	m_adapter = std::make_unique<VmTreeAdapter>(m_vm.get());
 	m_tree->setModel(m_adapter.get());
 
-	// 2) 右侧详情：RebuildHost
+	// 2) 右侧详情：RebuildHost + UiScrollView
 	m_detailHost = std::make_unique<RebuildHost>();
+	m_detailScroll = std::make_unique<UiScrollView>();
+	m_detailScroll->setChild(m_detailHost.get());
 	m_detailHost->setBuilder([this]() -> std::unique_ptr<IUiComponent>
 		{
 			const auto* detail = m_vm->selectedFormula();
@@ -285,7 +288,7 @@ void UiFormulaView::buildChildren()
 
 	// 创建宽度提示包装器（默认左侧 320px，右侧先置 400px，实际会在 setViewportRect 中根据比例更新）
 	m_treeWrap = std::make_unique<WidthHint>(m_tree.get(), 320);
-	m_detailWrap = std::make_unique<WidthHint>(m_detailHost.get(), 400);
+	m_detailWrap = std::make_unique<WidthHint>(m_detailScroll.get(), 400);
 
 	// 添加子项：左树（Stretch 交叉轴拉伸）、分割条（1px）、右详情（Stretch）
 	addChild(m_treeWrap.get(), CrossAlign::Stretch);
@@ -336,6 +339,7 @@ void UiFormulaView::onThemeChanged(bool isDark)
 	m_isDark = isDark;
 	applyPalettes();
 	if (m_detailHost) m_detailHost->requestRebuild();
+	if (m_detailScroll) m_detailScroll->onThemeChanged(isDark);
 
 	// 交给 UiPanel 继续把主题往子项传
 	UiPanel::onThemeChanged(isDark);
