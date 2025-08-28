@@ -141,6 +141,8 @@ target_link_libraries(ui_framework PUBLIC
 file(GLOB MODEL_SOURCES
     "${SRC_DIR}/models/*.cpp"
     "${SRC_DIR}/models/*.h"
+    "${SRC_DIR}/core/vm/*.cpp"
+    "${SRC_DIR}/core/vm/*.hpp"
 )
 
 add_library(models STATIC ${MODEL_SOURCES})
@@ -219,6 +221,13 @@ target_link_libraries(FangJia PRIVATE ${APP_LIBS})
 # 测试子项目
 # ========================================
 add_subdirectory(tests)
+
+# ========================================
+# 示例子项目（如果存在）
+# ========================================
+if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/examples")
+    add_subdirectory(examples)
+endif()
 
 # ========================================
 # 输出配置信息

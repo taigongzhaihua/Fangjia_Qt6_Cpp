@@ -6,8 +6,7 @@ find_package(Qt6 REQUIRED COMPONENTS Test Core Gui OpenGL Widgets)
 
 # 收集所有测试源文件
 set(TEST_SOURCES
-    framework/test_binding_host.cpp
-    test_page_router.cpp
+    test_main.cpp
 )
 
 # 创建测试可执行文件
@@ -49,12 +48,6 @@ set_tests_properties(AllTests PROPERTIES
     ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_LOGGING_RULES=qt.qpa.gl=false"
     TIMEOUT 60
 )
-
-# 添加分组测试
-add_test(NAME CoreTests COMMAND FangJia_Tests -o junit_core.xml,junitxml TestServiceLocator TestAppConfig TestRenderer)
-add_test(NAME ModelTests COMMAND FangJia_Tests -o junit_models.xml,junitxml TestNavViewModel TestTabViewModel TestFormulaViewModel)
-add_test(NAME FrameworkTests COMMAND FangJia_Tests -o junit_framework.xml,junitxml TestUiComponents TestBoxLayout TestAnimations)
-add_test(NAME IntegrationTests COMMAND FangJia_Tests -o junit_integration.xml,junitxml TestIntegration)
 
 # 代码覆盖率（可选）
 if(CMAKE_BUILD_TYPE STREQUAL "Debug" AND CMAKE_COMPILER_IS_GNUCXX)
