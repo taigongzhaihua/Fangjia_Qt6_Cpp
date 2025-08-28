@@ -168,6 +168,15 @@ bool UiPage::onMouseRelease(const QPoint& pos)
     return false;
 }
 
+bool UiPage::onWheel(const QPoint& pos, const QPoint& angleDelta)
+{
+    // 将滚轮事件转发到内容区域
+    if (m_content && contentRectF().toRect().contains(pos)) {
+        return m_content->onWheel(pos, angleDelta);
+    }
+    return false;
+}
+
 bool UiPage::tick()
 {
     bool any = false;

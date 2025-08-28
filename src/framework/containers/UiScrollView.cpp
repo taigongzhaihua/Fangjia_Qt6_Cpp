@@ -12,6 +12,7 @@
 UiScrollView::UiScrollView() {
     applyTheme(false); // 初始化为浅色主题
     m_animClock.start(); // 启动动画计时器
+    m_thumbAlpha = BASE_ALPHA; // 初始化为基础半透明状态
 }
 
 void UiScrollView::setScrollY(int scrollY) {
@@ -314,7 +315,13 @@ void UiScrollView::startContentDrag(const QPoint& pos) {
 bool UiScrollView::onMouseMove(const QPoint& pos) {
     // 更新悬停状态
     const bool wasHovered = m_thumbHovered;
+    const bool wasInScrollbar = isScrollbarVisible() && isPointInScrollbar(pos);
     m_thumbHovered = isScrollbarVisible() && isPointInThumb(pos);
+    
+    // 如果鼠标在滚动条区域（包括轨道和拇指），显示滚动条
+    if (wasInScrollbar) {
+        showScrollbar();
+    }
     
     // 处理拖拽
     if (m_dragMode == DragMode::Thumb) {
@@ -392,22 +399,22 @@ bool UiScrollView::tick() {
         any = m_child->tick();
     }
     
-    // 处理滚动条淡出动画
+    // 处理滚动条淡入淡出动画
     if (m_animActive) {
         const qint64 now = m_animClock.elapsed();
         const qint64 timeSinceInteract = now - m_lastInteractMs;
         
         if (timeSinceInteract > FADE_DELAY_MS) {
-            // 开始淡出
+            // 开始淡出到基础半透明状态
             const qint64 fadeElapsed = timeSinceInteract - FADE_DELAY_MS;
             if (fadeElapsed >= FADE_DURATION_MS) {
-                // 淡出完成
-                m_thumbAlpha = 0.0f;
+                // 淡出完成，设置为基础半透明状态
+                m_thumbAlpha = BASE_ALPHA;
                 m_animActive = false;
             } else {
-                // 淡出进行中
+                // 淡出进行中：从1.0淡出到BASE_ALPHA
                 const float t = static_cast<float>(fadeElapsed) / static_cast<float>(FADE_DURATION_MS);
-                m_thumbAlpha = 1.0f - t;
+                m_thumbAlpha = 1.0f - t * (1.0f - BASE_ALPHA);
                 any = true; // 需要继续动画
             }
         } else {
