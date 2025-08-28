@@ -22,8 +22,6 @@ namespace UI {
 	public:
 		struct Props {
 			TabViewModel* vm{ nullptr };
-			QStringList tabs;
-			int selectedIndex{ 0 };
 			UiTabView::IndicatorStyle indicatorStyle{ UiTabView::IndicatorStyle::Bottom };
 			int tabHeight{ 43 };
 			int animDuration{ 220 };
@@ -64,12 +62,9 @@ namespace UI {
 			m_view.setTabBarSpacing(m_props.tabBarSpacing);
 			m_view.setSpacing(m_props.spacing);
 
+			// 仅支持 VM 模式
 			if (m_props.vm) {
 				m_view.setViewModel(m_props.vm);
-			}
-			else if (!m_props.tabs.isEmpty()) {
-				m_view.setTabs(m_props.tabs);
-				m_view.setSelectedIndex(m_props.selectedIndex);
 			}
 
 			// 设置每个 tab 的内容（UiTabView 内部仅存裸指针，这里需持有 unique_ptr 保证生命周期）
@@ -109,8 +104,8 @@ namespace UI {
 		bool tick() override {
 			bool any = m_view.tick();
 
-			// 在所有模式下检测选中变化并回调（VM 模式与 fallback 模式均支持）
-			if (m_props.onChanged) {
+			// 检测 VM 模式下选中变化并回调
+			if (m_props.onChanged && m_props.vm) {
 				const int cur = m_view.selectedIndex();
 				if (cur != m_lastSelected) {
 					m_lastSelected = cur;
@@ -151,8 +146,6 @@ namespace UI {
 
 		TabViewComponent::Props p;
 		p.vm = m_vm;
-		p.tabs = m_tabs;
-		p.selectedIndex = m_selectedIndex;
 		p.indicatorStyle = m_indicatorStyle;
 		p.tabHeight = m_tabHeight;
 		p.animDuration = m_animDuration;

@@ -31,7 +31,7 @@ include_directories(
     ${SRC_DIR}/core/rendering
     ${SRC_DIR}/core/platform/windows
     ${SRC_DIR}/core/config
-    ${SRC_DIR}/core/di
+    ${SRC_DIR}/core/vm
     ${SRC_DIR}/framework
     ${SRC_DIR}/framework/base
     ${SRC_DIR}/framework/containers
@@ -74,24 +74,6 @@ if(EXISTS "${SRC_DIR}/core/config/AppConfig.h")
     target_link_libraries(core_config PUBLIC 
         Qt6::Core
         Qt6::Widgets
-    )
-endif()
-
-# ========================================
-# 依赖注入库
-# ========================================
-file(GLOB DI_SOURCES
-    "${SRC_DIR}/core/di/*.cpp"
-    "${SRC_DIR}/core/di/*.h"
-    "${SRC_DIR}/core/di/*.hpp"
-)
-
-if(DI_SOURCES)
-    add_library(core_di STATIC ${DI_SOURCES})
-    target_link_libraries(core_di PUBLIC 
-        Qt6::Core
-        models  # 需要链接 models 因为 ServiceRegistry 使用了 ViewModels
-        core_config  # 需要链接 config
     )
 endif()
 
@@ -140,6 +122,8 @@ target_link_libraries(ui_framework PUBLIC
 file(GLOB MODEL_SOURCES
     "${SRC_DIR}/models/*.cpp"
     "${SRC_DIR}/models/*.h"
+    "${SRC_DIR}/core/vm/*.cpp"
+    "${SRC_DIR}/core/vm/*.hpp"
 )
 
 add_library(models STATIC ${MODEL_SOURCES})
@@ -204,15 +188,23 @@ if(TARGET core_config)
     list(APPEND APP_LIBS core_config)
 endif()
 
-if(TARGET core_di)
-    list(APPEND APP_LIBS core_di)
-endif()
-
 if(WIN32 AND TARGET platform_windows)
     list(APPEND APP_LIBS platform_windows)
 endif()
 
 target_link_libraries(FangJia PRIVATE ${APP_LIBS})
+
+# ========================================
+# 测试子项目
+# ========================================
+add_subdirectory(tests)
+
+# ========================================
+# 示例子项目（如果存在）
+# ========================================
+if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/examples")
+    add_subdirectory(examples)
+endif()
 
 # ========================================
 # 输出配置信息

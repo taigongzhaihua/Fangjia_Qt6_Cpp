@@ -2,7 +2,6 @@
 #include <QOpenGLContext>
 #include <QOffscreenSurface>
 #include <memory>
-#include "../../src/core/di/ServiceLocator.h"
 #include "../../src/core/config/AppConfig.h"
 #include "../../src/models/NavViewModel.h"
 #include "../../src/models/TabViewModel.h"
@@ -17,38 +16,30 @@ class TestIntegration : public QObject
 private slots:
     void initTestCase() {
         qDebug() << "Initializing Integration tests...";
-        
-        // 清理DI容器
-        DI::ServiceLocator::instance().clear();
     }
     
     void cleanupTestCase() {
-        DI::ServiceLocator::instance().clear();
         qDebug() << "Integration tests completed.";
     }
     
     void testServiceIntegration() {
-        // 注册所有服务
-        auto config = std::make_shared<Config::AppConfig>();
+        // 测试组件直接交互，无需 DI
+        auto config = std::make_shared<AppConfig>();
         auto navVm = std::make_shared<NavViewModel>();
         auto tabVm = std::make_shared<TabViewModel>();
         
-        DI::registerService<Config::AppConfig>(config);
-        DI::registerService<NavViewModel>(navVm);
-        DI::registerService<TabViewModel>(tabVm);
-        
-        // 验证服务可获取
-        QVERIFY(DI::getService<Config::AppConfig>() != nullptr);
-        QVERIFY(DI::getService<NavViewModel>() != nullptr);
-        QVERIFY(DI::getService<TabViewModel>() != nullptr);
-        
-        // 验证服务间交互
+        // 验证组件交互
         navVm->setItems({
             {.id = "home", .svgLight = "", .svgDark = "", .label = "Home"}
         });
         
         config->setValue("nav/selected", 0);
         QCOMPARE(config->value("nav/selected").toInt(), 0);
+        
+        // 验证 TabView 需要 VM 才能工作
+        UiTabView tabView;
+        tabView.setViewModel(tabVm.get());
+        QVERIFY(tabView.viewModel() == tabVm.get());
     }
     
     void testUiComponentIntegration() {
@@ -137,14 +128,14 @@ private slots:
         
         {
             // 作用域1：写入配置
-            auto config = std::make_shared<Config::AppConfig>();
+            auto config = std::make_shared<AppConfig>();
             config->setValue(testKey, testValue);
             config->sync();
         }
         
         {
             // 作用域2：读取配置
-            auto config = std::make_shared<Config::AppConfig>();
+            auto config = std::make_shared<AppConfig>();
             QCOMPARE(config->value(testKey).toInt(), testValue);
             
             // 清理测试数据
@@ -219,3 +210,7 @@ private slots:
         QVERIFY(fd.roundedRects.size() >= buttonCount);
     }
 };
+
+#include "test_integration.moc"
+
+QTEST_MAIN(TestIntegration)

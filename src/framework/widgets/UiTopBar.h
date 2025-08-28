@@ -10,7 +10,7 @@
 #include <qopenglfunctions.h>
 #include <qrect.h>
 #include <qstring.h>
-#include <qtypes.h>
+#include <qglobal.h>
 
 // 右上角按钮（主题/跟随 + 三大键）
 class UiTopBar final : public IUiComponent

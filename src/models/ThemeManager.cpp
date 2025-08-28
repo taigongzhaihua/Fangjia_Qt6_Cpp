@@ -7,7 +7,7 @@
 #include <qstring.h>
 #include <qstylehints.h>
 #include <qtmetamacros.h>
-#include <qtversionchecks.h>
+#include <qglobal.h>
 
 namespace {
 	constexpr auto K_SETTINGS_GROUP = "Theme";

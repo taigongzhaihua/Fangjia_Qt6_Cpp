@@ -3,10 +3,13 @@
 #include "UiPage.h"
 #include <memory>
 
+// 前向声明
+class AppConfig;
+
 class DataPage : public UiPage
 {
 public:
-	DataPage();
+	explicit DataPage(AppConfig* config);
 	~DataPage() override;
 
 	TabViewModel* tabViewModel() const;
@@ -14,6 +17,10 @@ public:
 protected:
 	void initializeContent() override;
 	void applyPageTheme(bool isDark) override;
+
+	// 页面生命周期钩子
+	void onAppear() override;
+	void onDisappear() override;
 
 private:
 	class Impl;

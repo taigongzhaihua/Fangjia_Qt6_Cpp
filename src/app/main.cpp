@@ -1,6 +1,5 @@
 #include "AppConfig.h"
 #include "MainOpenGlWindow.h"
-#include "ServiceLocator.h"
 #include "ThemeManager.h"
 #include <exception>
 #include <memory>
@@ -79,9 +78,6 @@ int main(int argc, char* argv[])
 				config->save();
 			});
 
-		// Register AppConfig in ServiceLocator for backwards compatibility with existing pages
-		DI.registerSingleton<AppConfig>(config);
-
 		qDebug() << "Creating main window...";
 		// 创建主窗口并注入依赖
 		MainOpenGlWindow window(config, themeManager);
@@ -105,9 +101,6 @@ int main(int argc, char* argv[])
 		qDebug() << "Cleaning up...";
 		// 保存配置
 		config->save();
-		
-		// Clear service locator
-		DI.clear();
 
 		return result;
 	}

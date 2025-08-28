@@ -51,5 +51,9 @@ namespace UI {
 		std::vector<Connector> m_connectors;
 	};
 
+// 便捷工厂
+inline std::shared_ptr<BindingHost> bindingHost(BindingHost::Builder b) {
+    return make_widget<BindingHost>(std::move(b));
+}
 
 } // namespace UI

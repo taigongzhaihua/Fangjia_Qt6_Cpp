@@ -179,3 +179,7 @@ private slots:
         QVERIFY(!btn.hovered());
     }
 };
+
+#include "test_ui_components.moc"
+
+QTEST_MAIN(TestUiComponents)

@@ -15,7 +15,7 @@
 #include <qrect.h>
 #include <qsize.h>
 #include <qstring.h>
-#include <qtypes.h>
+#include <qglobal.h>
 #include <ranges>
 #include <unordered_map>
 #include <vector>
@@ -57,7 +57,7 @@ void UiTabView::syncFromVmInstant()
 
 int UiTabView::tabCount() const
 {
-	return m_vm ? m_vm->count() : static_cast<int>(m_fallbackTabs.size());
+	return m_vm ? m_vm->count() : 0;
 }
 
 QString UiTabView::tabLabel(const int i) const
@@ -66,75 +66,8 @@ QString UiTabView::tabLabel(const int i) const
 		if (const auto& items = m_vm->items(); i >= 0 && i < items.size()) {
 			return items[i].label;
 		}
-		return {};
-	}
-	if (i >= 0 && i < m_fallbackTabs.size()) {
-		return m_fallbackTabs[i];
 	}
 	return {};
-}
-
-void UiTabView::setTabs(const QStringList& labels)
-{
-	if (m_vm) return; // VM 模式下忽略
-
-	m_fallbackTabs = labels;
-	if (m_fallbackSelected < 0 && !m_fallbackTabs.isEmpty()) {
-		m_fallbackSelected = 0;
-	}
-	if (m_fallbackSelected >= m_fallbackTabs.size()) {
-		m_fallbackSelected = std::max(0, static_cast<int>(m_fallbackTabs.size() - 1));
-	}
-
-	m_hover = -1;
-	m_pressed = -1;
-	m_viewSelected = m_fallbackSelected;
-
-	// 重算高亮中心
-	if (!m_viewport.isEmpty() && m_viewSelected >= 0) {
-		const QRectF r = tabRectF(m_viewSelected);
-		m_highlightCenterX = r.isValid() ? static_cast<float>(r.center().x()) : -1.0f;
-		m_animHighlight.active = false;
-	}
-
-	// 确保当前内容拿到 viewport 与资源上下文
-	ensureCurrentContentSynced();
-}
-
-void UiTabView::setSelectedIndex(const int idx)
-{
-	if (m_vm) {
-		// VM 模式：驱动 VM 并同步当前内容上下文
-		m_vm->setSelectedIndex(idx);
-		ensureCurrentContentSynced();
-		return;
-	}
-
-	// 兼容模式
-	if (idx < 0 || idx >= m_fallbackTabs.size()) return;
-	if (m_fallbackSelected == idx && m_highlightCenterX >= 0.0f) {
-		// 仍要确保当前内容已经有上下文（首次构建可能没有）
-		ensureCurrentContentSynced();
-		return;
-	}
-
-	const int prev = m_fallbackSelected;
-	m_fallbackSelected = idx;
-	m_viewSelected = idx;
-
-	const QRectF rTarget = tabRectF(idx);
-	const float targetCX = static_cast<float>(rTarget.center().x());
-
-	if (prev < 0 || m_highlightCenterX < 0.0f) {
-		m_highlightCenterX = targetCX;
-		m_animHighlight.active = false;
-	}
-	else {
-		startHighlightAnim(targetCX);
-	}
-
-	// 新选项的内容需要立即具备 viewport + 资源上下文
-	ensureCurrentContentSynced();
 }
 
 QRectF UiTabView::contentRectF() const
@@ -169,7 +102,7 @@ QRectF UiTabView::contentRectF() const
 }
 int UiTabView::selectedIndex() const noexcept
 {
-	return m_vm ? m_vm->selectedIndex() : m_fallbackSelected;
+	return m_vm ? m_vm->selectedIndex() : -1;
 }
 
 void UiTabView::updateLayout(const QSize& windowSize)
@@ -443,11 +376,9 @@ bool UiTabView::onMouseRelease(const QPoint& pos)
 			m_vm->setSelectedIndex(hit);
 			// 立即保证新内容具备上下文与视口
 			ensureCurrentContentSynced();
+			return true;
 		}
-		else {
-			setSelectedIndex(hit); // 兼容模式里内部会调用 ensureCurrentContentSynced()
-		}
-		return true;
+		// 如果没有 VM，不处理点击事件
 	}
 
 	const int curIdx = selectedIndex();

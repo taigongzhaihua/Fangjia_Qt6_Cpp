@@ -154,7 +154,7 @@ void MainOpenGlWindow::initializeGL()
 		// 添加UI组件到根容器
 		m_uiRoot.add(&m_nav);
 		m_uiRoot.add(&m_topBar);
-		if (auto* currentPage = m_pageManager.currentPage()) {
+		if (auto* currentPage = m_pageRouter.currentPage()) {
 			m_uiRoot.add(currentPage);
 		}
 
@@ -317,17 +317,17 @@ void MainOpenGlWindow::initializePages()
 {
 	try
 	{
-		// 创建并注册所有页面
-		m_pageManager.registerPage("home", std::make_unique<HomePage>());
-		m_pageManager.registerPage("data", std::make_unique<DataPage>());
-		m_pageManager.registerPage("explore", std::make_unique<ExplorePage>());
-		m_pageManager.registerPage("favorites", std::make_unique<FavoritesPage>());
-		m_pageManager.registerPage("settings", std::make_unique<SettingsPage>());
+		// 注册页面工厂（支持懒加载）
+		m_pageRouter.registerPage("home", []() { return std::make_unique<HomePage>(); });
+		m_pageRouter.registerPage("data", [this]() { return std::make_unique<DataPage>(m_config.get()); });
+		m_pageRouter.registerPage("explore", []() { return std::make_unique<ExplorePage>(); });
+		m_pageRouter.registerPage("favorites", []() { return std::make_unique<FavoritesPage>(); });
+		m_pageRouter.registerPage("settings", []() { return std::make_unique<SettingsPage>(); });
 
 		// 切换到初始页面
 		const auto& items = m_navVm.items();
 		if (m_navVm.selectedIndex() >= 0 && m_navVm.selectedIndex() < items.size()) {
-			m_pageManager.switchToPage(items[m_navVm.selectedIndex()].id);
+			m_pageRouter.switchToPage(items[m_navVm.selectedIndex()].id);
 		}
 	}
 	catch (const std::exception& e) {
@@ -382,7 +382,7 @@ void MainOpenGlWindow::updateLayout()
 	// 设置页面视口（避开导航栏）
 	const QRect pageViewport(navWidth, 0, std::max(0, winSize.width() - navWidth), winSize.height());
 
-	if (auto* currentPage = m_pageManager.currentPage()) {
+	if (auto* currentPage = m_pageRouter.currentPage()) {
 		currentPage->setViewportRect(pageViewport);
 	}
 
@@ -448,13 +448,13 @@ void MainOpenGlWindow::onNavSelectionChanged(const int index)
 		const QString pageId = items[index].id;
 
 		// 从UiRoot中移除旧页面
-		if (auto* oldPage = m_pageManager.currentPage()) {
+		if (auto* oldPage = m_pageRouter.currentPage()) {
 			m_uiRoot.remove(oldPage);
 		}
 
-		// 切换到新页面
-		if (m_pageManager.switchToPage(pageId)) {
-			if (auto* newPage = m_pageManager.currentPage()) {
+		// 切换到新页面（自动调用生命周期钩子）
+		if (m_pageRouter.switchToPage(pageId)) {
+			if (auto* newPage = m_pageRouter.currentPage()) {
 				// 设置页面视口
 				const int navWidth = m_nav.currentWidth();
 				const QSize winSize = size();
