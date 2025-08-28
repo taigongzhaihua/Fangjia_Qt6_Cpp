@@ -337,13 +337,11 @@ bool UiScrollView::onMouseMove(const QPoint& pos) {
 	// 处理拖拽
 	if (m_dragMode == DragMode::Thumb) {
 		const QRect scrollbarRect = getScrollbarRect();
-		const QRect thumbRect = getScrollbarThumbRect();
 
-		if (scrollbarRect.isValid() && thumbRect.isValid()) {
+		if (const QRect thumbRect = getScrollbarThumbRect(); scrollbarRect.isValid() && thumbRect.isValid()) {
 			const int deltaY = pos.y() - m_dragStartPos.y();
-			const int availableTrackHeight = scrollbarRect.height() - thumbRect.height();
 
-			if (availableTrackHeight > 0) {
+			if (const int availableTrackHeight = scrollbarRect.height() - thumbRect.height(); availableTrackHeight > 0) {
 				const float scrollRatio = static_cast<float>(deltaY) / static_cast<float>(availableTrackHeight);
 				const int deltaScrollY = static_cast<int>(static_cast<float>(maxScrollY()) * scrollRatio);
 				setScrollY(m_dragStartScrollY + deltaScrollY);
@@ -351,7 +349,7 @@ bool UiScrollView::onMouseMove(const QPoint& pos) {
 		}
 		return true;
 	}
-	else if (m_dragMode == DragMode::Content) {
+	if (m_dragMode == DragMode::Content) {
 		const int deltaY = m_dragStartPos.y() - pos.y(); // 注意方向：向上拖拽是正值
 		setScrollY(m_dragStartScrollY + deltaY);
 		return true;
