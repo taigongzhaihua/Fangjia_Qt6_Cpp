@@ -4,9 +4,9 @@
 #include "TabView.h"
 #include "UiContent.hpp"
 #include "UiTabView.h"
+#include <algorithm>
 #include <functional>
 #include <memory>
-#include <qcontainerfwd.h>
 #include <qmargins.h>
 #include <qopenglfunctions.h>
 #include <qpoint.h>
@@ -128,15 +128,15 @@ namespace UI {
 		QSize measure(const SizeConstraints& cs) override {
 			// 计算 TabView 总体的垂直边距/内边距
 			const int verticalMargins = m_props.margin.top() + m_props.margin.bottom() +
-									   m_props.padding.top() + m_props.padding.bottom() +
-									   m_props.tabBarMargin.top() + m_props.tabBarMargin.bottom() +
-									   m_props.contentMargin.top() + m_props.contentMargin.bottom() +
-									   m_props.contentPadding.top() + m_props.contentPadding.bottom();
-			
+				m_props.padding.top() + m_props.padding.bottom() +
+				m_props.tabBarMargin.top() + m_props.tabBarMargin.bottom() +
+				m_props.contentMargin.top() + m_props.contentMargin.bottom() +
+				m_props.contentPadding.top() + m_props.contentPadding.bottom();
+
 			// TabBar 高度 + 间距
 			const int tabBarHeight = m_props.tabHeight;
 			const int spacing = m_props.spacing;
-			
+
 			// 尝试测量当前选中 Tab 的内容高度
 			int contentHeight = 240; // 默认内容高度
 			const int selectedIdx = m_view.selectedIndex();
@@ -147,11 +147,12 @@ namespace UI {
 						m_props.padding.left() + m_props.padding.right() +
 						m_props.contentMargin.left() + m_props.contentMargin.right() +
 						m_props.contentPadding.left() + m_props.contentPadding.right()));
-					
+
 					SizeConstraints contentCs = SizeConstraints::widthBounded(availableWidth);
 					QSize contentSize = layoutable->measure(contentCs);
 					contentHeight = contentSize.height();
-				} else {
+				}
+				else {
 					// 退回使用 bounds 高度
 					const QSize boundsSize = m_contents[selectedIdx]->bounds().size();
 					if (boundsSize.height() > 0) {
@@ -159,14 +160,14 @@ namespace UI {
 					}
 				}
 			}
-			
+
 			// 合成总高度：边距 + TabBar + 间距 + 内容高度
 			const int totalHeight = verticalMargins + tabBarHeight + spacing + contentHeight;
-			
+
 			// 宽度取最大可用宽度，高度根据内容需求
 			const int width = cs.maxW;
 			const int height = std::clamp(totalHeight, cs.minH, cs.maxH);
-			
+
 			return QSize(width, height);
 		}
 
