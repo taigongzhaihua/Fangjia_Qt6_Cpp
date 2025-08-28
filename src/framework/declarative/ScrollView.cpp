@@ -63,6 +63,10 @@ namespace UI {
 			return m_scrollView.onMouseRelease(pos);
 		}
 
+		bool onWheel(const QPoint& pos, const QPoint& angleDelta) override {
+			return m_scrollView.onWheel(pos, angleDelta);
+		}
+
 		bool tick() override {
 			return m_scrollView.tick();
 		}

@@ -7,6 +7,7 @@
 #include <qrect.h>
 #include <qsize.h>
 #include <qcolor.h>
+#include <qelapsedtimer.h>
 #include <RenderData.hpp>
 
 class IconCache;
@@ -60,6 +61,7 @@ public:
     bool onMousePress(const QPoint& pos) override;
     bool onMouseMove(const QPoint& pos) override;
     bool onMouseRelease(const QPoint& pos) override;
+    bool onWheel(const QPoint& pos, const QPoint& angleDelta) override;
     bool tick() override;
     QRect bounds() const override { return m_viewport; }
     void applyTheme(bool isDark) override;
@@ -84,6 +86,9 @@ private:
 
     // 滚动条渲染
     void renderScrollbar(Render::FrameData& fd) const;
+    
+    // 滚动条动画控制
+    void showScrollbar();  // 立即显示滚动条
 
     // 滚动限制
     void clampScrollY();
@@ -108,9 +113,20 @@ private:
     bool m_thumbHovered{ false };
     bool m_thumbPressed{ false };
 
-    // 滚动条配置
-    static constexpr int SCROLLBAR_WIDTH = 12;
+    // 滚动条配置 - 更符合 Fluent 设计
+    static constexpr int SCROLLBAR_WIDTH = 6;   // 更细的滚动条
     static constexpr int THUMB_MIN_HEIGHT = 20;
+    static constexpr int THUMB_RADIUS = 3;      // 圆角半径
+    
+    // 滚动条动画/显隐
+    float m_thumbAlpha{ 0.0f };     // 0..1（乘以颜色 alpha 使用）
+    bool  m_animActive{ false };
+    qint64 m_lastInteractMs{ 0 };
+    mutable QElapsedTimer m_animClock;  // 动画计时器
+    
+    // 动画参数
+    static constexpr qint64 FADE_DELAY_MS = 900;   // 静默后开始淡出的延时
+    static constexpr qint64 FADE_DURATION_MS = 300; // 淡出持续时间
 
     // 主题颜色
     QColor m_trackColor;
