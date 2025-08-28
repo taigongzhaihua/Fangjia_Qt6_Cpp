@@ -127,6 +127,7 @@ private:
     // 动画参数
     static constexpr qint64 FADE_DELAY_MS = 900;   // 静默后开始淡出的延时
     static constexpr qint64 FADE_DURATION_MS = 300; // 淡出持续时间
+    static constexpr float BASE_ALPHA = 0.3f;      // 基础半透明度（空闲时）
 
     // 主题颜色
     QColor m_trackColor;
