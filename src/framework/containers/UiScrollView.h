@@ -12,7 +12,25 @@
 class IconCache;
 class QOpenGLFunctions;
 
-// 垂直滚动容器：支持鼠标拖拽和滚动条操作
+/**
+ * @brief 垂直滚动容器，支持鼠标拖拽和滚动条操作
+ * 
+ * UiScrollView 是一个垂直滚动容器，用于承载超出可视区域的内容。
+ * 
+ * 特性：
+ * - 垂直滚动，仅管理一个子组件
+ * - 使用"移动子组件 viewport 顶坐标"实现滚动，无需矩阵变换
+ * - 支持鼠标左键拖拽内容进行滚动
+ * - 右侧滚动条（track + thumb）渲染，支持 hover/press 态
+ * - 拖拽滚动条 thumb；点击 track 快速定位
+ * - 主题感知：浅色/深色两套默认调色
+ * - 若子项实现 ILayoutable，则用 widthBounded 方式测量以得到内容高度
+ * 
+ * 滚动实现原理：
+ * - arrange/setViewportRect 时：将子项 viewport 设为 {left, top - scrollY, width, contentHeight}
+ * - 绘制时先 append 子项，再通过 RenderUtils::applyParentClip 裁剪到自身 viewport
+ * - 在右侧绘制滚动条（仅当 contentHeight > viewport.height() 时显示）
+ */
 class UiScrollView final : public IUiComponent, public IUiContent, public ILayoutable {
 public:
     UiScrollView();
