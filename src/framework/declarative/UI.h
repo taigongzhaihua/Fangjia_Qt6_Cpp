@@ -4,6 +4,7 @@
 #include "ComponentWrapper.h"
 #include "Layouts.h"
 #include "TabView.h"
+#include "ScrollView.h"
 #include "Widget.h"
 #include "Binding.h"    // 新增：导出 BindingHost API
 
@@ -23,6 +24,11 @@ namespace UI {
 	inline auto grid() { return make_widget<Grid>(); }
 
 	inline auto tabView() { return make_widget<TabView>(); }
+
+	// ScrollView
+	inline auto scrollView(WidgetPtr child = nullptr) { 
+		return make_widget<ScrollView>()->child(child); 
+	}
 
 	// 条件渲染
 	inline auto when(bool condition, WidgetPtr ifTrue, WidgetPtr ifFalse = nullptr) {

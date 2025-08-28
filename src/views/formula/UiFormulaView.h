@@ -41,7 +41,6 @@ private:
 
 	// 右侧详情（可重建宿主）
 	std::unique_ptr<UI::RebuildHost>  m_detailHost;
-	std::unique_ptr<class UiScrollView> m_detailScroll; // 新增：详情区域滚动容器
 
 	// 中间分割条
 	class VSplitter;
