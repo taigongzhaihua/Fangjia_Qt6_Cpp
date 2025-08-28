@@ -61,6 +61,10 @@ public:
 	void setCornerRadius(float r) { m_cornerRadius = r; }
 	float cornerRadius() const { return m_cornerRadius; }
 
+	// 页面生命周期钩子
+	virtual void onAppear() {}
+	virtual void onDisappear() {}
+
 protected:
 	virtual void initializeContent() {}
 	virtual void applyPageTheme(bool isDark);

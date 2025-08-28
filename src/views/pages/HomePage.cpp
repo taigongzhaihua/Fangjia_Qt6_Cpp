@@ -196,5 +196,15 @@ void HomePage::applyPageTheme(bool isDark)
 	if (m_impl->builtComponent) m_impl->builtComponent->onThemeChanged(isDark);
 }
 
+void HomePage::onAppear()
+{
+	qDebug() << "HomePage: onAppear() - 页面显示，可在此进行资源加载或埋点";
+}
+
+void HomePage::onDisappear()
+{
+	qDebug() << "HomePage: onDisappear() - 页面隐藏，可在此进行资源释放";
+}
+
 // CounterViewModel 实现已在此文件中，需要包含 MOC
 #include "HomePage.moc"
