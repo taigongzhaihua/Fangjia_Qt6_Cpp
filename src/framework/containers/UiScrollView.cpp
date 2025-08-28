@@ -5,7 +5,7 @@
 #include <qpoint.h>
 #include <qrect.h>
 #include <qsize.h>
-#include <qtypes.h>
+#include <QtCore/QtGlobal>
 #include <RenderData.hpp>
 #include <RenderUtils.hpp>
 #include <UiComponent.hpp>
@@ -225,13 +225,16 @@ void UiScrollView::renderScrollbar(Render::FrameData& fd) const {
 
 	if (!scrollbarRect.isValid() || m_thumbAlpha <= 0.0f) return;
 
+	// 计算药丸形圆角半径
+	const float radiusPx = SCROLLBAR_WIDTH / 2.0f;
+
 	// 渲染滚动条轨道（透明，Fluent 风格）
 	QColor trackColor = m_trackColor;
 	trackColor.setAlphaF(trackColor.alphaF() * m_thumbAlpha);
 
 	fd.roundedRects.push_back(Render::RoundedRectCmd{
 		.rect = QRectF(scrollbarRect),
-		.radiusPx = static_cast<float>(THUMB_RADIUS),  // 使用圆角
+		.radiusPx = radiusPx,  // 使用药丸形圆角
 		.color = trackColor,
 		.clipRect = QRectF(m_viewport)
 		});
@@ -251,7 +254,7 @@ void UiScrollView::renderScrollbar(Render::FrameData& fd) const {
 
 		fd.roundedRects.push_back(Render::RoundedRectCmd{
 			.rect = QRectF(thumbRect),
-			.radiusPx = static_cast<float>(THUMB_RADIUS),  // 使用圆角
+			.radiusPx = radiusPx,  // 使用药丸形圆角
 			.color = thumbColor,
 			.clipRect = QRectF(m_viewport)
 			});
@@ -263,7 +266,26 @@ bool UiScrollView::onMousePress(const QPoint& pos) {
 
 	// 检查是否点击在滚动条区域
 	if (isScrollbarVisible() && isPointInScrollbar(pos)) {
-		if (isPointInThumb(pos)) {
+		// 优先检查重复按钮区域
+		if (getUpButtonRect().contains(pos)) {
+			// 点击上按钮
+			m_repeatUp = true;
+			m_repeatStartMs = m_animClock.elapsed();
+			m_lastRepeatMs = m_repeatStartMs;
+			setScrollY(scrollY() - REPEAT_STEP_PX);  // 立即滚动一步
+			showScrollbar();
+			return true;
+		}
+		else if (getDownButtonRect().contains(pos)) {
+			// 点击下按钮
+			m_repeatDown = true;
+			m_repeatStartMs = m_animClock.elapsed();
+			m_lastRepeatMs = m_repeatStartMs;
+			setScrollY(scrollY() + REPEAT_STEP_PX);  // 立即滚动一步
+			showScrollbar();
+			return true;
+		}
+		else if (isPointInThumb(pos)) {
 			// 开始拖拽thumb
 			startThumbDrag(pos);
 		}
@@ -368,6 +390,10 @@ bool UiScrollView::onMouseRelease(const QPoint& pos) {
 	m_dragMode = DragMode::None;
 	m_thumbPressed = false;
 
+	// 重置重复按钮状态
+	m_repeatUp = false;
+	m_repeatDown = false;
+
 	// 传递给子组件
 	if (m_child && !wasDragging) {
 		return m_child->onMouseRelease(pos);
@@ -407,6 +433,31 @@ bool UiScrollView::tick() {
 	bool any = false;
 	if (m_child) {
 		any = m_child->tick();
+	}
+
+	// 处理重复滚动按钮
+	if (m_repeatUp || m_repeatDown) {
+		const qint64 now = m_animClock.elapsed();
+		const qint64 timeSinceStart = now - m_repeatStartMs;
+		
+		// 检查是否超过初始延时，并且到了重复间隔
+		if (timeSinceStart > REPEAT_INITIAL_DELAY_MS && 
+			(now - m_lastRepeatMs) > REPEAT_INTERVAL_MS) {
+			
+			// 执行重复滚动
+			if (m_repeatUp) {
+				setScrollY(scrollY() - REPEAT_STEP_PX);
+			} else if (m_repeatDown) {
+				setScrollY(scrollY() + REPEAT_STEP_PX);
+			}
+			
+			m_lastRepeatMs = now;
+			any = true; // 需要继续动画
+		}
+		else if (timeSinceStart <= REPEAT_INITIAL_DELAY_MS || 
+				 (now - m_lastRepeatMs) <= REPEAT_INTERVAL_MS) {
+			any = true; // 仍在等待阶段
+		}
 	}
 
 	// 处理滚动条淡入淡出动画
@@ -465,4 +516,20 @@ void UiScrollView::applyTheme(bool isDark) {
 	if (m_child) {
 		m_child->onThemeChanged(isDark);
 	}
+}
+
+QRect UiScrollView::getUpButtonRect() const {
+	const QRect scrollbarRect = getScrollbarRect();
+	if (!scrollbarRect.isValid()) return {};
+	
+	return QRect(scrollbarRect.left(), scrollbarRect.top(), 
+				 scrollbarRect.width(), BUTTON_HEIGHT);
+}
+
+QRect UiScrollView::getDownButtonRect() const {
+	const QRect scrollbarRect = getScrollbarRect();
+	if (!scrollbarRect.isValid()) return {};
+	
+	return QRect(scrollbarRect.left(), scrollbarRect.bottom() - BUTTON_HEIGHT + 1, 
+				 scrollbarRect.width(), BUTTON_HEIGHT);
 }

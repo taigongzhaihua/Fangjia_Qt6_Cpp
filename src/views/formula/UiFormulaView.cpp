@@ -317,7 +317,8 @@ void UiFormulaView::applyPalettes() const
 			.expandIcon = QColor(180, 185, 190, 200),
 			.textPrimary = QColor(240, 245, 250, 255),
 			.textSecondary = QColor(180, 190, 200, 220),
-			.separator = QColor(255, 255, 255, 20)
+			.separator = QColor(255, 255, 255, 20),
+			.indicator = QColor(0, 122, 255, 220)
 			});
 	}
 	else
@@ -329,7 +330,8 @@ void UiFormulaView::applyPalettes() const
 			.expandIcon = QColor(100, 105, 110, 200),
 			.textPrimary = QColor(32, 38, 46, 255),
 			.textSecondary = QColor(100, 110, 120, 200),
-			.separator = QColor(0, 0, 0, 25)
+			.separator = QColor(0, 0, 0, 25),
+			.indicator = QColor(0, 102, 204, 220)
 			});
 	}
 }
@@ -362,7 +364,4 @@ void UiFormulaView::setViewportRect(const QRect& r)
 
 	if (m_treeWrap) m_treeWrap->setPreferredWidth(leftW);
 	if (m_detailWrap) m_detailWrap->setPreferredWidth(rightW);
-
-	// 重要修复：在 viewport 设置后立即触发重建，确保详情区域能立即获得有效的绘制上下文
-	if (m_detailHost) m_detailHost->requestRebuild();
 }

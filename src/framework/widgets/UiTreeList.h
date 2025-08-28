@@ -48,6 +48,7 @@ public:
 		QColor textPrimary;     // 主文字颜色
 		QColor textSecondary;   // 次级文字颜色
 		QColor separator;       // 分隔线颜色
+		QColor indicator;       // 选中指示条颜色
 	};
 
 	UiTreeList();
@@ -103,7 +104,8 @@ private:
 		.expandIcon = QColor(100,100,100,200),
 		.textPrimary = QColor(32,38,46,255),
 		.textSecondary = QColor(100,110,120,200),
-		.separator = QColor(0,0,0,20)
+		.separator = QColor(0,0,0,20),
+		.indicator = QColor(0,122,255,200)
 	};
 
 	int m_itemHeight{ 36 };
