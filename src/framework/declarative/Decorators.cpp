@@ -203,6 +203,12 @@ namespace UI
         return handled;
     }
 
+    bool DecoratedBox::onWheel(const QPoint& pos, const QPoint& angleDelta)
+    {
+        if (!m_p.visible || !m_viewport.contains(pos)) return false;
+        return m_child ? m_child->onWheel(pos, angleDelta) : false;
+    }
+
     bool DecoratedBox::tick()
     {
         return m_child && m_child->tick();
