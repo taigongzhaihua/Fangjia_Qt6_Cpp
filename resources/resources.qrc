@@ -28,6 +28,10 @@
 		<!-- 其他图标 -->
 		<file alias="nav_toggle_expand.svg">icons/nav_toggle_expand.svg</file>
 		<file alias="nav_toggle_collapse.svg">icons/nav_toggle_collapse.svg</file>
+
+		<!-- TreeView 展开/折叠箭头（上/下） -->
+		<file alias="tree_arrow_down.svg">icons/tree_arrow_down.svg</file>
+		<file alias="tree_arrow_up.svg">icons/tree_arrow_up.svg</file>
 		
 	</qresource>
 

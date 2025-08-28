@@ -11,6 +11,7 @@
 #include <qsize.h>
 #include <qstring.h>
 #include <RenderData.hpp>
+#include <RenderUtils.hpp>
 
 UiTreeList::UiTreeList() {}
 
@@ -98,10 +99,11 @@ QRect UiTreeList::nodeRect(int visibleIdx) const
 	return m_visibleNodes[visibleIdx].rect;
 }
 
-QRect UiTreeList::expandIconRect(const QRect& nodeRect, int depth) const
+QRect UiTreeList::expandIconRect(const QRect& nodeRect, int /*depth*/) const
 {
+	// 右侧 8px 内边距，图标 16x16，垂直居中
 	const int iconSize = 16;
-	const int x = nodeRect.left() + 8 + depth * m_indentWidth;
+	const int x = nodeRect.right() - 8 - iconSize;
 	const int y = nodeRect.center().y() - iconSize / 2;
 	return QRect(x, y, iconSize, iconSize);
 }
@@ -130,62 +132,63 @@ void UiTreeList::append(Render::FrameData& fd) const
 
 		const auto info = m_model->nodeInfo(vn.index);
 
-		// 背景（选中/悬停）
+		// 统一的圆角矩形背景（选中/悬停/按下）——与 Nav 胶囊风格一致
+		const QRectF inner = QRectF(vn.rect).adjusted(5, 3, -5, -3);
 		if (vn.index == selectedId) {
-			// 选中背景：圆角矩形，内缩 5 像素，半径 6
-			const QRectF sel = QRectF(vn.rect).adjusted(5, 3, -5, -3);
 			fd.roundedRects.push_back(Render::RoundedRectCmd{
-				.rect = sel,
+				.rect = inner,
 				.radiusPx = 6.0f,
 				.color = m_pal.itemSelected,
 				.clipRect = QRectF(m_viewport)
-				});
-			
-			// 左侧指示条：宽 3 像素，高度为选中背景的 60%，垂直居中
+			});
+			// 仅选中态绘制左侧指示条
 			const float indW = 3.0f;
-			const float indH = std::clamp(sel.height() * 0.6, 12.0, sel.height() - 6.0);
-			const QRectF ind(sel.left() + 4.0f, sel.center().y() - indH * 0.5f, indW, indH);
+			const float indH = std::clamp(inner.height() * 0.6, 12.0, inner.height() - 6.0);
+			const QRectF ind(inner.left() + 4.0f, inner.center().y() - indH * 0.5f, indW, indH);
 			fd.roundedRects.push_back(Render::RoundedRectCmd{
 				.rect = ind,
 				.radiusPx = indW * 0.5f,
 				.color = m_pal.indicator,
 				.clipRect = QRectF(m_viewport)
-				});
-		}
-		else if (static_cast<int>(i) == m_hover) {
+			});
+		} else if (static_cast<int>(i) == m_pressed) {
 			fd.roundedRects.push_back(Render::RoundedRectCmd{
-				.rect = QRectF(vn.rect),
-				.radiusPx = 0.0f,
+				.rect = inner,
+				.radiusPx = 6.0f,
+				.color = m_pal.itemPressed,
+				.clipRect = QRectF(m_viewport)
+			});
+		} else if (static_cast<int>(i) == m_hover) {
+			fd.roundedRects.push_back(Render::RoundedRectCmd{
+				.rect = inner,
+				.radiusPx = 6.0f,
 				.color = m_pal.itemHover,
 				.clipRect = QRectF(m_viewport)
-				});
+			});
 		}
 
-		// 展开/折叠图标（仅当有子节点）
+		// 展开/折叠图标（右侧）：有子节点才绘制
 		if (!m_model->childIndices(vn.index).isEmpty()) {
 			const QRect iconRect = expandIconRect(vn.rect, vn.depth);
-			const float cx = iconRect.center().x();
-			const float cy = iconRect.center().y();
-			const float size = 6.0f;
-
-			if (info.expanded) {
-				// 向下三角形（用矩形近似）
-				fd.roundedRects.push_back(Render::RoundedRectCmd{
-					.rect = QRectF(cx - size / 2, cy - size / 4, size, size / 2),
-					.radiusPx = 1.0f,
-					.color = m_pal.expandIcon,
-					.clipRect = QRectF(m_viewport)
-					});
-			}
-			else {
-				// 向右三角形（用矩形近似）
-				fd.roundedRects.push_back(Render::RoundedRectCmd{
-					.rect = QRectF(cx - size / 4, cy - size / 2, size / 2, size),
-					.radiusPx = 1.0f,
-					.color = m_pal.expandIcon,
-					.clipRect = QRectF(m_viewport)
-					});
-			}
+			const int logical = 16;
+			const int px = std::lround(static_cast<float>(logical) * m_dpr);
+			const QString path = info.expanded ? QStringLiteral(":/icons/tree_arrow_up.svg")
+			                                   : QStringLiteral(":/icons/tree_arrow_down.svg");
+			const QString key = RenderUtils::makeIconCacheKey(info.expanded ? QStringLiteral("tree_arrow_up")
+			                                                                 : QStringLiteral("tree_arrow_down"), px);
+			QByteArray svg = RenderUtils::loadSvgCached(path);
+			const int tex = m_cache->ensureSvgPx(key, svg, QSize(px, px), m_gl);
+			const QSize ts = m_cache->textureSizePx(tex);
+			const QRectF dst(iconRect.center().x() - logical * 0.5,
+			                 iconRect.center().y() - logical * 0.5,
+			                 logical, logical);
+			fd.images.push_back(Render::ImageCmd{
+				.dstRect = dst,
+				.textureId = tex,
+				.srcRectPx = QRectF(0, 0, ts.width(), ts.height()),
+				.tint = m_pal.expandIcon,
+				.clipRect = QRectF(m_viewport)
+			});
 		}
 
 		// 文字

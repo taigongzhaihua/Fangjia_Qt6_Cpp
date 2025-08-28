@@ -43,6 +43,7 @@ public:
 	struct Palette {
 		QColor bg;              // 背景色
 		QColor itemHover;       // 悬停背景
+		QColor itemPressed;     // 按下背景（新增）
 		QColor itemSelected;    // 选中背景
 		QColor expandIcon;      // 展开/折叠图标颜色
 		QColor textPrimary;     // 主文字颜色
@@ -99,13 +100,14 @@ private:
 	QRect m_viewport;
 	Palette m_pal{
 		.bg = QColor(255,255,255,245),
-		.itemHover = QColor(0,0,0,8),
-		.itemSelected = QColor(0,122,255,20),
+		.itemHover = QColor(0,0,0,14),
+		.itemPressed = QColor(0,0,0,26),
+		.itemSelected = QColor(0,122,255,32),
 		.expandIcon = QColor(100,100,100,200),
 		.textPrimary = QColor(32,38,46,255),
 		.textSecondary = QColor(100,110,120,200),
 		.separator = QColor(0,0,0,20),
-		.indicator = QColor(0,122,255,200)
+		.indicator = QColor(0,102,204,220)
 	};
 
 	int m_itemHeight{ 36 };

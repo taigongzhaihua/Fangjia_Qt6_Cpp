@@ -312,8 +312,9 @@ void UiFormulaView::applyPalettes() const
 	{
 		m_tree->setPalette(UiTreeList::Palette{
 			.bg = QColor(28, 34, 42, 0),
-			.itemHover = QColor(255, 255, 255, 15),
-			.itemSelected = QColor(0, 122, 255, 35),
+			.itemHover = QColor(255, 255, 255, 18),
+			.itemPressed = QColor(255, 255, 255, 30),
+			.itemSelected = QColor(255, 255, 255, 36),
 			.expandIcon = QColor(180, 185, 190, 200),
 			.textPrimary = QColor(240, 245, 250, 255),
 			.textSecondary = QColor(180, 190, 200, 220),
@@ -325,8 +326,9 @@ void UiFormulaView::applyPalettes() const
 	{
 		m_tree->setPalette(UiTreeList::Palette{
 			.bg = QColor(255, 255, 255, 0),
-			.itemHover = QColor(0, 0, 0, 10),
-			.itemSelected = QColor(0, 122, 255, 25),
+			.itemHover = QColor(0, 0, 0, 14),
+			.itemPressed = QColor(0, 0, 0, 26),
+			.itemSelected = QColor(0, 0, 0, 32),
 			.expandIcon = QColor(100, 105, 110, 200),
 			.textPrimary = QColor(32, 38, 46, 255),
 			.textSecondary = QColor(100, 110, 120, 200),
