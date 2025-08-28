@@ -11,6 +11,7 @@
 
 UiScrollView::UiScrollView() {
     applyTheme(false); // 初始化为浅色主题
+    m_animClock.start(); // 启动动画计时器
 }
 
 void UiScrollView::setScrollY(int scrollY) {
@@ -212,17 +213,20 @@ void UiScrollView::renderScrollbar(Render::FrameData& fd) const {
     const QRect scrollbarRect = getScrollbarRect();
     const QRect thumbRect = getScrollbarThumbRect();
     
-    if (!scrollbarRect.isValid()) return;
+    if (!scrollbarRect.isValid() || m_thumbAlpha <= 0.0f) return;
 
-    // 渲染滚动条轨道
+    // 渲染滚动条轨道（透明，Fluent 风格）
+    QColor trackColor = m_trackColor;
+    trackColor.setAlphaF(trackColor.alphaF() * m_thumbAlpha);
+    
     fd.roundedRects.push_back(Render::RoundedRectCmd{
         .rect = QRectF(scrollbarRect),
-        .radiusPx = 2.0f,
-        .color = m_trackColor,
+        .radiusPx = static_cast<float>(THUMB_RADIUS),  // 使用圆角
+        .color = trackColor,
         .clipRect = QRectF(m_viewport)
     });
 
-    // 渲染滚动条thumb
+    // 渲染滚动条 thumb
     if (thumbRect.isValid()) {
         QColor thumbColor = m_thumbColor;
         if (m_thumbPressed) {
@@ -230,10 +234,13 @@ void UiScrollView::renderScrollbar(Render::FrameData& fd) const {
         } else if (m_thumbHovered) {
             thumbColor = m_thumbHoverColor;
         }
+        
+        // 应用淡入淡出透明度
+        thumbColor.setAlphaF(thumbColor.alphaF() * m_thumbAlpha);
 
         fd.roundedRects.push_back(Render::RoundedRectCmd{
             .rect = QRectF(thumbRect),
-            .radiusPx = 3.0f,
+            .radiusPx = static_cast<float>(THUMB_RADIUS),  // 使用圆角
             .color = thumbColor,
             .clipRect = QRectF(m_viewport)
         });
@@ -272,6 +279,7 @@ void UiScrollView::startThumbDrag(const QPoint& pos) {
     m_dragStartScrollY = m_scrollY;
     m_dragStartThumbY = getScrollbarThumbRect().top();
     m_thumbPressed = true;
+    showScrollbar(); // 显示滚动条
 }
 
 void UiScrollView::handleTrackClick(const QPoint& pos) {
@@ -293,12 +301,14 @@ void UiScrollView::handleTrackClick(const QPoint& pos) {
     
     const int targetScrollY = static_cast<int>(maxScrollY() * scrollRatio);
     setScrollY(targetScrollY);
+    showScrollbar(); // 显示滚动条
 }
 
 void UiScrollView::startContentDrag(const QPoint& pos) {
     m_dragMode = DragMode::Content;
     m_dragStartPos = pos;
     m_dragStartScrollY = m_scrollY;
+    showScrollbar(); // 显示滚动条
 }
 
 bool UiScrollView::onMouseMove(const QPoint& pos) {
@@ -369,6 +379,9 @@ bool UiScrollView::onWheel(const QPoint& pos, const QPoint& angleDelta) {
     // 设置新的滚动位置（内部会进行范围限制）
     setScrollY(newScrollY);
     
+    // 显示滚动条（立即淡入）
+    showScrollbar();
+    
     // 如果有滚动内容，则消费此事件
     return maxScrollY() > 0;
 }
@@ -378,22 +391,54 @@ bool UiScrollView::tick() {
     if (m_child) {
         any = m_child->tick();
     }
+    
+    // 处理滚动条淡出动画
+    if (m_animActive) {
+        const qint64 now = m_animClock.elapsed();
+        const qint64 timeSinceInteract = now - m_lastInteractMs;
+        
+        if (timeSinceInteract > FADE_DELAY_MS) {
+            // 开始淡出
+            const qint64 fadeElapsed = timeSinceInteract - FADE_DELAY_MS;
+            if (fadeElapsed >= FADE_DURATION_MS) {
+                // 淡出完成
+                m_thumbAlpha = 0.0f;
+                m_animActive = false;
+            } else {
+                // 淡出进行中
+                const float t = static_cast<float>(fadeElapsed) / static_cast<float>(FADE_DURATION_MS);
+                m_thumbAlpha = 1.0f - t;
+                any = true; // 需要继续动画
+            }
+        } else {
+            // 延时期间，保持完全显示
+            m_thumbAlpha = 1.0f;
+            any = true; // 需要继续动画
+        }
+    }
+    
     return any;
+}
+
+void UiScrollView::showScrollbar() {
+    m_thumbAlpha = 1.0f;
+    m_animActive = true;
+    m_lastInteractMs = m_animClock.elapsed();
 }
 
 void UiScrollView::applyTheme(bool isDark) {
     if (isDark) {
-        // 深色主题
-        m_trackColor = QColor(40, 40, 40, 180);
-        m_thumbColor = QColor(120, 120, 120, 200);
-        m_thumbHoverColor = QColor(140, 140, 140, 220);
-        m_thumbPressColor = QColor(160, 160, 160, 240);
+        // 深色主题 - Fluent 风格
+        m_trackColor = QColor(255, 255, 255, 25);       // 半透明白色轨道
+        m_thumbColor = QColor(255, 255, 255, 120);      // 半透明白色拇指
+        m_thumbHoverColor = QColor(255, 255, 255, 160); // 悬停时更明显
+        m_thumbPressColor = QColor(255, 255, 255, 200); // 按下时最明显
     } else {
-        // 浅色主题  
-        m_trackColor = QColor(240, 240, 240, 180);
-        m_thumbColor = QColor(180, 180, 180, 200);
-        m_thumbHoverColor = QColor(150, 150, 150, 220);
-        m_thumbPressColor = QColor(120, 120, 120, 240);
+        // 浅色主题 - Fluent 风格  
+        m_trackColor = QColor(0, 0, 0, 25);             // 半透明黑色轨道
+        m_thumbColor = QColor(0, 0, 0, 120);            // 半透明黑色拇指
+        m_thumbHoverColor = QColor(0, 0, 0, 160);       // 悬停时更明显
+        m_thumbPressColor = QColor(0, 0, 0, 200);       // 按下时最明显
     }
 
     // 传递主题变化给子组件
