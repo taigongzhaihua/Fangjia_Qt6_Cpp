@@ -63,6 +63,7 @@ namespace UI {
 		bool onMousePress(const QPoint& pos) override;
 		bool onMouseMove(const QPoint& pos) override;
 		bool onMouseRelease(const QPoint& pos) override;
+		bool onWheel(const QPoint& pos, const QPoint& angleDelta) override;
 
 		bool tick() override;
 		QRect bounds() const override;
