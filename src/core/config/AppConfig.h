@@ -34,32 +34,32 @@ public:
 	~AppConfig() override;
 
 	// 主题配置
-	QString themeMode() const;
+	[[nodiscard]] QString themeMode() const;
 	void setThemeMode(const QString& mode);
 
 	// 导航栏配置
-	bool navExpanded() const;
+	[[nodiscard]] bool navExpanded() const;
 	void setNavExpanded(bool expanded);
 
-	int navSelectedIndex() const;
+	[[nodiscard]] int navSelectedIndex() const;
 	void setNavSelectedIndex(int index);
 
 	// 窗口配置
-	QByteArray windowGeometry() const;
+	[[nodiscard]] QByteArray windowGeometry() const;
 	void setWindowGeometry(const QByteArray& geometry);
 
-	QByteArray windowState() const;
+	[[nodiscard]] QByteArray windowState() const;
 	void setWindowState(const QByteArray& state);
 
 	// 最近使用
-	QString recentTab() const;
+	[[nodiscard]] QString recentTab() const;
 	void setRecentTab(const QString& tabId);
 
-	QString recentFormula() const;
+	[[nodiscard]] QString recentFormula() const;
 	void setRecentFormula(const QString& formulaId);
 
 	// 通用配置访问
-	QVariant value(const QString& key, const QVariant& defaultValue = QVariant()) const;
+	[[nodiscard]] QVariant value(const QString& key, const QVariant& defaultValue = QVariant()) const;
 	void setValue(const QString& key, const QVariant& value);
 
 	// 配置管理
