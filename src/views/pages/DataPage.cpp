@@ -130,6 +130,16 @@ void DataPage::applyPageTheme(bool isDark)
 	}
 }
 
+void DataPage::onAppear()
+{
+	qDebug() << "DataPage: onAppear() - 数据页面显示，可在此加载数据";
+}
+
+void DataPage::onDisappear()
+{
+	qDebug() << "DataPage: onDisappear() - 数据页面隐藏，可在此保存状态";
+}
+
 TabViewModel* DataPage::tabViewModel() const
 {
 	return m_impl->dataViewModel->tabs();

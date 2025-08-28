@@ -8,7 +8,7 @@
 
 #include "IconCache.h"
 #include "NavViewModel.h"
-#include "PageManager.h"
+#include "PageRouter.h"
 #include "Renderer.h"
 #include "ThemeManager.h"
 #include "UiNav.h"
@@ -91,8 +91,8 @@ private:
 	UiTopBar m_topBar;
 	UiRoot m_uiRoot;
 
-	// 页面管理
-	PageManager m_pageManager;
+	// 页面路由
+	PageRouter m_pageRouter;
 
 	// 渲染
 	Renderer m_renderer;
