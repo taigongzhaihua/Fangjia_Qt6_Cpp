@@ -1,6 +1,25 @@
 #pragma once
 #include "UiPage.h"
 #include <memory>
+#include <QObject>
+
+// 简单的计数器 ViewModel 用于演示绑定功能
+class CounterViewModel : public QObject
+{
+    Q_OBJECT
+public:
+    explicit CounterViewModel(QObject* parent = nullptr);
+    
+    void increment();
+    void decrement();
+    int count() const { return m_count; }
+    
+signals:
+    void countChanged();
+    
+private:
+    int m_count{0};
+};
 
 class HomePage : public UiPage
 {
