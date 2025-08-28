@@ -1,0 +1,97 @@
+# 实用但保守的 clang-tidy 规则集合
+# 启用 bugprone-*, performance-*, modernize-*（排除侵入性命名规则）
+# readability-*, cppcoreguidelines- 的有限子集
+# 允许通过 NOLINT/NOLINTNEXTLINE 局部抑制
+
+Checks: >
+  -*,
+  bugprone-*,
+  performance-*,
+  modernize-*,
+  readability-*,
+  cppcoreguidelines-avoid-goto,
+  cppcoreguidelines-avoid-non-const-global-variables,
+  cppcoreguidelines-init-variables,
+  cppcoreguidelines-interfaces-global-init,
+  cppcoreguidelines-narrowing-conversions,
+  cppcoreguidelines-no-malloc,
+  cppcoreguidelines-prefer-member-initializer,
+  cppcoreguidelines-pro-bounds-array-to-pointer-decay,
+  cppcoreguidelines-pro-bounds-constant-array-index,
+  cppcoreguidelines-pro-bounds-pointer-arithmetic,
+  cppcoreguidelines-pro-type-const-cast,
+  cppcoreguidelines-pro-type-cstyle-cast,
+  cppcoreguidelines-pro-type-member-init,
+  cppcoreguidelines-pro-type-static-cast-downcast,
+  cppcoreguidelines-slicing,
+  cppcoreguidelines-special-member-functions,
+  -modernize-use-trailing-return-type,
+  -modernize-use-nodiscard,
+  -modernize-avoid-c-arrays,
+  -modernize-use-designated-initializers,
+  -readability-named-parameter,
+  -readability-magic-numbers,
+  -readability-function-cognitive-complexity,
+  -readability-identifier-length,
+  -readability-uppercase-literal-suffix,
+  -readability-avoid-const-params-in-decls,
+  -cppcoreguidelines-avoid-magic-numbers,
+  -cppcoreguidelines-non-private-member-variables-in-classes,
+  -cppcoreguidelines-pro-bounds-array-to-pointer-decay
+
+# 在 CI 上将告警视为错误
+WarningsAsErrors: '*'
+
+# 检查配置
+CheckOptions:
+  # 变量命名：允许多种风格
+  readability-identifier-naming.VariableCase: 'camelBack'
+  readability-identifier-naming.FunctionCase: 'camelBack'
+  readability-identifier-naming.ClassCase: 'CamelCase'
+  readability-identifier-naming.StructCase: 'CamelCase'
+  readability-identifier-naming.EnumCase: 'CamelCase'
+  readability-identifier-naming.ConstantCase: 'UPPER_CASE'
+  readability-identifier-naming.MacroCase: 'UPPER_CASE'
+  readability-identifier-naming.NamespaceCase: 'lower_case'
+  
+  # 成员变量前缀
+  readability-identifier-naming.MemberVariablePrefix: 'm_'
+  readability-identifier-naming.PrivateMemberPrefix: 'm_'
+  readability-identifier-naming.ProtectedMemberPrefix: 'm_'
+  
+  # 允许一些常见缩写
+  readability-identifier-naming.GetConfigPerFile: true
+  
+  # 性能相关
+  performance-unnecessary-copy-initialization.AllowedTypes: 'QString;QStringList;QByteArray'
+  
+  # 现代化设置
+  modernize-use-auto.MinTypeNameLength: 8
+  modernize-use-auto.RemoveStars: true
+  
+  # 可读性设置
+  readability-function-size.LineThreshold: 150
+  readability-function-size.StatementThreshold: 800
+  readability-function-size.BranchThreshold: 15
+  readability-function-size.ParameterThreshold: 8
+  readability-function-size.NestingThreshold: 8
+  
+  # 括号使用
+  readability-braces-around-statements.ShortStatementLines: 2
+  
+  # 缩写词检查较宽松
+  readability-identifier-naming.CheckAnonFieldInParent: false
+  readability-identifier-naming.IgnoreFailedSplit: true
+
+# 头文件过滤
+HeaderFilterRegex: '(src/|tests/|examples/).*\.(h|hpp)$'
+
+# 系统头文件（不检查）
+SystemHeaders: false
+
+# 允许的诊断抑制格式
+# 支持 // NOLINT 和 // NOLINTNEXTLINE(rule-name)
+UseColor: true
+
+# 输出格式
+OutputColumnLimit: 120

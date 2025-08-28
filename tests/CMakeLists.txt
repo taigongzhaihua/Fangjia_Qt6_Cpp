@@ -29,15 +29,22 @@ target_link_libraries(FangJia_Tests PRIVATE
     Qt6::OpenGL
     Qt6::Widgets
     core_rendering
-    core_di
-    core_config
     ui_framework
     models
 )
 
-# Windows特定链接
+# 条件链接
+if(TARGET core_config)
+    target_link_libraries(FangJia_Tests PRIVATE core_config)
+endif()
+
 if(WIN32 AND TARGET platform_windows)
     target_link_libraries(FangJia_Tests PRIVATE platform_windows)
+endif()
+
+# 应用警告标志（如果可用）
+if(COMMAND apply_fangjia_warnings)
+    apply_fangjia_warnings(FangJia_Tests)
 endif()
 
 # 添加测试

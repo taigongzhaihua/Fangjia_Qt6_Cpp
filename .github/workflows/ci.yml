@@ -1,0 +1,89 @@
+name: CI
+
+on:
+  push:
+    branches: [ "main", "master", "develop" ]
+  pull_request:
+    branches: [ "main", "master", "develop" ]
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+        
+    runs-on: ${{ matrix.os }}
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Install Qt6
+      uses: jurplel/install-qt-action@v3
+      with:
+        version: 6.5.*
+        target: desktop
+        modules: 'qtbase qtsvg'
+        cache: true
+        
+    - name: Install Linux dependencies
+      if: runner.os == 'Linux'
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y ninja-build clang-tidy libgl1-mesa-dev
+        
+    - name: Install Windows dependencies  
+      if: runner.os == 'Windows'
+      run: |
+        choco install ninja
+        
+    - name: Configure CMake (Linux)
+      if: runner.os == 'Linux'
+      run: |
+        cmake -B build -G Ninja \
+          -DCMAKE_BUILD_TYPE=Release \
+          -DFANGJIA_WARNINGS_AS_ERRORS=ON \
+          -DENABLE_CLANG_TIDY=ON
+          
+    - name: Configure CMake (Windows)
+      if: runner.os == 'Windows'
+      run: |
+        cmake -B build -G Ninja `
+          -DCMAKE_BUILD_TYPE=Release `
+          -DFANGJIA_WARNINGS_AS_ERRORS=ON
+          
+    - name: Build
+      run: cmake --build build --config Release
+      
+    - name: Test (Linux)
+      if: runner.os == 'Linux'
+      env:
+        QT_QPA_PLATFORM: offscreen
+      run: |
+        cd build
+        ctest --output-on-failure --verbose
+        
+    - name: Test (Windows)
+      if: runner.os == 'Windows'
+      run: |
+        cd build
+        ctest --output-on-failure --verbose
+        
+    - name: Upload test results
+      if: failure()
+      uses: actions/upload-artifact@v3
+      with:
+        name: test-results-${{ matrix.os }}
+        path: |
+          build/Testing/Temporary/LastTest.log
+          build/test-*.xml
+          
+    - name: Code format check (Linux only)
+      if: runner.os == 'Linux'
+      run: |
+        if command -v clang-format &> /dev/null; then
+          cmake --build build --target format-check
+        else
+          echo "clang-format not found, skipping format check"
+        fi

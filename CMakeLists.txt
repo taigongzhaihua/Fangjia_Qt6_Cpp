@@ -8,6 +8,12 @@ endif()
 
 project(Fangjia_Qt6_Cpp LANGUAGES CXX)
 
+# ========================================
+# 质量门禁选项
+# ========================================
+option(FANGJIA_WARNINGS_AS_ERRORS "将编译警告视为错误（默认 OFF，本地开发更友好；CI 传 ON）" OFF)
+option(ENABLE_CLANG_TIDY "启用 clang-tidy 静态检查（默认 OFF；CI Linux 打开）" OFF)
+
 # Qt 设置
 set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTOUIC ON)
@@ -21,6 +27,86 @@ find_package(Qt6 REQUIRED COMPONENTS Core Gui OpenGL Widgets Svg)
 # 设置源目录
 set(PROJECT_ROOT ${CMAKE_CURRENT_SOURCE_DIR})
 set(SRC_DIR ${PROJECT_ROOT}/src)
+
+# ========================================
+# 编译器警告配置
+# ========================================
+if(MSVC)
+    # MSVC 警告设置
+    set(FANGJIA_WARNING_FLAGS "/W4")
+    if(FANGJIA_WARNINGS_AS_ERRORS)
+        list(APPEND FANGJIA_WARNING_FLAGS "/WX")
+    endif()
+    # 禁用一些过于严格的警告
+    list(APPEND FANGJIA_WARNING_FLAGS "/wd4267" "/wd4244" "/wd4996")
+elseif(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
+    # GCC/Clang 警告设置
+    set(FANGJIA_WARNING_FLAGS
+        "-Wall" "-Wextra" "-Wpedantic"
+        "-Wcast-align" "-Wcast-qual" "-Wctor-dtor-privacy"
+        "-Wdisabled-optimization" "-Wformat=2" "-Winit-self"
+        "-Wmissing-declarations" "-Wmissing-include-dirs"
+        "-Wold-style-cast" "-Woverloaded-virtual" "-Wredundant-decls"
+        "-Wshadow" "-Wsign-conversion" "-Wsign-promo"
+        "-Wstrict-overflow=5" "-Wswitch-default" "-Wundef"
+    )
+    if(FANGJIA_WARNINGS_AS_ERRORS)
+        list(APPEND FANGJIA_WARNING_FLAGS "-Werror")
+    endif()
+    # 针对特定编译器的额外警告
+    if(CMAKE_CXX_COMPILER_ID MATCHES "GNU")
+        list(APPEND FANGJIA_WARNING_FLAGS "-Wlogical-op" "-Wnoexcept" "-Wstrict-null-sentinel")
+    endif()
+endif()
+
+# ========================================
+# clang-tidy 配置
+# ========================================
+if(ENABLE_CLANG_TIDY)
+    find_program(CLANG_TIDY_EXE NAMES "clang-tidy")
+    if(CLANG_TIDY_EXE)
+        message(STATUS "clang-tidy found: ${CLANG_TIDY_EXE}")
+        set(CMAKE_CXX_CLANG_TIDY "${CLANG_TIDY_EXE}")
+    else()
+        message(WARNING "clang-tidy requested but not found")
+    endif()
+endif()
+
+# ========================================
+# clang-format 目标（可选）
+# ========================================
+find_program(CLANG_FORMAT_EXE NAMES "clang-format")
+if(CLANG_FORMAT_EXE)
+    file(GLOB_RECURSE FORMAT_SOURCES 
+        "${SRC_DIR}/*.h" 
+        "${SRC_DIR}/*.hpp" 
+        "${SRC_DIR}/*.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/tests/*.h"
+        "${CMAKE_CURRENT_SOURCE_DIR}/tests/*.hpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/tests/*.cpp"
+    )
+    
+    add_custom_target(format
+        COMMAND ${CLANG_FORMAT_EXE} -i ${FORMAT_SOURCES}
+        COMMENT "Running clang-format on source files"
+        VERBATIM
+    )
+    
+    add_custom_target(format-check
+        COMMAND ${CLANG_FORMAT_EXE} --dry-run --Werror ${FORMAT_SOURCES}
+        COMMENT "Checking code format with clang-format"
+        VERBATIM
+    )
+endif()
+
+# ========================================
+# 警告标志应用函数
+# ========================================
+function(apply_fangjia_warnings target)
+    if(FANGJIA_WARNING_FLAGS)
+        target_compile_options(${target} PRIVATE ${FANGJIA_WARNING_FLAGS})
+    endif()
+endfunction()
 
 # ========================================
 # 全局包含目录
@@ -60,6 +146,7 @@ target_link_libraries(core_rendering PUBLIC
     Qt6::OpenGL 
     Qt6::Svg
 )
+apply_fangjia_warnings(core_rendering)
 
 # ========================================
 # 配置管理库（如果存在）
@@ -75,6 +162,7 @@ if(EXISTS "${SRC_DIR}/core/config/AppConfig.h")
         Qt6::Core
         Qt6::Widgets
     )
+    apply_fangjia_warnings(core_config)
 endif()
 
 # ========================================
@@ -90,6 +178,7 @@ if(WIN32)
         add_library(platform_windows STATIC ${PLATFORM_SOURCES})
         target_link_libraries(platform_windows PUBLIC Qt6::Core Qt6::Gui Dwmapi)
         target_compile_definitions(platform_windows PUBLIC WIN32_LEAN_AND_MEAN NOMINMAX)
+        apply_fangjia_warnings(platform_windows)
     endif()
 endif()
 
@@ -115,6 +204,7 @@ target_link_libraries(ui_framework PUBLIC
     Qt6::Gui 
     Qt6::Widgets
 )
+apply_fangjia_warnings(ui_framework)
 
 # ========================================
 # 数据模型库
@@ -128,6 +218,7 @@ file(GLOB MODEL_SOURCES
 
 add_library(models STATIC ${MODEL_SOURCES})
 target_link_libraries(models PUBLIC Qt6::Core Qt6::Gui)
+apply_fangjia_warnings(models)
 
 # ========================================
 # 业务视图库
@@ -153,6 +244,7 @@ target_link_libraries(business_views PUBLIC
     models 
     core_rendering
 )
+apply_fangjia_warnings(business_views)
 
 # ========================================
 # 主应用程序
@@ -193,6 +285,7 @@ if(WIN32 AND TARGET platform_windows)
 endif()
 
 target_link_libraries(FangJia PRIVATE ${APP_LIBS})
+apply_fangjia_warnings(FangJia)
 
 # ========================================
 # 测试子项目
