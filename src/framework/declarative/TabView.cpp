@@ -101,6 +101,7 @@ namespace UI {
 		bool onMousePress(const QPoint& pos) override { return m_view.onMousePress(pos); }
 		bool onMouseMove(const QPoint& pos) override { return m_view.onMouseMove(pos); }
 		bool onMouseRelease(const QPoint& pos) override { return m_view.onMouseRelease(pos); }
+		bool onWheel(const QPoint& pos, const QPoint& angleDelta) override { return m_view.onWheel(pos, angleDelta); }
 
 		bool tick() override {
 			bool any = m_view.tick();

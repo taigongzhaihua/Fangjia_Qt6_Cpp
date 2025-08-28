@@ -326,6 +326,17 @@ bool UiPanel::onMouseRelease(const QPoint& pos)
     return false;
 }
 
+bool UiPanel::onWheel(const QPoint& pos, const QPoint& angleDelta)
+{
+    if (!m_viewport.contains(pos)) return false;
+    for (const auto& it : std::ranges::reverse_view(m_children))
+    {
+        if (it.visible && it.component && it.component->onWheel(pos, angleDelta))
+            return true;
+    }
+    return false;
+}
+
 bool UiPanel::tick()
 {
     bool any = false;

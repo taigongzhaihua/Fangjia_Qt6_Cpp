@@ -134,6 +134,11 @@ bool UiContainer::onMouseRelease(const QPoint& pos)
     return m_child ? m_child->onMouseRelease(pos) : false;
 }
 
+bool UiContainer::onWheel(const QPoint& pos, const QPoint& angleDelta)
+{
+    return m_child ? m_child->onWheel(pos, angleDelta) : false;
+}
+
 bool UiContainer::tick()
 {
     return m_child ? m_child->tick() : false;

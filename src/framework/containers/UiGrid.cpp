@@ -474,6 +474,15 @@ bool UiGrid::onMouseRelease(const QPoint& pos) {
 	return false;
 }
 
+bool UiGrid::onWheel(const QPoint& pos, const QPoint& angleDelta) {
+	if (!m_viewport.contains(pos)) return false;
+	for (const auto& it : std::ranges::reverse_view(m_children)) {
+		if (!it.visible || !it.component) continue;
+		if (it.component->onWheel(pos, angleDelta)) return true;
+	}
+	return false;
+}
+
 bool UiGrid::tick() {
 	bool any = false;
 	for (const auto& ch : m_children) if (ch.component) any = ch.component->tick() || any;

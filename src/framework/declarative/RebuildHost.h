@@ -76,6 +76,10 @@ public:
         return m_child ? m_child->onMouseRelease(pos) : false;
     }
 
+    bool onWheel(const QPoint& pos, const QPoint& angleDelta) override {
+        return m_child ? m_child->onWheel(pos, angleDelta) : false;
+    }
+
     bool tick() override {
         return m_child ? m_child->tick() : false;
     }
