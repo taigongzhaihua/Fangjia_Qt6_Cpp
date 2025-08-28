@@ -24,6 +24,9 @@ public:
 	virtual bool onMousePress(const QPoint& pos) = 0;
 	virtual bool onMouseMove(const QPoint& pos) = 0;
 	virtual bool onMouseRelease(const QPoint& pos) = 0;
+	
+	// 鼠标滚轮事件：返回是否消耗，默认实现不消耗
+	virtual bool onWheel(const QPoint& pos, const QPoint& angleDelta) { return false; }
 
 	// 推进动画：返回是否仍有动画在进行
 	virtual bool tick() = 0;

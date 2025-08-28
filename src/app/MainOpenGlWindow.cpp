@@ -268,6 +268,24 @@ void MainOpenGlWindow::mouseDoubleClickEvent(QMouseEvent* e)
 	QOpenGLWindow::mouseDoubleClickEvent(e);
 }
 
+void MainOpenGlWindow::wheelEvent(QWheelEvent* e)
+{
+	// 将 QWheelEvent 的位置与 angleDelta 传给 UiRoot
+	const bool handled = m_uiRoot.onWheel(e->position().toPoint(), e->angleDelta());
+	
+	if (handled) {
+		// 如有消费则启动动画计时器并重绘
+		if (!m_animTimer.isActive()) {
+			m_animClock.start();
+			m_animTimer.start();
+		}
+		update();
+		e->accept();
+	} else {
+		QOpenGLWindow::wheelEvent(e);
+	}
+}
+
 void MainOpenGlWindow::initializeNavigation()
 {
 	// 设置导航项

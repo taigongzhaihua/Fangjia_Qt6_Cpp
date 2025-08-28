@@ -96,6 +96,16 @@ bool UiRoot::onMouseRelease(const QPoint& pos)
     return false;
 }
 
+bool UiRoot::onWheel(const QPoint& pos, const QPoint& angleDelta)
+{
+    // 按 Z 序（倒序）将滚轮事件分发给命中的子组件
+    for (const auto& it : std::ranges::reverse_view(m_children))
+    {
+        if (it->onWheel(pos, angleDelta)) return true;
+    }
+    return false;
+}
+
 bool UiRoot::tick() const
 {
     bool any = false;

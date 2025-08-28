@@ -349,6 +349,30 @@ bool UiScrollView::onMouseRelease(const QPoint& pos) {
     return wasDragging;
 }
 
+bool UiScrollView::onWheel(const QPoint& pos, const QPoint& angleDelta) {
+    // 检查位置是否在当前组件边界内
+    if (!bounds().contains(pos)) {
+        return false;
+    }
+    
+    // 计算滚动步长：基于 angleDelta.y()，默认 48px/刻度（120单位）
+    const int wheelStep = 48;
+    const int deltaY = angleDelta.y();
+    if (deltaY == 0) {
+        return false;
+    }
+    
+    // 计算滚动偏移（向上滚动为负值，向下滚动为正值）
+    const int scrollDelta = -(deltaY * wheelStep) / 120;
+    const int newScrollY = m_scrollY + scrollDelta;
+    
+    // 设置新的滚动位置（内部会进行范围限制）
+    setScrollY(newScrollY);
+    
+    // 如果有滚动内容，则消费此事件
+    return maxScrollY() > 0;
+}
+
 bool UiScrollView::tick() {
     bool any = false;
     if (m_child) {

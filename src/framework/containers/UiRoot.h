@@ -23,6 +23,7 @@ public:
 	bool onMousePress(const QPoint& pos);
 	bool onMouseMove(const QPoint& pos);
 	bool onMouseRelease(const QPoint& pos);
+	bool onWheel(const QPoint& pos, const QPoint& angleDelta);
 
 	[[nodiscard]] bool tick() const;
 
