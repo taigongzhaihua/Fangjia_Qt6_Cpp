@@ -31,7 +31,6 @@ include_directories(
     ${SRC_DIR}/core/rendering
     ${SRC_DIR}/core/platform/windows
     ${SRC_DIR}/core/config
-    ${SRC_DIR}/core/di
     ${SRC_DIR}/core/vm
     ${SRC_DIR}/framework
     ${SRC_DIR}/framework/base
@@ -75,24 +74,6 @@ if(EXISTS "${SRC_DIR}/core/config/AppConfig.h")
     target_link_libraries(core_config PUBLIC 
         Qt6::Core
         Qt6::Widgets
-    )
-endif()
-
-# ========================================
-# 依赖注入库
-# ========================================
-file(GLOB DI_SOURCES
-    "${SRC_DIR}/core/di/*.cpp"
-    "${SRC_DIR}/core/di/*.h"
-    "${SRC_DIR}/core/di/*.hpp"
-)
-
-if(DI_SOURCES)
-    add_library(core_di STATIC ${DI_SOURCES})
-    target_link_libraries(core_di PUBLIC 
-        Qt6::Core
-        models  # 需要链接 models 因为 ServiceRegistry 使用了 ViewModels
-        core_config  # 需要链接 config
     )
 endif()
 
@@ -205,10 +186,6 @@ set(APP_LIBS
 # 条件链接
 if(TARGET core_config)
     list(APPEND APP_LIBS core_config)
-endif()
-
-if(TARGET core_di)
-    list(APPEND APP_LIBS core_di)
 endif()
 
 if(WIN32 AND TARGET platform_windows)
