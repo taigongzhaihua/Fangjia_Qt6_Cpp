@@ -34,9 +34,10 @@
 #include <qwindow.h>
 #include <exception>
 #include <qlogging.h>
+#include <utility>
 
 namespace {
-	inline MainOpenGlWindow::Theme schemeToTheme(const Qt::ColorScheme s) {
+	MainOpenGlWindow::Theme schemeToTheme(const Qt::ColorScheme s) {
 		return s == Qt::ColorScheme::Dark ? MainOpenGlWindow::Theme::Dark : MainOpenGlWindow::Theme::Light;
 	}
 
@@ -56,7 +57,7 @@ MainOpenGlWindow::MainOpenGlWindow(
 	std::shared_ptr<AppConfig> config,
 	std::shared_ptr<ThemeManager> themeManager,
 	const UpdateBehavior updateBehavior)
-	: QOpenGLWindow(updateBehavior), m_config(std::move(config)), m_themeMgr(std::move(themeManager))
+	: QOpenGLWindow(updateBehavior), m_themeMgr(std::move(themeManager)), m_config(std::move(config))
 {
 	try {
 		qDebug() << "MainOpenGlWindow constructor start";
@@ -298,18 +299,18 @@ void MainOpenGlWindow::initializeNavigation()
 
 	// 连接导航选择变化
 	connect(&m_navVm, &NavViewModel::selectedIndexChanged, this, &MainOpenGlWindow::onNavSelectionChanged);
-	
+
 	// 连接导航状态变化到配置保存
 	if (m_config) {
 		connect(&m_navVm, &NavViewModel::expandedChanged, m_config.get(), [this](const bool expanded) {
 			m_config->setNavExpanded(expanded);
 			m_config->save();
-		});
-		
+			});
+
 		connect(&m_navVm, &NavViewModel::selectedIndexChanged, m_config.get(), [this](const int index) {
 			m_config->setNavSelectedIndex(index);
 			m_config->save();
-		});
+			});
 	}
 }
 
