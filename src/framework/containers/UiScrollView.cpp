@@ -5,7 +5,7 @@
 #include <qpoint.h>
 #include <qrect.h>
 #include <qsize.h>
-#include <qtypes.h>
+#include <qglobal.h>
 #include <RenderData.hpp>
 #include <RenderUtils.hpp>
 #include <UiComponent.hpp>
