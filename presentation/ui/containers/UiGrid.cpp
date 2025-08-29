@@ -501,7 +501,12 @@ void UiGrid::updateLayout(const QSize& windowSize) {
 		const QRect cell(cellX, cellY, cw, chh);
 
 		// 再测一次期望尺寸（结合跨列宽度约束）
-		const QSize desired = measureChildWidthBound(ch.component, cw);
+		const QSize measured = measureChildWidthBound(ch.component, cw);
+		QSize desired = measured;
+		if (ch.hAlign != Align::Stretch) {
+			const QSize nat = measureChildNatural(ch.component);
+			desired.setWidth(std::min(nat.width(), cw));
+		}
 
 		const QRect r = placeInCell(cell, desired, ch.hAlign, ch.vAlign);
 		m_childRects[i] = r;
@@ -595,7 +600,7 @@ QRect UiGrid::placeInCell(const QRect& cell, const QSize& desired, const Align h
 	switch (h) {
 	case Align::Start:   x = cell.left(); break;
 	case Align::Center:  x = cell.left() + (availW - w) / 2; break;
-	case Align::End:     x = cell.right() - w; break;
+	case Align::End:     x = cell.left() + (availW - w); break;
 	case Align::Stretch: x = cell.left(); break;
 	}
 
@@ -603,7 +608,7 @@ QRect UiGrid::placeInCell(const QRect& cell, const QSize& desired, const Align h
 	switch (v) {
 	case Align::Start:   y = cell.top(); break;
 	case Align::Center:  y = cell.top() + (availH - hgt) / 2; break;
-	case Align::End:     y = cell.bottom() - hgt; break;
+	case Align::End:     y = cell.top() + (availH - hgt); break;
 	case Align::Stretch: y = cell.top(); break;
 	}
 	return QRect(x, y, std::max(0, w), std::max(0, hgt));
