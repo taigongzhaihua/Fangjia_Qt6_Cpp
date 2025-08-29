@@ -54,7 +54,7 @@ private slots:
             {.id = "1", .svgLight = "", .svgDark = "", .label = "Item1"},
             {.id = "2", .svgLight = "", .svgDark = "", .label = "Item2"}
         });
-        nav->setViewModel(navVm.get());
+        nav->setDataProvider(navVm.get());
         
         auto tabVm = std::make_shared<TabViewModel>();
         tabVm->setItems({
@@ -89,7 +89,7 @@ private slots:
         // 测试ViewModel与View的同步
         auto navVm = std::make_shared<NavViewModel>();
         Ui::NavRail nav;
-        nav.setViewModel(navVm.get());
+        nav.setDataProvider(navVm.get());
         
         // 设置数据
         navVm->setItems({

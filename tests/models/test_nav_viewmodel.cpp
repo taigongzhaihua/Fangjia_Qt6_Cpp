@@ -27,8 +27,8 @@ private slots:
         vm.setItems(items);
         
         QCOMPARE(vm.count(), 2);
-        QCOMPARE(vm.items()[0].id, QString("home"));
-        QCOMPARE(vm.items()[1].label, QString("Settings"));
+        QCOMPARE(vm.itemsInternal()[0].id, QString("home"));
+        QCOMPARE(vm.itemsInternal()[1].label, QString("Settings"));
         QCOMPARE(itemsSpy.count(), 1);
     }
     
@@ -90,6 +90,43 @@ private slots:
         
         // 这取决于实现，可能需要调整
         // QCOMPARE(vm.selectedIndex(), 0);
+    }
+    
+    void testInterface() {
+        // Test that NavViewModel correctly implements INavDataProvider interface
+        NavViewModel vm;
+        
+        // Set some test data
+        vm.setItems({
+            {.id = "test1", .svgLight = "light.svg", .svgDark = "dark.svg", .label = "Test 1"},
+            {.id = "test2", .svgLight = "light2.svg", .svgDark = "dark2.svg", .label = "Test 2"}
+        });
+        
+        // Test that we can access via interface
+        fj::presentation::binding::INavDataProvider* provider = &vm;
+        QCOMPARE(provider->count(), 2);
+        QCOMPARE(provider->selectedIndex(), 0); // Should auto-select first item
+        QCOMPARE(provider->expanded(), false);
+        
+        // Test interface items() method
+        auto bindingItems = provider->items();
+        QCOMPARE(bindingItems.size(), 2);
+        QCOMPARE(bindingItems[0].id, QString("test1"));
+        QCOMPARE(bindingItems[0].label, QString("Test 1"));
+        QCOMPARE(bindingItems[1].id, QString("test2"));
+        QCOMPARE(bindingItems[1].label, QString("Test 2"));
+        
+        // Test signals work through interface
+        QSignalSpy selectionSpy(provider, &fj::presentation::binding::INavDataProvider::selectedIndexChanged);
+        QSignalSpy expandedSpy(provider, &fj::presentation::binding::INavDataProvider::expandedChanged);
+        
+        provider->setSelectedIndex(1);
+        provider->setExpanded(true);
+        
+        QCOMPARE(selectionSpy.count(), 1);
+        QCOMPARE(selectionSpy.at(0).at(0).toInt(), 1);
+        QCOMPARE(expandedSpy.count(), 1);
+        QCOMPARE(expandedSpy.at(0).at(0).toBool(), true);
     }
 };
 

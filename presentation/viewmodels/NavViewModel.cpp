@@ -3,7 +3,7 @@
 #include <utility>
 
 NavViewModel::NavViewModel(QObject* parent)
-	: QObject(parent)
+	: INavDataProvider(parent)
 {
 }
 
@@ -19,6 +19,21 @@ void NavViewModel::setItems(QVector<Item> items)
 	else if (m_selected >= m_items.size()) {
 		setSelectedIndex(m_items.isEmpty() ? -1 : 0);
 	}
+}
+
+QVector<fj::presentation::binding::NavItem> NavViewModel::items() const
+{
+	QVector<fj::presentation::binding::NavItem> result;
+	result.reserve(m_items.size());
+	for (const auto& item : m_items) {
+		result.append({
+			.id = item.id,
+			.svgLight = item.svgLight,
+			.svgDark = item.svgDark,
+			.label = item.label
+		});
+	}
+	return result;
 }
 
 void NavViewModel::setSelectedIndex(const int idx)

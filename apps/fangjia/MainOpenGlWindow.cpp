@@ -318,7 +318,7 @@ void MainOpenGlWindow::initializeNavigation()
 	}
 
 	// 设置导航视图
-	m_nav.setViewModel(&m_navVm);
+	m_nav.setDataProvider(&m_navVm);
 	m_nav.setIconLogicalSize(22);
 	m_nav.setItemHeight(48);
 	m_nav.setLabelFontPx(13);
@@ -353,7 +353,7 @@ void MainOpenGlWindow::initializePages()
 		m_pageRouter.registerPage("settings", []() { return std::make_unique<SettingsPage>(); });
 
 		// 切换到初始页面
-		const auto& items = m_navVm.items();
+		const auto& items = m_navVm.itemsInternal();
 		if (m_navVm.selectedIndex() >= 0 && m_navVm.selectedIndex() < items.size()) {
 			m_pageRouter.switchToPage(items[m_navVm.selectedIndex()].id);
 		}
@@ -471,7 +471,7 @@ void MainOpenGlWindow::setFollowSystem(const bool on) const
 
 void MainOpenGlWindow::onNavSelectionChanged(const int index)
 {
-	const auto& items = m_navVm.items();
+	const auto& items = m_navVm.itemsInternal();
 	if (index >= 0 && index < items.size()) {
 		const QString pageId = items[index].id;
 
