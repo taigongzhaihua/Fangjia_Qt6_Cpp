@@ -1,5 +1,5 @@
-#include "AppConfig.h"
 #include "DataViewModel.h"
+#include "AppConfig.h"
 #include <qlogging.h>
 
 DataViewModel::DataViewModel(AppConfig& config, QObject* parent)
@@ -25,7 +25,7 @@ int DataViewModel::selectedTab() const
 
 void DataViewModel::onTabSelectionChanged(const int index)
 {
-	// 写回 AppConfig 并保存
+	// 写回 AppConfig 并保存 (TODO: Replace with use cases)
 	const auto& items = m_tabViewModel->items();
 	if (index >= 0 && index < items.size()) {
 		const QString& tabId = items[index].id;
@@ -54,8 +54,9 @@ void DataViewModel::initializeTabs()
 
 void DataViewModel::restoreRecentTab()
 {
-	// 从配置恢复最近标签页
+	// 从配置恢复最近标签页 (TODO: Replace with use cases)
 	const QString recentTabId = m_config.recentTab();
+	
 	if (!recentTabId.isEmpty()) {
 		const int tabIdx = m_tabViewModel->findById(recentTabId);
 		if (tabIdx >= 0) {

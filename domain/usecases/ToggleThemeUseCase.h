@@ -1,0 +1,28 @@
+#pragma once
+#include "entities/Settings.h"
+#include "repositories/ISettingsRepository.h"
+#include <memory>
+#include <string>
+
+namespace domain {
+namespace usecases {
+
+/// Use case for toggling theme mode through the cycle: system -> light -> dark -> system
+/// Pure C++ - no Qt dependencies
+class ToggleThemeUseCase {
+public:
+    explicit ToggleThemeUseCase(std::shared_ptr<repositories::ISettingsRepository> repository);
+    ~ToggleThemeUseCase() = default;
+    
+    /// Execute the use case - cycle to next theme mode and return the new mode
+    std::string execute();
+    
+private:
+    std::shared_ptr<repositories::ISettingsRepository> m_repository;
+    
+    /// Get the next theme mode in the cycle
+    std::string getNextThemeMode(const std::string& currentMode) const;
+};
+
+} // namespace usecases
+} // namespace domain

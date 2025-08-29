@@ -3,16 +3,17 @@
 #include "TabViewModel.h"
 #include <memory>
 
-// 前向声明
+// Forward declaration
 class AppConfig;
 
-// DataPage 的 ViewModel，负责管理标签页状态和与 AppConfig 的持久化交互
+// DataPage 的 ViewModel - transitional implementation during refactor
 class DataViewModel : public ViewModelBase
 {
     Q_OBJECT
     Q_PROPERTY(int selectedTab READ selectedTab NOTIFY selectedTabChanged)
 
 public:
+    // Keep old constructor for backward compatibility during refactor
     explicit DataViewModel(AppConfig& config, QObject* parent = nullptr);
     ~DataViewModel() override = default;
 
@@ -26,7 +27,7 @@ signals:
     void selectedTabChanged(int index);
 
 private slots:
-    // 监听 TabViewModel 的选中变更，写回 AppConfig
+    // 监听 TabViewModel 的选中变更，通过用例更新设置
     void onTabSelectionChanged(int index);
 
 private:
@@ -34,6 +35,6 @@ private:
     void restoreRecentTab();
 
 private:
-    AppConfig& m_config;
+    AppConfig& m_config; // Temporary: will be replaced with use cases
     std::unique_ptr<TabViewModel> m_tabViewModel;
 };

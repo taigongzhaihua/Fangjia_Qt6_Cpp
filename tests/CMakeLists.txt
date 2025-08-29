@@ -18,6 +18,8 @@ target_include_directories(FangJia_Tests PRIVATE
     ${CMAKE_SOURCE_DIR}
     ${CMAKE_SOURCE_DIR}/src
     ${CMAKE_SOURCE_DIR}/data/sources/local
+    ${CMAKE_SOURCE_DIR}/domain
+    ${CMAKE_SOURCE_DIR}/tests
 )
 
 # 链接库
@@ -28,6 +30,7 @@ target_link_libraries(FangJia_Tests PRIVATE
     Qt6::OpenGL
     Qt6::Widgets
     fj_infra_gfx
+    fj_domain
     fj_data
     fj_presentation_ui
     fj_presentation_vm
