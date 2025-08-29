@@ -55,19 +55,17 @@ namespace UI {
 		}
 
 		std::unique_ptr<IUiComponent> build() const override {
-			// 1) 构建一个可重建宿主
+			// 构建一个可重建宿主
 			auto host = std::make_unique<UI::RebuildHost>();
-			// 2) 设置 builder：外部 Builder 产生 WidgetPtr，再 build 成 IUiComponent
+			// 设置 builder：外部 Builder 产生 WidgetPtr，再 build 成 IUiComponent
 			host->setBuilder([b = m_builder]() -> std::unique_ptr<IUiComponent> {
 				if (!b) return {};
 				if (const WidgetPtr w = b()) return w->build();
 				return {};
 				});
-			// 3) 首次立即构建
-			host->requestRebuild();
-			// 4) 注册所有连接器（外部在连接器里可使用 observe(...) 订阅 VM 信号）
+			// 注册所有连接器（外部在连接器里可使用 observe(...) 订阅 VM 信号）
 			for (const auto& fn : m_connectors) if (fn) fn(host.get());
-			// 5) 支持统一装饰
+			// 支持统一装饰
 			return decorate(std::move(host));
 		}
 
