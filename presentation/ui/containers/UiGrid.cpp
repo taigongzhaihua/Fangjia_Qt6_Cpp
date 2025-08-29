@@ -190,28 +190,48 @@ std::vector<int> UiGrid::computeColumnWidths(const int contentW) const {
 	const int sumOut = std::accumulate(out.begin(), out.end(), 0);
 	const int remainder = contentW - (sumOut + std::max(0, n - 1) * m_colSpacing);
 	
-	// 把余数补到最后一个 Star，如果没有 Star 则补到最后一个 Auto，最后才是任意列
+	// 余数补偿策略：只对 Star 列进行空间填充，对 Auto/Pixel 列避免不必要的扩展
 	if (remainder != 0) {
 		bool handled = false;
-		// 优先补给最后一个 Star 列
+		// 优先补给最后一个 Star 列（Star 列的设计目的是扩展以填满可用空间）
 		for (int i = n - 1; i >= 0 && !handled; --i) {
 			if (m_cols[i].type == TrackDef::Type::Star) { 
 				out[i] += remainder; 
 				handled = true; 
 			}
 		}
-		// 如果没有 Star 列，补给最后一个 Auto 列
+		// 如果没有 Star 列，Auto/Pixel 列仅在必要时调整以避免内容截断
 		if (!handled) {
-			for (int i = n - 1; i >= 0 && !handled; --i) {
-				if (m_cols[i].type == TrackDef::Type::Auto) { 
-					out[i] += remainder; 
-					handled = true; 
+			// 仅当余数较小时（可能是舍入误差）才调整内容驱动的列
+			// 这避免了大幅扭曲均匀分布
+			if (remainder > 0 && remainder <= 3) {
+				// 小的正余数：分布到最后几列以避免截断
+				for (int i = 0; i < remainder && i < n; ++i) {
+					out[n - 1 - i] += 1;
+				}
+			} else if (remainder < 0 && remainder >= -3) {
+				// 小的负余数：从前几列减去以匹配约束
+				for (int i = 0; i < -remainder && i < n; ++i) {
+					out[i] = std::max(0, out[i] - 1);
 				}
 			}
-		}
-		// 最后的回退：补给最后一列（如果全是 Pixel）
-		if (!handled && n > 0) {
-			out[n - 1] += remainder;
+			// 对于大余数，优先使用 Auto 列（如果存在）
+			else {
+				for (int i = n - 1; i >= 0 && !handled; --i) {
+					if (m_cols[i].type == TrackDef::Type::Auto) { 
+						out[i] += remainder; 
+						handled = true; 
+					}
+				}
+				// 最后回退：如果必须避免截断且全是 Pixel 列
+				if (!handled && remainder < 0) {
+					// 负余数意味着会截断，分布减少以避免截断
+					const int reducePerCol = (-remainder + n - 1) / n;
+					for (int i = 0; i < n; ++i) {
+						out[i] = std::max(0, out[i] - reducePerCol);
+					}
+				}
+			}
 		}
 	}
 
@@ -334,28 +354,48 @@ std::vector<int> UiGrid::computeRowHeights(const int contentH, const std::vector
 	const int sumOut = std::accumulate(out.begin(), out.end(), 0);
 	const int remainder = contentH - (sumOut + std::max(0, rN - 1) * m_rowSpacing);
 	
-	// 把余数补到最后一个 Star，如果没有 Star 则补到最后一个 Auto，最后才是任意行
+	// 余数补偿策略：只对 Star 行进行空间填充，对 Auto/Pixel 行避免不必要的扩展
 	if (remainder != 0) {
 		bool handled = false;
-		// 优先补给最后一个 Star 行
+		// 优先补给最后一个 Star 行（Star 行的设计目的是扩展以填满可用空间）
 		for (int r = rN - 1; r >= 0 && !handled; --r) {
 			if (m_rows[r].type == TrackDef::Type::Star) { 
 				out[r] += remainder; 
 				handled = true; 
 			}
 		}
-		// 如果没有 Star 行，补给最后一个 Auto 行
+		// 如果没有 Star 行，Auto/Pixel 行仅在必要时调整以避免内容截断
 		if (!handled) {
-			for (int r = rN - 1; r >= 0 && !handled; --r) {
-				if (m_rows[r].type == TrackDef::Type::Auto) { 
-					out[r] += remainder; 
-					handled = true; 
+			// 仅当余数较小时（可能是舍入误差）才调整内容驱动的行
+			// 这避免了大幅扭曲均匀分布
+			if (remainder > 0 && remainder <= 3) {
+				// 小的正余数：分布到最后几行以避免截断
+				for (int i = 0; i < remainder && i < rN; ++i) {
+					out[rN - 1 - i] += 1;
+				}
+			} else if (remainder < 0 && remainder >= -3) {
+				// 小的负余数：从前几行减去以匹配约束
+				for (int i = 0; i < -remainder && i < rN; ++i) {
+					out[i] = std::max(0, out[i] - 1);
 				}
 			}
-		}
-		// 最后的回退：补给最后一行（如果全是 Pixel）
-		if (!handled && rN > 0) {
-			out[rN - 1] += remainder;
+			// 对于大余数，优先使用 Auto 行（如果存在）
+			else {
+				for (int r = rN - 1; r >= 0 && !handled; --r) {
+					if (m_rows[r].type == TrackDef::Type::Auto) { 
+						out[r] += remainder; 
+						handled = true; 
+					}
+				}
+				// 最后回退：如果必须避免截断且全是 Pixel 行
+				if (!handled && remainder < 0) {
+					// 负余数意味着会截断，分布减少以避免截断
+					const int reducePerRow = (-remainder + rN - 1) / rN;
+					for (int r = 0; r < rN; ++r) {
+						out[r] = std::max(0, out[r] - reducePerRow);
+					}
+				}
+			}
 		}
 	}
 	return out;
