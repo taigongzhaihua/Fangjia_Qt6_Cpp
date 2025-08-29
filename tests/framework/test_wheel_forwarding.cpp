@@ -175,7 +175,7 @@ private:
         MockWheelComponent mockContent1, mockContent2;
         
         tabView.setViewportRect(QRect(0, 0, 300, 200));
-        tabView.setViewModel(&vm);
+        tabView.setDataProvider(&vm);
         tabView.setContent(0, &mockContent1);
         tabView.setContent(1, &mockContent2);
         
