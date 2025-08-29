@@ -18,165 +18,148 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 # 查找Qt6依赖组件
 find_package(Qt6 REQUIRED COMPONENTS Core Gui OpenGL Widgets Svg)
 
-# 项目目录结构配置
-set(PROJECT_ROOT ${CMAKE_CURRENT_SOURCE_DIR})
-set(SRC_DIR ${PROJECT_ROOT}/src)
+# ========================================
+# 模块化目标构建
+# ========================================
 
-# ========================================
-# 全局包含目录配置
-# ========================================
-# 设置源代码包含路径，支持分层架构的直接引用
-include_directories(
-    ${SRC_DIR}
-    ${SRC_DIR}/core
-    ${SRC_DIR}/core/rendering
-    ${SRC_DIR}/core/platform/windows
-    ${SRC_DIR}/core/config
-    ${SRC_DIR}/core/vm
-    ${SRC_DIR}/framework
-    ${SRC_DIR}/framework/base
-    ${SRC_DIR}/framework/containers
-    ${SRC_DIR}/framework/widgets
-    ${SRC_DIR}/framework/declarative
-    ${SRC_DIR}/models
-    ${SRC_DIR}/views
-    ${SRC_DIR}/views/pages
-    ${SRC_DIR}/views/formula
-    ${SRC_DIR}/app
+# Infrastructure Layer - Graphics/Rendering
+file(GLOB FJ_INFRA_GFX_SOURCES
+    "infrastructure/gfx/*.cpp"
+    "infrastructure/gfx/*.h"
+    "infrastructure/gfx/*.hpp"
 )
 
-# ========================================
-# 核心渲染库：OpenGL渲染器和图标缓存
-# ========================================
-file(GLOB CORE_RENDERING_SOURCES
-    "${SRC_DIR}/core/rendering/*.cpp"
-    "${SRC_DIR}/core/rendering/*.h"
-    "${SRC_DIR}/core/rendering/*.hpp"
-)
-
-add_library(core_rendering STATIC ${CORE_RENDERING_SOURCES})
-target_link_libraries(core_rendering PUBLIC 
+add_library(fj_infra_gfx STATIC ${FJ_INFRA_GFX_SOURCES})
+target_link_libraries(fj_infra_gfx PUBLIC 
     Qt6::Core 
     Qt6::Gui 
     Qt6::OpenGL 
     Qt6::Svg
 )
+target_include_directories(fj_infra_gfx PUBLIC infrastructure/gfx)
 
-# ========================================
-# 配置管理库：应用程序设置和主题持久化
-# ========================================
-if(EXISTS "${SRC_DIR}/core/config/AppConfig.h")
-    file(GLOB CONFIG_SOURCES
-        "${SRC_DIR}/core/config/*.cpp"
-        "${SRC_DIR}/core/config/*.h"
-    )
-    
-    add_library(core_config STATIC ${CONFIG_SOURCES})
-    target_link_libraries(core_config PUBLIC 
-        Qt6::Core
-        Qt6::Widgets
-    )
-endif()
-
-# ========================================
-# 平台特定库：Windows DWM集成等
-# ========================================
+# Infrastructure Layer - Platform (Windows-specific)
 if(WIN32)
-    file(GLOB PLATFORM_SOURCES
-        "${SRC_DIR}/core/platform/windows/*.cpp"
-        "${SRC_DIR}/core/platform/windows/*.h"
+    file(GLOB FJ_INFRA_PLATFORM_SOURCES
+        "infrastructure/platform/windows/*.cpp"
+        "infrastructure/platform/windows/*.h"
     )
     
-    if(PLATFORM_SOURCES)
-        add_library(platform_windows STATIC ${PLATFORM_SOURCES})
-        target_link_libraries(platform_windows PUBLIC Qt6::Core Qt6::Gui Dwmapi)
-        target_compile_definitions(platform_windows PUBLIC WIN32_LEAN_AND_MEAN NOMINMAX)
+    if(FJ_INFRA_PLATFORM_SOURCES)
+        add_library(fj_infra_platform STATIC ${FJ_INFRA_PLATFORM_SOURCES})
+        target_link_libraries(fj_infra_platform PUBLIC Qt6::Core Qt6::Gui Dwmapi)
+        target_compile_definitions(fj_infra_platform PUBLIC WIN32_LEAN_AND_MEAN NOMINMAX)
+        target_include_directories(fj_infra_platform PUBLIC 
+            infrastructure/platform
+            infrastructure/platform/windows
+        )
     endif()
 endif()
 
-# ========================================
-# UI框架库：自绘组件、布局容器、声明式API
-# ========================================
-file(GLOB UI_FRAMEWORK_SOURCES
-    "${SRC_DIR}/framework/base/*.hpp"
-    "${SRC_DIR}/framework/base/*.cpp"
-    "${SRC_DIR}/framework/base/*.h"
-    "${SRC_DIR}/framework/containers/*.cpp"
-    "${SRC_DIR}/framework/containers/*.h"
-    "${SRC_DIR}/framework/widgets/*.cpp"
-    "${SRC_DIR}/framework/widgets/*.h"
-    "${SRC_DIR}/framework/declarative/*.cpp"
-    "${SRC_DIR}/framework/declarative/*.h"
+# Data Layer - Configuration and data sources
+file(GLOB FJ_DATA_SOURCES
+    "data/sources/local/*.cpp"
+    "data/sources/local/*.h"
 )
 
-add_library(ui_framework STATIC ${UI_FRAMEWORK_SOURCES})
-target_link_libraries(ui_framework PUBLIC 
-    core_rendering 
+add_library(fj_data STATIC ${FJ_DATA_SOURCES})
+target_link_libraries(fj_data PUBLIC 
+    Qt6::Core
+    Qt6::Widgets
+)
+target_include_directories(fj_data PUBLIC 
+    data/sources
+    data/sources/local
+)
+
+# Presentation Layer - UI Framework (base, containers, widgets, declarative)
+file(GLOB FJ_PRESENTATION_UI_SOURCES
+    "presentation/ui/base/*.hpp"
+    "presentation/ui/base/*.cpp"
+    "presentation/ui/base/*.h"
+    "presentation/ui/containers/*.cpp"
+    "presentation/ui/containers/*.h"
+    "presentation/ui/widgets/*.cpp"
+    "presentation/ui/widgets/*.h"
+    "presentation/ui/declarative/*.cpp"
+    "presentation/ui/declarative/*.h"
+)
+
+add_library(fj_presentation_ui STATIC ${FJ_PRESENTATION_UI_SOURCES})
+target_link_libraries(fj_presentation_ui PUBLIC 
+    fj_infra_gfx 
+    fj_presentation_vm
     Qt6::Core 
     Qt6::Gui 
     Qt6::Widgets
 )
-
-# ========================================
-# 数据模型库：ViewModel和业务逻辑
-# ========================================
-file(GLOB MODEL_SOURCES
-    "${SRC_DIR}/models/*.cpp"
-    "${SRC_DIR}/models/*.h"
-    "${SRC_DIR}/core/vm/*.cpp"
-    "${SRC_DIR}/core/vm/*.hpp"
+target_include_directories(fj_presentation_ui PUBLIC 
+    presentation/ui
+    presentation/ui/base
+    presentation/ui/containers
+    presentation/ui/widgets
+    presentation/ui/declarative
+    presentation/viewmodels  # For viewmodel dependencies
 )
 
-add_library(models STATIC ${MODEL_SOURCES})
-target_link_libraries(models PUBLIC Qt6::Core Qt6::Gui)
-
-# ========================================
-# 业务视图库：具体页面和功能模块
-# ========================================
-file(GLOB VIEW_SOURCES
-    "${SRC_DIR}/views/formula/*.cpp"
-    "${SRC_DIR}/views/formula/*.h"
-)
-file(GLOB PAGE_SOURCES
-    "${SRC_DIR}/views/pages/*.cpp"
-    "${SRC_DIR}/views/pages/*.h"
+# Presentation Layer - ViewModels
+file(GLOB FJ_PRESENTATION_VM_SOURCES
+    "presentation/viewmodels/*.cpp"
+    "presentation/viewmodels/*.h"
+    "presentation/viewmodels/*.hpp"
 )
 
-# 合并视图源文件
-set(VIEW_SOURCES
-    ${VIEW_SOURCES}
-    ${PAGE_SOURCES}
+add_library(fj_presentation_vm STATIC ${FJ_PRESENTATION_VM_SOURCES})
+target_link_libraries(fj_presentation_vm PUBLIC Qt6::Core Qt6::Gui)
+target_include_directories(fj_presentation_vm PUBLIC 
+    presentation/viewmodels
+    src/core/config  # For AppConfig forwarding header
 )
 
-add_library(business_views STATIC ${VIEW_SOURCES})
-target_link_libraries(business_views PUBLIC 
-    ui_framework 
-    models 
-    core_rendering
+# Presentation Layer - Pages and Views
+file(GLOB FJ_PRESENTATION_PAGES_SOURCES
+    "presentation/pages/*.cpp"
+    "presentation/pages/*.h"
+    "presentation/views/formula/*.cpp"
+    "presentation/views/formula/*.h"
 )
 
-# ========================================
-# 主应用程序可执行文件
-# ========================================
-set(APP_SOURCES
-    ${SRC_DIR}/app/main.cpp
-    ${SRC_DIR}/app/MainOpenGlWindow.h
-    ${SRC_DIR}/app/MainOpenGlWindow.cpp
+add_library(fj_presentation_pages STATIC ${FJ_PRESENTATION_PAGES_SOURCES})
+target_link_libraries(fj_presentation_pages PUBLIC 
+    fj_presentation_ui 
+    fj_presentation_vm 
+    fj_infra_gfx
+)
+target_include_directories(fj_presentation_pages PUBLIC 
+    presentation/pages
+    presentation/views
+    presentation/views/formula
+)
+
+# Domain Layer - Empty placeholder for Stage 2/3
+add_library(fj_domain INTERFACE)
+
+# Application - Main executable
+file(GLOB APP_SOURCES
+    "apps/fangjia/*.cpp"
+    "apps/fangjia/*.h"
 )
 
 # 嵌入Qt资源文件（图标、字体等）
-if(EXISTS "${PROJECT_ROOT}/resources/resources.qrc")
-    list(APPEND APP_SOURCES ${PROJECT_ROOT}/resources/resources.qrc)
+if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/resources/resources.qrc")
+    list(APPEND APP_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/resources/resources.qrc")
 endif()
 
 add_executable(FangJia WIN32 ${APP_SOURCES})
 
-# 链接所有依赖库
+# Link all dependencies to main application
 set(APP_LIBS
-    business_views    # 业务视图层
-    ui_framework     # UI框架层  
-    models          # 数据模型层
-    core_rendering  # 核心渲染层
+    fj_presentation_pages
+    fj_presentation_ui
+    fj_presentation_vm
+    fj_infra_gfx
+    fj_domain
+    fj_data
     Qt6::Core
     Qt6::Gui
     Qt6::OpenGL
@@ -184,16 +167,16 @@ set(APP_LIBS
     Qt6::Svg
 )
 
-# 条件性链接平台特定库
-if(TARGET core_config)
-    list(APPEND APP_LIBS core_config)
-endif()
-
-if(WIN32 AND TARGET platform_windows)
-    list(APPEND APP_LIBS platform_windows)
+# Conditionally link platform-specific libraries
+if(WIN32 AND TARGET fj_infra_platform)
+    list(APPEND APP_LIBS fj_infra_platform)
 endif()
 
 target_link_libraries(FangJia PRIVATE ${APP_LIBS})
+target_include_directories(FangJia PRIVATE apps/fangjia)
+
+# Maintain compatibility with old include paths
+target_include_directories(FangJia PRIVATE src/core/config)
 
 # ========================================
 # 测试子项目
@@ -214,6 +197,6 @@ message(STATUS "===========================================")
 message(STATUS "Fangjia Qt6 C++项目配置完成")
 message(STATUS "===========================================")
 message(STATUS "Qt6版本: ${Qt6_VERSION}")
-message(STATUS "源目录: ${SRC_DIR}")
+message(STATUS "源目录: ${CMAKE_CURRENT_SOURCE_DIR}")
 message(STATUS "C++标准: ${CMAKE_CXX_STANDARD}")
 message(STATUS "==========================================")

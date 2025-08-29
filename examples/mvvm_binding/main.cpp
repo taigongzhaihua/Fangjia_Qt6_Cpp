@@ -3,9 +3,9 @@
 #include <QObject>
 #include <QDebug>
 #include <iostream>
-#include "framework/declarative/RebuildHost.h"
-#include "framework/base/UiComponent.hpp"
-#include "core/rendering/RenderData.hpp"
+#include "presentation/ui/declarative/RebuildHost.h"
+#include "presentation/ui/base/UiComponent.hpp"
+#include "infrastructure/gfx/RenderData.hpp"
 
 // 简单的计数器 ViewModel 用于演示
 class CounterViewModel : public QObject
