@@ -222,11 +222,15 @@ void MainOpenGlWindow::mouseMoveEvent(QMouseEvent* e)
 void MainOpenGlWindow::mouseReleaseEvent(QMouseEvent* e)
 {
 	if (e->button() == Qt::LeftButton) {
-		if (m_uiRoot.onMouseRelease(e->pos())) {
+		const bool handled = m_uiRoot.onMouseRelease(e->pos());
+		bool actionsTaken = false;
+		
+		if (handled) {
 			// 处理顶栏按钮点击
 			if (bool theme = false, follow = false; m_topBar.takeActions(theme, follow)) {
 				if (theme) onThemeToggle();
 				if (follow) onFollowSystemToggle();
+				actionsTaken = true;
 			}
 
 			if (bool min = false, max = false, close = false; m_topBar.takeSystemActions(min, max, close)) {
@@ -236,14 +240,19 @@ void MainOpenGlWindow::mouseReleaseEvent(QMouseEvent* e)
 					if (visibility() == Maximized) showNormal();
 					else showMaximized();
 				}
+				actionsTaken = true;
 			}
 
 			if (!m_animTimer.isActive()) {
 				m_animClock.start();
 				m_animTimer.start();
 			}
+		}
 
-			update();
+		// Always schedule a redraw on left-button release to ensure VM-driven rebuilds are rendered
+		update();
+		
+		if (handled || actionsTaken) {
 			e->accept();
 			return;
 		}

@@ -319,7 +319,7 @@ public slots:
             };
             
             QMap<int, MockNode> nodes;
-            int selectedId = -1;
+            int m_selectedId = -1;
             
             void addNode(int id, const QString& label, int level = 0, bool expanded = false) {
                 nodes[id] = MockNode{label, level, expanded, {}};
@@ -359,11 +359,11 @@ public slots:
             }
             
             int selectedId() const override {
-                return selectedId;
+                return m_selectedId;
             }
             
             void setSelectedId(int nodeId) override {
-                selectedId = nodeId;
+                m_selectedId = nodeId;
             }
             
             void setExpanded(int nodeId, bool on) override {
