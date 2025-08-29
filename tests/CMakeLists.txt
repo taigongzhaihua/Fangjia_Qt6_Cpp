@@ -15,10 +15,8 @@ add_executable(FangJia_Tests ${TEST_SOURCES})
 # 包含目录
 target_include_directories(FangJia_Tests PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}
+    ${CMAKE_SOURCE_DIR}
     ${CMAKE_SOURCE_DIR}/src
-    ${CMAKE_SOURCE_DIR}/src/core
-    ${CMAKE_SOURCE_DIR}/src/framework
-    ${CMAKE_SOURCE_DIR}/src/models
 )
 
 # 链接库
@@ -28,15 +26,15 @@ target_link_libraries(FangJia_Tests PRIVATE
     Qt6::Gui
     Qt6::OpenGL
     Qt6::Widgets
-    core_rendering
-    core_config
-    ui_framework
-    models
+    fj_infra_gfx
+    fj_data
+    fj_presentation_ui
+    fj_presentation_vm
 )
 
 # Windows特定链接
-if(WIN32 AND TARGET platform_windows)
-    target_link_libraries(FangJia_Tests PRIVATE platform_windows)
+if(WIN32 AND TARGET fj_infra_platform)
+    target_link_libraries(FangJia_Tests PRIVATE fj_infra_platform)
 endif()
 
 # 添加测试

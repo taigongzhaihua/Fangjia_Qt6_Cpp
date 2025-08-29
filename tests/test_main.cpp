@@ -4,29 +4,29 @@
 #include <QSignalSpy>
 
 // Core test for ThemeManager
-#include "models/ThemeManager.h"
+#include "presentation/viewmodels/ThemeManager.h"
 
 // Core test for AppConfig  
 #include "core/config/AppConfig.h"
 
 // Core test for TabViewModel
-#include "models/TabViewModel.h"
+#include "presentation/viewmodels/TabViewModel.h"
 
 // Core test for FormulaViewModel
-#include "models/FormulaViewModel.h"
+#include "presentation/viewmodels/FormulaViewModel.h"
 
 // Core test for RebuildHost
-#include "framework/declarative/RebuildHost.h"
-#include "framework/base/UiComponent.hpp"
+#include "presentation/ui/declarative/RebuildHost.h"
+#include "presentation/ui/base/UiComponent.hpp"
 
 // Core test for DecoratedBox
-#include "framework/declarative/Decorators.h"
+#include "presentation/ui/declarative/Decorators.h"
 
 // Framework tests
-#include "framework/containers/UiScrollView.h"
-#include "framework/containers/UiPage.h"
-#include "framework/widgets/UiTreeList.h"
-#include "framework/base/ILayoutable.hpp"
+#include "presentation/ui/containers/UiScrollView.h"
+#include "presentation/ui/containers/UiPage.h"
+#include "presentation/ui/widgets/UiTreeList.h"
+#include "presentation/ui/base/ILayoutable.hpp"
 
 class SimpleTestRunner : public QObject
 {

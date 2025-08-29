@@ -14,19 +14,15 @@ add_executable(mvvm_binding_example ${EXAMPLE_SOURCES})
 
 # 包含目录
 target_include_directories(mvvm_binding_example PRIVATE
-    ${CMAKE_SOURCE_DIR}/src
-    ${CMAKE_SOURCE_DIR}/src/core
-    ${CMAKE_SOURCE_DIR}/src/framework
-    ${CMAKE_SOURCE_DIR}/src/framework/declarative
-    ${CMAKE_SOURCE_DIR}/src/models
+    ${CMAKE_SOURCE_DIR}
 )
 
 # 链接库
 target_link_libraries(mvvm_binding_example PRIVATE
     Qt6::Core
     Qt6::Gui
-    ui_framework
-    core_rendering
+    fj_presentation_ui
+    fj_infra_gfx
 )
 
 # 设置输出目录
