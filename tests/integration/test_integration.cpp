@@ -2,7 +2,7 @@
 #include <QOpenGLContext>
 #include <QOffscreenSurface>
 #include <memory>
-#include "../../src/core/config/AppConfig.h"
+#include "AppConfig.h"
 #include "../../src/models/NavViewModel.h"
 #include "../../src/models/TabViewModel.h"
 #include "../../src/framework/containers/UiRoot.h"
