@@ -13,6 +13,10 @@
 #include "usecases/GetSettingsUseCase.h"
 #include "usecases/UpdateSettingsUseCase.h"
 #include "usecases/ToggleThemeUseCase.h"
+#include "usecases/GetThemeModeUseCase.h"
+#include "usecases/SetThemeModeUseCase.h"
+#include "usecases/GetRecentTabUseCase.h"
+#include "usecases/SetRecentTabUseCase.h"
 #include "DependencyProvider.h"
 #include <exception>
 #include <memory>
@@ -26,18 +30,6 @@
 #include <qsurfaceformat.h>
 
 namespace {
-	/// 功能：将主题模式枚举转换为字符串表示
-	/// 参数：m — 主题模式枚举值
-	/// 返回：对应的字符串标识符（"system"/"light"/"dark"）
-	QString modeToString(const ThemeManager::ThemeMode m) {
-		switch (m) {
-		case ThemeManager::ThemeMode::FollowSystem: return "system";
-		case ThemeManager::ThemeMode::Light: return "light";
-		case ThemeManager::ThemeMode::Dark: return "dark";
-		}
-		return "system";
-	}
-
 	/// 功能：将字符串转换为主题模式枚举
 	/// 参数：s — 字符串标识符
 	/// 返回：对应的主题模式，无效值时默认为跟随系统
@@ -80,37 +72,31 @@ int main(int argc, char* argv[])
 		auto getSettingsUseCase = std::make_shared<domain::usecases::GetSettingsUseCase>(settingsRepository);
 		auto updateSettingsUseCase = std::make_shared<domain::usecases::UpdateSettingsUseCase>(settingsRepository);
 		auto toggleThemeUseCase = std::make_shared<domain::usecases::ToggleThemeUseCase>(settingsRepository);
+		auto getThemeModeUseCase = std::make_shared<domain::usecases::GetThemeModeUseCase>(settingsRepository);
+		auto setThemeModeUseCase = std::make_shared<domain::usecases::SetThemeModeUseCase>(settingsRepository);
+		auto getRecentTabUseCase = std::make_shared<domain::usecases::GetRecentTabUseCase>(settingsRepository);
+		auto setRecentTabUseCase = std::make_shared<domain::usecases::SetRecentTabUseCase>(settingsRepository);
 
 		// 配置依赖提供者（临时服务定位器）
 		auto& deps = DependencyProvider::instance();
 		deps.setGetSettingsUseCase(getSettingsUseCase);
 		deps.setUpdateSettingsUseCase(updateSettingsUseCase);
 		deps.setToggleThemeUseCase(toggleThemeUseCase);
+		deps.setGetThemeModeUseCase(getThemeModeUseCase);
+		deps.setSetThemeModeUseCase(setThemeModeUseCase);
+		deps.setGetRecentTabUseCase(getRecentTabUseCase);
+		deps.setSetRecentTabUseCase(setRecentTabUseCase);
 
-		// 创建主题管理器
-		const auto themeManager = std::make_shared<ThemeManager>();
+		// 创建主题管理器（使用依赖注入的新构造函数）
+		const auto themeManager = std::make_shared<ThemeManager>(getThemeModeUseCase, setThemeModeUseCase);
+		
+		// 从设置中加载主题状态
+		themeManager->load();
 
-		// 从配置中恢复主题设置（通过用例）
-		{
-			const auto settings = getSettingsUseCase->execute();
-			const auto& mode = settings.themeMode;
-			if (mode == "light") {
-				themeManager->setMode(ThemeManager::ThemeMode::Light);
-			}
-			else if (mode == "dark") {
-				themeManager->setMode(ThemeManager::ThemeMode::Dark);
-			}
-			else {
-				themeManager->setMode(ThemeManager::ThemeMode::FollowSystem);
-			}
-		}
-
-		// 连接主题变化信号到配置持久化（通过用例）
+		// 连接主题变化信号到配置持久化（通过ThemeManager内置的save方法）
 		QObject::connect(themeManager.get(), &ThemeManager::modeChanged,
-			[updateSettingsUseCase, getSettingsUseCase](const ThemeManager::ThemeMode themeMode) {
-				auto settings = getSettingsUseCase->execute();
-				settings.themeMode = modeToString(themeMode).toStdString();
-				updateSettingsUseCase->execute(settings);
+			[themeManager](const ThemeManager::ThemeMode) {
+				themeManager->save();
 			});
 
 		qDebug() << "Creating main window...";

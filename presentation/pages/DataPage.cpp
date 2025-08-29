@@ -1,6 +1,9 @@
 #include "AppConfig.h"
 #include "DataPage.h"
 #include "DataViewModel.h"
+#include "SettingsRepository.h"
+#include "usecases/GetRecentTabUseCase.h"
+#include "usecases/SetRecentTabUseCase.h"
 #include "UI.h"
 #include "UiFormulaView.h"
 #include <BasicWidgets.h>
@@ -25,8 +28,15 @@ public:
 
 	explicit Impl(AppConfig* config)
 	{
-		// 创建 DataViewModel，负责标签页状态和配置交互
-		dataViewModel = std::make_unique<DataViewModel>(*config);
+		// Create local use cases for DataViewModel using the provided AppConfig
+		// This bridges the legacy AppConfig to the new domain use cases
+		auto settingsRepository = std::make_shared<data::repositories::SettingsRepository>(
+			std::shared_ptr<AppConfig>(config, [](AppConfig*) {})); // Non-owning shared_ptr
+		auto getRecentTabUseCase = std::make_shared<domain::usecases::GetRecentTabUseCase>(settingsRepository);
+		auto setRecentTabUseCase = std::make_shared<domain::usecases::SetRecentTabUseCase>(settingsRepository);
+
+		// Create DataViewModel with domain use cases
+		dataViewModel = std::make_unique<DataViewModel>(getRecentTabUseCase, setRecentTabUseCase);
 
 		// 创建方剂视图
 		formulaView = std::make_unique<UiFormulaView>();

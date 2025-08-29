@@ -1,4 +1,7 @@
 #include "ThemeManager.h"
+#include "entities/Theme.h"
+#include "usecases/GetThemeModeUseCase.h"
+#include "usecases/SetThemeModeUseCase.h"
 
 #include <qglobal.h>
 #include <qguiapplication.h>
@@ -41,6 +44,18 @@ namespace {
 
 ThemeManager::ThemeManager(QObject* parent)
 	: QObject(parent)
+{
+	// 初始根据系统设置一个默认值
+	m_effective = systemColorScheme();
+	connectSystemWatcher();
+}
+
+ThemeManager::ThemeManager(std::shared_ptr<domain::usecases::GetThemeModeUseCase> getThemeUseCase,
+                           std::shared_ptr<domain::usecases::SetThemeModeUseCase> setThemeUseCase,
+                           QObject* parent)
+	: QObject(parent)
+	, m_getThemeUseCase(std::move(getThemeUseCase))
+	, m_setThemeUseCase(std::move(setThemeUseCase))
 {
 	// 初始根据系统设置一个默认值
 	m_effective = systemColorScheme();
@@ -104,21 +119,33 @@ void ThemeManager::disconnectSystemWatcher()
 
 void ThemeManager::load()
 {
-	QSettings s;
-	s.beginGroup(K_SETTINGS_GROUP);
-	const auto modeStr = s.value(K_MODE_KEY, "system").toString();
-	s.endGroup();
-
-	setMode(stringToMode(modeStr));
-	// setMode 已经会调用 update 和 save（这里再保存也无妨）
+	if (m_getThemeUseCase) {
+		// Use domain use case
+		const auto domainMode = m_getThemeUseCase->execute();
+		setMode(fromDomainThemeMode(static_cast<int>(domainMode)));
+	} else {
+		// Fallback to QSettings for backward compatibility
+		QSettings s;
+		s.beginGroup(K_SETTINGS_GROUP);
+		const auto modeStr = s.value(K_MODE_KEY, "system").toString();
+		s.endGroup();
+		setMode(stringToMode(modeStr));
+	}
 }
 
 void ThemeManager::save() const
 {
-	QSettings s;
-	s.beginGroup(K_SETTINGS_GROUP);
-	s.setValue(K_MODE_KEY, modeToString(m_mode));
-	s.endGroup();
+	if (m_setThemeUseCase) {
+		// Use domain use case
+		const auto domainMode = static_cast<domain::entities::ThemeMode>(toDomainThemeMode(m_mode));
+		m_setThemeUseCase->execute(domainMode);
+	} else {
+		// Fallback to QSettings for backward compatibility
+		QSettings s;
+		s.beginGroup(K_SETTINGS_GROUP);
+		s.setValue(K_MODE_KEY, modeToString(m_mode));
+		s.endGroup();
+	}
 }
 
 void ThemeManager::cycleMode()
@@ -128,4 +155,25 @@ void ThemeManager::cycleMode()
 	case ThemeMode::Light:        setMode(ThemeMode::Dark);  break;
 	case ThemeMode::Dark:         setMode(ThemeMode::FollowSystem); break;
 	}
+}
+
+ThemeManager::ThemeMode ThemeManager::fromDomainThemeMode(int domainMode) const
+{
+	const auto mode = static_cast<domain::entities::ThemeMode>(domainMode);
+	switch (mode) {
+	case domain::entities::ThemeMode::Light: return ThemeMode::Light;
+	case domain::entities::ThemeMode::Dark: return ThemeMode::Dark;
+	case domain::entities::ThemeMode::FollowSystem: return ThemeMode::FollowSystem;
+	}
+	return ThemeMode::FollowSystem; // Default fallback
+}
+
+int ThemeManager::toDomainThemeMode(ThemeMode mode) const
+{
+	switch (mode) {
+	case ThemeMode::Light: return static_cast<int>(domain::entities::ThemeMode::Light);
+	case ThemeMode::Dark: return static_cast<int>(domain::entities::ThemeMode::Dark);
+	case ThemeMode::FollowSystem: return static_cast<int>(domain::entities::ThemeMode::FollowSystem);
+	}
+	return static_cast<int>(domain::entities::ThemeMode::FollowSystem); // Default fallback
 }
