@@ -1,3 +1,11 @@
+/*
+ * 文件名：IconCache.h  
+ * 职责：图标与文本纹理缓存管理，负责SVG渲染、字体栅格化和OpenGL纹理生命周期。
+ * 依赖：Qt6 OpenGL/Gui/Svg。
+ * 线程：仅在拥有OpenGL上下文的线程中使用（通常为UI线程）。
+ * 备注：所有纹理创建和销毁必须在同一OpenGL上下文中进行，支持白膜（tint）策略。
+ */
+
 #pragma once
 #include <qbytearray.h>
 #include <qcolor.h>
@@ -6,38 +14,72 @@
 #include <qsize.h>
 #include <qstring.h>
 
-// 管理图标/文本纹理缓存与 GL 生命周期
-// 仅在拥有当前 OpenGL 上下文的线程中调用这些接口（通常是 GUI/渲染线程）
+/// 图标与文本纹理缓存：管理OpenGL纹理资源的创建、缓存和释放
+/// 
+/// 功能：
+/// - SVG图标渲染为OpenGL纹理（支持指定像素尺寸）  
+/// - 字体字符栅格化（单字符精确控制）
+/// - 文本字符串渲染（多字符组合，支持颜色）
+/// - 纹理生命周期管理（创建、查询、释放）
+/// 
+/// 白膜策略：
+/// - SVG图标通常为单色白色模板，运行时通过着色器着色
+/// - 文本渲染直接生成带颜色的纹理，无需额外着色
 class IconCache {
 public:
 	IconCache() = default;
 	~IconCache() = default;
 
-	// 确保存在一个 SVG 纹理（像素尺寸指定）。返回 GL 纹理 id。
-	// 移除了未使用的颜色参数
+	/// 功能：确保SVG图标纹理存在
+	/// 参数：key — 缓存键（由调用方生成，需包含尺寸等区分要素）
+	/// 参数：svgData — SVG文件的字节数据
+	/// 参数：pixelSize — 目标渲染尺寸（设备像素）
+	/// 参数：gl — OpenGL函数表
+	/// 返回：OpenGL纹理ID
+	/// 说明：相同key的重复调用会直接返回已缓存的纹理
 	int ensureSvgPx(const QString& key, const QByteArray& svgData, const QSize& pixelSize, QOpenGLFunctions* gl);
 
-	// 使用字体渲染一个字符为纹理。
+	/// 功能：渲染单个字符为纹理
+	/// 参数：key — 缓存键（需包含字符、字体、尺寸、颜色等要素）
+	/// 参数：font — 字体对象
+	/// 参数：glyph — 要渲染的字符
+	/// 参数：pixelSize — 渲染尺寸（设备像素）
+	/// 参数：glyphColor — 字符颜色
+	/// 参数：gl — OpenGL函数表
+	/// 返回：OpenGL纹理ID
 	int ensureFontGlyphPx(const QString& key, const QFont& font, QChar glyph, const QSize& pixelSize, const QColor& glyphColor, QOpenGLFunctions* gl);
 
-	// 使用字体渲染一段文本为纹理（像素尺寸由字体像素大小和文本长度决定）。
-	// - key 必须包含区分文本内容、颜色、像素大小的要素（调用方生成）
-	// - font 需已设置 pixelSize（像素单位）
+	/// 功能：渲染文本字符串为纹理  
+	/// 参数：key — 缓存键（必须包含文本内容、颜色、字体大小等区分要素）
+	/// 参数：fontPx — 字体对象（需已设置像素大小）
+	/// 参数：text — 要渲染的文本字符串
+	/// 参数：color — 文本颜色
+	/// 参数：gl — OpenGL函数表
+	/// 返回：OpenGL纹理ID
+	/// 说明：纹理尺寸由字体像素大小和文本长度自动计算
 	int ensureTextPx(const QString& key, const QFont& fontPx, const QString& text, const QColor& color, QOpenGLFunctions* gl);
 
-	// 查询纹理像素尺寸
+	/// 功能：查询纹理的像素尺寸
+	/// 参数：texId — OpenGL纹理ID
+	/// 返回：纹理的像素尺寸
 	[[nodiscard]] QSize textureSizePx(int texId) const;
 
-	// 释放所有纹理（窗口销毁时调用）
+	/// 功能：释放所有缓存的纹理
+	/// 参数：gl — OpenGL函数表
+	/// 说明：在窗口或OpenGL上下文销毁时调用
 	void releaseAll(QOpenGLFunctions* gl);
 
 private:
 	struct Tex {
-		int   id{ 0 };
-		QSize sizePx;
+		int   id{ 0 };        // OpenGL纹理ID
+		QSize sizePx;         // 纹理尺寸（设备像素）
 	};
-	QHash<QString, Tex> m_cache;        // key -> Tex
-	QHash<int, QSize>   m_idToSize;     // id  -> size
+	QHash<QString, Tex> m_cache;        // 缓存键 -> 纹理信息
+	QHash<int, QSize>   m_idToSize;     // 纹理ID -> 尺寸快速查询
 
+	/// 功能：从RGBA图像创建OpenGL纹理
+	/// 参数：imgRGBA — 32位RGBA格式的图像数据
+	/// 参数：gl — OpenGL函数表  
+	/// 返回：创建的OpenGL纹理ID
 	static int createTextureFromImage(const QImage& imgRGBA, QOpenGLFunctions* gl);
 };

@@ -1,3 +1,11 @@
+/*
+ * 文件名：BasicWidgets.h
+ * 职责：声明式UI框架的基础组件定义，包括文本和图标组件。
+ * 依赖：Widget基类、布局系统。
+ * 线程：仅在UI线程使用。
+ * 备注：采用流式API设计，支持链式调用配置组件属性，自动主题适配。
+ */
+
 #pragma once
 #include "Widget.h"
 #include <qfont.h>
@@ -7,18 +15,32 @@
 
 namespace UI {
 
-	// 文本组件
+	/// 文本组件：支持多行、自动换行、溢出处理和主题色适配
+	/// 
+	/// 功能特性：
+	/// - 灵活的颜色配置（手动指定、主题自适应、系统默认）
+	/// - 文本溢出处理（可见、剪裁、省略号）
+	/// - 自动换行与最大行数限制
+	/// - 字体属性完整控制（大小、粗细、对齐）
+	/// 
+	/// 使用示例：
+	/// auto label = text("Hello")->fontSize(14)->color(Qt::blue);
+	/// auto themed = text("Title")->themeColor(Qt::black, Qt::white);
 	class Text : public Widget {
 	public:
+		/// 溢出处理策略
 		enum class Overflow {
-			Visible,  // 超出也继续绘制（尽量避免）
-			Clip,     // 按容器边界裁切
-			Ellipsis  // 超出用省略号
+			Visible,  // 超出边界继续绘制（可能造成重叠）
+			Clip,     // 按容器边界剪裁
+			Ellipsis  // 超出部分显示省略号
 		};
 
 		explicit Text(QString text) : m_text(std::move(text)) {}
 
-		// 显式设色：一旦调用则不再跟随主题自动变色
+		/// 功能：设置固定颜色
+		/// 参数：c — 文本颜色
+		/// 返回：当前文本组件实例（支持链式调用）
+		/// 说明：一旦调用则不再跟随主题自动变色
 		std::shared_ptr<Text> color(QColor c) {
 			m_color = c;
 			m_autoColor = false;
@@ -26,7 +48,11 @@ namespace UI {
 			return self<Text>();
 		}
 
-		// 新增：分别设置亮/暗两套颜色，随主题自动切换
+		/// 功能：设置主题自适应颜色
+		/// 参数：light — 亮色主题下的文本颜色
+		/// 参数：dark — 暗色主题下的文本颜色
+		/// 返回：当前文本组件实例（支持链式调用）
+		/// 说明：随主题变化自动切换颜色，优先级高于默认自动配色
 		std::shared_ptr<Text> themeColor(QColor light, QColor dark) {
 			m_colorLight = light;
 			m_colorDark = dark;
@@ -35,17 +61,26 @@ namespace UI {
 			return self<Text>();
 		}
 
+		/// 功能：设置字体大小
+		/// 参数：size — 字体大小（逻辑像素）
+		/// 返回：当前文本组件实例（支持链式调用）
 		std::shared_ptr<Text> fontSize(int size) {
 			m_fontSize = size;
 			return self<Text>();
 		}
 
+		/// 功能：设置字体粗细
+		/// 参数：weight — 字体粗细枚举值
+		/// 返回：当前文本组件实例（支持链式调用）
 		std::shared_ptr<Text> fontWeight(QFont::Weight weight) {
 			m_fontWeight = weight;
 			return self<Text>();
 		}
 
-		// 文本在自身矩形内的对齐（水平+垂直）
+		/// 功能：设置文本对齐方式
+		/// 参数：align — 对齐方式（水平+垂直组合）
+		/// 返回：当前文本组件实例（支持链式调用）
+		/// 说明：控制文本在自身矩形内的对齐位置
 		std::shared_ptr<Text> align(Qt::Alignment align) {
 			m_alignment = align;
 			return self<Text>();

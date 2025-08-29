@@ -1,3 +1,11 @@
+/*
+ * 文件名：Binding.h
+ * 职责：声明式UI绑定系统，提供"数据变化即重建"的响应式编程模型。
+ * 依赖：RebuildHost、Widget基类、Qt信号机制。
+ * 线程：仅在UI线程使用。
+ * 备注：基于观察者模式，支持ViewModel信号绑定到UI重建的自动化响应。
+ */
+
 #pragma once
 #include "RebuildHost.h"
 #include "Widget.h"
@@ -8,22 +16,39 @@
 
 namespace UI {
 
-	// 通用观察辅助：连接任意 QObject 信号
-	// 用法：observe(vm, &VmType::someSignal, [host]{ host->requestRebuild(); });
+	/// 功能：通用信号观察辅助函数
+	/// 参数：obj — 信号发射对象
+	/// 参数：sig — 信号成员函数指针
+	/// 参数：fn — 响应回调函数
+	/// 返回：Qt信号连接对象，用于后续断开连接
+	/// 使用示例：observe(vm, &VmType::dataChanged, [host]{ host->requestRebuild(); });
 	template<typename Obj, typename Signal, typename Fn>
 	inline QMetaObject::Connection observe(Obj* obj, Signal sig, Fn fn) {
 		return QObject::connect(obj, sig, std::move(fn));
 	}
 
-	// 声明式 BindingHost：基于 RebuildHost 的"变化即重建"封装
+	/// 绑定宿主：基于RebuildHost的"变化即重建"声明式UI容器
+	/// 
+	/// 功能：
+	/// - 响应式UI：数据变化自动触发子树重建
+	/// - 信号绑定：简化ViewModel到UI的连接代码
+	/// - 声明式语法：支持流式API配置绑定关系
+	/// 
+	/// 使用模式：
+	/// 1. 提供Builder函数生成UI子树
+	/// 2. 通过Connector函数配置信号绑定
+	/// 3. 数据变化时自动重建UI内容
 	class BindingHost : public Widget {
 	public:
-		using Builder = std::function<WidgetPtr()>;            // 返回一个声明式子树（WidgetPtr）
-		using Connector = std::function<void(UI::RebuildHost*)>; // 在此回调里完成信号连接
+		using Builder = std::function<WidgetPtr()>;            // UI构建函数：返回声明式子树
+		using Connector = std::function<void(UI::RebuildHost*)>; // 连接器函数：配置信号绑定
 
 		explicit BindingHost(Builder b) : m_builder(std::move(b)) {}
 
-		// 注册一个连接器：接收 RebuildHost*，由调用方完成信号->requestRebuild 的连接
+		/// 功能：注册信号连接器
+		/// 参数：c — 连接器函数，接收RebuildHost指针用于配置信号绑定
+		/// 返回：当前BindingHost实例（支持链式调用）
+		/// 说明：在连接器中使用observe()函数连接ViewModel信号到requestRebuild()
 		std::shared_ptr<BindingHost> connect(Connector c) {
 			m_connectors.push_back(std::move(c));
 			return self<BindingHost>();
