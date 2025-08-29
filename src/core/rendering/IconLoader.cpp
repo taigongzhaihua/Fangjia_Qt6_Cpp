@@ -5,6 +5,7 @@
 #include <qcolor.h>
 #include <qfont.h>
 #include <qfontmetrics.h>
+#include <qglobal.h>
 #include <qimage.h>
 #include <qnamespace.h>
 #include <qpainter.h>
@@ -13,7 +14,6 @@
 #include <qsize.h>
 #include <qstring.h>
 #include <qsvgrenderer.h>
-#include <qglobal.h>
 
 QImage IconLoader::toWhiteMask(const QImage& srcRgba8888)
 {
@@ -43,7 +43,7 @@ QImage IconLoader::renderSvgToImage(const QByteArray& svg, const QSize& pixelSiz
 		QSvgRenderer renderer(svg);
 		renderer.render(&p, QRectF(QPointF(0, 0), QSizeF(pixelSize)));
 	}
-	QImage rgba = img.convertToFormat(QImage::Format_RGBA8888);
+	const QImage rgba = img.convertToFormat(QImage::Format_RGBA8888);
 	return toWhiteMask(rgba);
 }
 

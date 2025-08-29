@@ -20,7 +20,7 @@ namespace UI {
 		void updateLayout(const QSize& windowSize) override {
 			if (m_wrapped) m_wrapped->updateLayout(windowSize);
 		}
-		void updateResourceContext(IconCache& cache, QOpenGLFunctions* gl, float dpr) override {
+		void updateResourceContext(IconCache& cache, QOpenGLFunctions* gl, const float dpr) override {
 			if (m_wrapped) m_wrapped->updateResourceContext(cache, gl, dpr);
 		}
 		void append(Render::FrameData& fd) const override {
@@ -32,7 +32,7 @@ namespace UI {
 		bool onWheel(const QPoint& pos, const QPoint& angleDelta) override { return m_wrapped ? m_wrapped->onWheel(pos, angleDelta) : false; }
 		bool tick() override { return m_wrapped ? m_wrapped->tick() : false; }
 		QRect bounds() const override { return m_wrapped ? m_wrapped->bounds() : m_viewport; }
-		void onThemeChanged(bool isDark) override { if (m_wrapped) m_wrapped->onThemeChanged(isDark); }
+		void onThemeChanged(const bool isDark) override { if (m_wrapped) m_wrapped->onThemeChanged(isDark); }
 
 	private:
 		IUiComponent* m_wrapped{ nullptr };

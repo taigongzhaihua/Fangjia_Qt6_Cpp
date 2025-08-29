@@ -10,19 +10,19 @@
 
 namespace UI {
 
-	std::shared_ptr<Widget> Widget::padding(int all) { m_decorations.padding = QMargins(all, all, all, all); return self<Widget>(); }
-	std::shared_ptr<Widget> Widget::padding(int h, int v) { m_decorations.padding = QMargins(h, v, h, v); return self<Widget>(); }
-	std::shared_ptr<Widget> Widget::padding(int l, int t, int r, int b) { m_decorations.padding = QMargins(l, t, r, b); return self<Widget>(); }
-	std::shared_ptr<Widget> Widget::margin(int all) { m_decorations.margin = QMargins(all, all, all, all); return self<Widget>(); }
-	std::shared_ptr<Widget> Widget::margin(int h, int v) { m_decorations.margin = QMargins(h, v, h, v); return self<Widget>(); }
-	std::shared_ptr<Widget> Widget::margin(int l, int t, int r, int b) { m_decorations.margin = QMargins(l, t, r, b); return self<Widget>(); }
-	std::shared_ptr<Widget> Widget::background(QColor c, float r) { m_decorations.backgroundColor = c; m_decorations.backgroundRadius = r; return self<Widget>(); }
-	std::shared_ptr<Widget> Widget::border(QColor c, float w, float r) { m_decorations.borderColor = c; m_decorations.borderWidth = w; m_decorations.borderRadius = r; return self<Widget>(); }
-	std::shared_ptr<Widget> Widget::size(int w, int h) { m_decorations.fixedSize = QSize(w, h); return self<Widget>(); }
-	std::shared_ptr<Widget> Widget::width(int w) { m_decorations.fixedSize.setWidth(w); return self<Widget>(); }
-	std::shared_ptr<Widget> Widget::height(int h) { m_decorations.fixedSize.setHeight(h); return self<Widget>(); }
-	std::shared_ptr<Widget> Widget::visible(bool v) { m_decorations.isVisible = v; return self<Widget>(); }
-	std::shared_ptr<Widget> Widget::opacity(float o) { m_decorations.opacity = o; return self<Widget>(); }
+	std::shared_ptr<Widget> Widget::padding(const int all) { m_decorations.padding = QMargins(all, all, all, all); return self<Widget>(); }
+	std::shared_ptr<Widget> Widget::padding(const int h, const int v) { m_decorations.padding = QMargins(h, v, h, v); return self<Widget>(); }
+	std::shared_ptr<Widget> Widget::padding(const int l, const int t, const int r, const int b) { m_decorations.padding = QMargins(l, t, r, b); return self<Widget>(); }
+	std::shared_ptr<Widget> Widget::margin(const int all) { m_decorations.margin = QMargins(all, all, all, all); return self<Widget>(); }
+	std::shared_ptr<Widget> Widget::margin(const int h, const int v) { m_decorations.margin = QMargins(h, v, h, v); return self<Widget>(); }
+	std::shared_ptr<Widget> Widget::margin(const int l, const int t, const int r, const int b) { m_decorations.margin = QMargins(l, t, r, b); return self<Widget>(); }
+	std::shared_ptr<Widget> Widget::background(const QColor c, const float r) { m_decorations.backgroundColor = c; m_decorations.backgroundRadius = r; return self<Widget>(); }
+	std::shared_ptr<Widget> Widget::border(const QColor c, const float w, const float r) { m_decorations.borderColor = c; m_decorations.borderWidth = w; m_decorations.borderRadius = r; return self<Widget>(); }
+	std::shared_ptr<Widget> Widget::size(const int w, const int h) { m_decorations.fixedSize = QSize(w, h); return self<Widget>(); }
+	std::shared_ptr<Widget> Widget::width(const int w) { m_decorations.fixedSize.setWidth(w); return self<Widget>(); }
+	std::shared_ptr<Widget> Widget::height(const int h) { m_decorations.fixedSize.setHeight(h); return self<Widget>(); }
+	std::shared_ptr<Widget> Widget::visible(const bool v) { m_decorations.isVisible = v; return self<Widget>(); }
+	std::shared_ptr<Widget> Widget::opacity(const float o) { m_decorations.opacity = o; return self<Widget>(); }
 	std::shared_ptr<Widget> Widget::onTap(std::function<void()> h) { m_decorations.onTap = std::move(h); return self<Widget>(); }
 	std::shared_ptr<Widget> Widget::onHover(std::function<void(bool)> h) { m_decorations.onHover = std::move(h); return self<Widget>(); }
 

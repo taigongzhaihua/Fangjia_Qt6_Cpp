@@ -443,7 +443,7 @@ bool UiTabView::tick()
 	return any;
 }
 
-void UiTabView::onThemeChanged(bool isDark)
+void UiTabView::onThemeChanged(const bool isDark)
 {
 	// 自动根据主题设置调色板
 	if (isDark) {

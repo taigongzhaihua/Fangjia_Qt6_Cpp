@@ -59,7 +59,7 @@ bool AppConfig::navExpanded() const
 	return m_settings->value(Keys::NAV_EXPANDED, false).toBool();
 }
 
-void AppConfig::setNavExpanded(bool expanded)
+void AppConfig::setNavExpanded(const bool expanded)
 {
 	if (navExpanded() != expanded) {
 		m_settings->setValue(Keys::NAV_EXPANDED, expanded);
@@ -73,7 +73,7 @@ int AppConfig::navSelectedIndex() const
 	return m_settings->value(Keys::NAV_SELECTED, 0).toInt();
 }
 
-void AppConfig::setNavSelectedIndex(int index)
+void AppConfig::setNavSelectedIndex(const int index)
 {
 	if (navSelectedIndex() != index) {
 		m_settings->setValue(Keys::NAV_SELECTED, index);

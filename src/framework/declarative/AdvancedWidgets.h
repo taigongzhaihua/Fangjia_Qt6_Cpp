@@ -27,23 +27,23 @@ namespace UI
 		explicit Card(WidgetPtr child) : m_child(std::move(child)) {}
 
 		// 阴影占位（暂留，不影响绘制）
-		std::shared_ptr<Card> elevation(float e) { m_elevation = e; return self<Card>(); }
+		std::shared_ptr<Card> elevation(const float e) { m_elevation = e; return self<Card>(); }
 
 		// 配置亮/暗主题的背景（外部可分别设置）
-		std::shared_ptr<Card> backgroundTheme(QColor light, QColor dark, float radius = 8.0f) {
+		std::shared_ptr<Card> backgroundTheme(const QColor light, const QColor dark, const float radius = 8.0f) {
 			m_pal.bgLight = light; m_pal.bgDark = dark; m_pal.radius = radius; return self<Card>();
 		}
 		// 配置亮/暗主题的边框（外部可分别设置）
-		std::shared_ptr<Card> borderTheme(QColor light, QColor dark, float width = 1.0f, float radius = -1.0f) {
+		std::shared_ptr<Card> borderTheme(const QColor light, const QColor dark, const float width = 1.0f, const float radius = -1.0f) {
 			m_pal.borderLight = light; m_pal.borderDark = dark; m_pal.borderW = std::max(0.0f, width);
 			if (radius >= 0.0f) m_pal.radius = radius;
 			return self<Card>();
 		}
 		// 配置 padding
 		std::shared_ptr<Card> padding(const QMargins& p) { m_pal.padding = p; return self<Card>(); }
-		std::shared_ptr<Card> padding(int all) { m_pal.padding = QMargins(all, all, all, all); return self<Card>(); }
-		std::shared_ptr<Card> padding(int h, int v) { m_pal.padding = QMargins(h, v, h, v); return self<Card>(); }
-		std::shared_ptr<Card> padding(int l, int t, int r, int b) { m_pal.padding = QMargins(l, t, r, b); return self<Card>(); }
+		std::shared_ptr<Card> padding(const int all) { m_pal.padding = QMargins(all, all, all, all); return self<Card>(); }
+		std::shared_ptr<Card> padding(const int h, const int v) { m_pal.padding = QMargins(h, v, h, v); return self<Card>(); }
+		std::shared_ptr<Card> padding(const int l, const int t, const int r, const int b) { m_pal.padding = QMargins(l, t, r, b); return self<Card>(); }
 
 		std::unique_ptr<IUiComponent> build() const override;
 
@@ -58,7 +58,7 @@ namespace UI
 	class Conditional : public Widget
 	{
 	public:
-		Conditional(bool condition, WidgetPtr ifTrue, WidgetPtr ifFalse = nullptr)
+		Conditional(const bool condition, WidgetPtr ifTrue, WidgetPtr ifFalse = nullptr)
 			: m_condition(condition), m_ifTrue(std::move(ifTrue)), m_ifFalse(std::move(ifFalse))
 		{
 		}

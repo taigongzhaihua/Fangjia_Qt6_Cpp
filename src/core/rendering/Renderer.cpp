@@ -5,12 +5,12 @@
 
 #include <algorithm>
 #include <cmath>
-#include <QtGui/qopengl.h>   // 使用 Qt 自带 OpenGL 定义
 #include <qcolor.h>
 #include <qopenglfunctions.h>
 #include <qopenglshaderprogram.h>
 #include <qrect.h>
 #include <qsize.h>
+#include <QtGui/qopengl.h>   // 使用 Qt 自带 OpenGL 定义
 #include <qvectornd.h>
 
 namespace {
@@ -27,7 +27,7 @@ namespace {
 		out[6] = ndcL; out[7] = ndcT; out[8] = ndcR; out[9] = ndcB; out[10] = ndcL; out[11] = ndcB;
 	}
 
-	QRect clipLogicalToPxTopLeft(const QRectF& logical, float dpr, int fbWpx, int fbHpx) {
+	QRect clipLogicalToPxTopLeft(const QRectF& logical, const float dpr, const int fbWpx, const int fbHpx) {
 		if (logical.width() <= 0.0 || logical.height() <= 0.0) return {};
 		const int x = std::clamp(static_cast<int>(std::floor(logical.left() * dpr)), 0, fbWpx);
 		const int yTop = static_cast<int>(std::floor(logical.top() * dpr));
@@ -35,10 +35,10 @@ namespace {
 		const int y = std::clamp(yTop, 0, fbHpx);
 		const int w = std::clamp(static_cast<int>(std::ceil(logical.width() * dpr)), 0, fbWpx - x);
 		const int h = std::clamp(hPx, 0, fbHpx - y);
-		return {x, y, w, h};
+		return { x, y, w, h };
 	}
 
-	void glScissorTopLeft(QOpenGLFunctions* gl, const QRect& clipTopLeftPx, int fbHpx) {
+	void glScissorTopLeft(QOpenGLFunctions* gl, const QRect& clipTopLeftPx, const int fbHpx) {
 		const int x = clipTopLeftPx.x();
 		const int y = std::max(0, fbHpx - (clipTopLeftPx.y() + clipTopLeftPx.height()));
 		const int w = clipTopLeftPx.width();

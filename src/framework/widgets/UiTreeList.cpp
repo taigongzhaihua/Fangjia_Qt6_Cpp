@@ -3,6 +3,7 @@
 #include <cmath>
 #include <functional>
 #include <IconCache.h>
+#include <qbytearray.h>
 #include <qcolor.h>
 #include <qfont.h>
 #include <qopenglfunctions.h>
@@ -10,6 +11,7 @@
 #include <qrect.h>
 #include <qsize.h>
 #include <qstring.h>
+#include <qstringliteral.h>
 #include <RenderData.hpp>
 #include <RenderUtils.hpp>
 
@@ -25,7 +27,7 @@ void UiTreeList::updateLayout(const QSize& /*windowSize*/)
 	updateVisibleNodes();
 }
 
-void UiTreeList::updateResourceContext(IconCache& cache, QOpenGLFunctions* gl, float devicePixelRatio)
+void UiTreeList::updateResourceContext(IconCache& cache, QOpenGLFunctions* gl, const float devicePixelRatio)
 {
 	m_cache = &cache;
 	m_gl = gl;
@@ -39,9 +41,8 @@ void UiTreeList::updateVisibleNodes()
 
 	const auto roots = m_model->rootIndices();
 
-	std::function<void(int, int)> addVisibleChildren = [&](int nodeId, int depth) {
-		const auto children = m_model->childIndices(nodeId);
-		for (int childId : children) {
+	std::function<void(int, int)> addVisibleChildren = [&](const int nodeId, const int depth) {
+		for (const auto children = m_model->childIndices(nodeId); const int childId : children) {
 			const auto info = m_model->nodeInfo(childId);
 
 			// 添加节点
@@ -66,7 +67,7 @@ void UiTreeList::updateVisibleNodes()
 		};
 
 	// 根层
-	for (int rootId : roots) {
+	for (const int rootId : roots) {
 		const auto info = m_model->nodeInfo(rootId);
 
 		VisibleNode vn;
@@ -93,7 +94,7 @@ int UiTreeList::contentHeight() const
 	return static_cast<int>(m_visibleNodes.size()) * m_itemHeight;
 }
 
-QRect UiTreeList::nodeRect(int visibleIdx) const
+QRect UiTreeList::nodeRect(const int visibleIdx) const
 {
 	if (visibleIdx < 0 || visibleIdx >= static_cast<int>(m_visibleNodes.size())) return {};
 	return m_visibleNodes[visibleIdx].rect;
@@ -140,7 +141,7 @@ void UiTreeList::append(Render::FrameData& fd) const
 				.radiusPx = 6.0f,
 				.color = m_pal.itemSelected,
 				.clipRect = QRectF(m_viewport)
-			});
+				});
 			// 仅选中态绘制左侧指示条
 			const float indW = 3.0f;
 			const float indH = std::clamp(inner.height() * 0.6, 12.0, inner.height() - 6.0);
@@ -150,21 +151,23 @@ void UiTreeList::append(Render::FrameData& fd) const
 				.radiusPx = indW * 0.5f,
 				.color = m_pal.indicator,
 				.clipRect = QRectF(m_viewport)
-			});
-		} else if (static_cast<int>(i) == m_pressed) {
+				});
+		}
+		else if (static_cast<int>(i) == m_pressed) {
 			fd.roundedRects.push_back(Render::RoundedRectCmd{
 				.rect = inner,
 				.radiusPx = 6.0f,
 				.color = m_pal.itemPressed,
 				.clipRect = QRectF(m_viewport)
-			});
-		} else if (static_cast<int>(i) == m_hover) {
+				});
+		}
+		else if (static_cast<int>(i) == m_hover) {
 			fd.roundedRects.push_back(Render::RoundedRectCmd{
 				.rect = inner,
 				.radiusPx = 6.0f,
 				.color = m_pal.itemHover,
 				.clipRect = QRectF(m_viewport)
-			});
+				});
 		}
 
 		// 展开/折叠图标（右侧）：有子节点才绘制
@@ -173,22 +176,22 @@ void UiTreeList::append(Render::FrameData& fd) const
 			const int logical = 16;
 			const int px = std::lround(static_cast<float>(logical) * m_dpr);
 			const QString path = info.expanded ? QStringLiteral(":/icons/tree_arrow_up.svg")
-			                                   : QStringLiteral(":/icons/tree_arrow_down.svg");
+				: QStringLiteral(":/icons/tree_arrow_down.svg");
 			const QString key = RenderUtils::makeIconCacheKey(info.expanded ? QStringLiteral("tree_arrow_up")
-			                                                                 : QStringLiteral("tree_arrow_down"), px);
+				: QStringLiteral("tree_arrow_down"), px);
 			QByteArray svg = RenderUtils::loadSvgCached(path);
 			const int tex = m_cache->ensureSvgPx(key, svg, QSize(px, px), m_gl);
 			const QSize ts = m_cache->textureSizePx(tex);
 			const QRectF dst(iconRect.center().x() - logical * 0.5,
-			                 iconRect.center().y() - logical * 0.5,
-			                 logical, logical);
+				iconRect.center().y() - logical * 0.5,
+				logical, logical);
 			fd.images.push_back(Render::ImageCmd{
 				.dstRect = dst,
 				.textureId = tex,
 				.srcRectPx = QRectF(0, 0, ts.width(), ts.height()),
 				.tint = m_pal.expandIcon,
 				.clipRect = QRectF(m_viewport)
-			});
+				});
 		}
 
 		// 文字
@@ -314,7 +317,7 @@ bool UiTreeList::onWheel(const QPoint& pos, const QPoint& angleDelta)
 	// 计算滚动范围限制
 	const int maxScrollY = std::max(0, contentHeight() - m_viewport.height());
 	const int clampedScrollY = std::clamp(newScrollY, 0, maxScrollY);
-	
+
 	// 设置新的滚动位置并更新可见节点
 	m_scrollY = clampedScrollY;
 	updateVisibleNodes();

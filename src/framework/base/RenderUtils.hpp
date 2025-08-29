@@ -25,7 +25,7 @@ namespace RenderUtils {
 	/// 参数：im0 — 图像命令的起始索引  
 	/// 参数：parentClip — 父级剪裁矩形（逻辑像素）
 	/// 说明：将父容器的剪裁区域与子组件的剪裁区域求交，实现剪裁层级传递
-	inline void applyParentClip(Render::FrameData& fd, int rr0, int im0, const QRectF& parentClip) {
+	inline void applyParentClip(Render::FrameData& fd, const int rr0, const int im0, const QRectF& parentClip) {
 		if (parentClip.width() <= 0.0 || parentClip.height() <= 0.0) return;
 
 		for (int i = rr0; i < static_cast<int>(fd.roundedRects.size()); ++i) {
@@ -54,7 +54,7 @@ namespace RenderUtils {
 	/// 参数：color — 文本颜色
 	/// 返回：包含所有渲染参数的唯一缓存键
 	/// 说明：确保相同文本、字体、颜色组合复用纹理，不同组合生成新纹理
-	inline QString makeTextCacheKey(const QString& baseKey, int fontPx, const QColor& color) {
+	inline QString makeTextCacheKey(const QString& baseKey, const int fontPx, const QColor& color) {
 		const QString colorKey = color.name(QColor::HexArgb);
 		return QString("txt:%1@%2px@%3").arg(baseKey).arg(fontPx).arg(colorKey);
 	}
@@ -65,7 +65,7 @@ namespace RenderUtils {
 	/// 参数：variant — 可选的变体标识（如主题、状态等）
 	/// 返回：唯一的图标缓存键
 	/// 说明：支持同一图标的多尺寸、多变体缓存
-	inline QString makeIconCacheKey(const QString& baseKey, int pixelSize, const QString& variant = QString()) {
+	inline QString makeIconCacheKey(const QString& baseKey, const int pixelSize, const QString& variant = QString()) {
 		if (variant.isEmpty()) {
 			return QString("icon:%1@%2px").arg(baseKey).arg(pixelSize);
 		}

@@ -61,11 +61,11 @@ public:
 	// 外观配置
 	void setPalette(const Palette& p) { m_pal = p; }
 	void setViewportRect(const QRect& r) override { m_viewport = r; reloadData(); }
-	void setItemHeight(int h) { m_itemHeight = std::max(24, h); }
-	void setIndentWidth(int w) { m_indentWidth = std::max(16, w); }
+	void setItemHeight(const int h) { m_itemHeight = std::max(24, h); }
+	void setIndentWidth(const int w) { m_indentWidth = std::max(16, w); }
 
 	// 滚动支持
-	void setScrollOffset(int y) { m_scrollY = y; }
+	void setScrollOffset(const int y) { m_scrollY = y; }
 	[[nodiscard]] int scrollOffset() const noexcept { return m_scrollY; }
 	[[nodiscard]] int contentHeight() const;
 

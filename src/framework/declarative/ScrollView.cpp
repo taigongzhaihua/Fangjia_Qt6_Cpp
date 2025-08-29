@@ -1,8 +1,8 @@
-#include "ScrollView.h"
-#include "UiScrollView.h"
 #include "ILayoutable.hpp"
-#include "UiContent.hpp"
+#include "ScrollView.h"
 #include "UiComponent.hpp"
+#include "UiContent.hpp"
+#include "UiScrollView.h"
 #include <algorithm>
 #include <memory>
 #include <qopenglfunctions.h>
@@ -43,7 +43,7 @@ namespace UI {
 			m_scrollView.updateLayout(windowSize);
 		}
 
-		void updateResourceContext(IconCache& cache, QOpenGLFunctions* gl, float devicePixelRatio) override {
+		void updateResourceContext(IconCache& cache, QOpenGLFunctions* gl, const float devicePixelRatio) override {
 			m_scrollView.updateResourceContext(cache, gl, devicePixelRatio);
 		}
 
@@ -75,7 +75,7 @@ namespace UI {
 			return m_scrollView.bounds();
 		}
 
-		void applyTheme(bool isDark) override {
+		void applyTheme(const bool isDark) override {
 			m_scrollView.applyTheme(isDark);
 		}
 

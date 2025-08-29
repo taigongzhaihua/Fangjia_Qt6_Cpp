@@ -49,7 +49,7 @@ public:
 
 	[[nodiscard]] WidgetPtr buildUI() const
 	{
-		auto mainContent = panel({
+		const auto mainContent = panel({
 			// 欢迎标题
 			text("欢迎使用方家")->fontSize(28),
 
@@ -197,7 +197,7 @@ void HomePage::initializeContent()
 	}
 }
 
-void HomePage::applyPageTheme(bool isDark)
+void HomePage::applyPageTheme(const bool isDark)
 {
 	m_impl->isDark = isDark;
 	// 主题变化通过 UiPage/UiRoot 自动传播，无需手动处理

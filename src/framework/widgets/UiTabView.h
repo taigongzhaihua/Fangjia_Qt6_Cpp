@@ -54,9 +54,9 @@ public:
 
 	// 外观配置
 	void setPalette(const Palette& p) { m_pal = p; }
-	void setIndicatorStyle(IndicatorStyle style) { m_indicatorStyle = style; }
-	void setTabHeight(int h) { m_tabHeight = std::max(24, h); }
-	void setAnimationDuration(int ms) { m_animDuration = std::max(50, ms); }
+	void setIndicatorStyle(const IndicatorStyle style) { m_indicatorStyle = style; }
+	void setTabHeight(const int h) { m_tabHeight = std::max(24, h); }
+	void setAnimationDuration(const int ms) { m_animDuration = std::max(50, ms); }
 
 	// 新增：布局与间距配置
 	void setMargins(const QMargins& m) { m_margin = m; }
@@ -65,8 +65,8 @@ public:
 	void setTabBarPadding(const QMargins& p) { m_tabBarPadding = p; }
 	void setContentMargin(const QMargins& m) { m_contentMargin = m; }
 	void setContentPadding(const QMargins& p) { m_contentPadding = p; }
-	void setTabBarSpacing(qreal s) { m_tabBarSpacing = std::max<qreal>(0, s); }
-	void setSpacing(qreal s) { m_spacing = std::max<qreal>(0, s); }
+	void setTabBarSpacing(const qreal s) { m_tabBarSpacing = std::max<qreal>(0, s); }
+	void setSpacing(const qreal s) { m_spacing = std::max<qreal>(0, s); }
 
 	// Tab内容管理接口
 	void setContent(int tabIdx, IUiComponent* content);

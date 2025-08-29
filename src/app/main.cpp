@@ -36,7 +36,7 @@ namespace {
 	/// 功能：将字符串转换为主题模式枚举
 	/// 参数：s — 字符串标识符
 	/// 返回：对应的主题模式，无效值时默认为跟随系统
-	ThemeManager::ThemeMode stringToMode(const QString& s) {
+	[[maybe_unused]] ThemeManager::ThemeMode stringToMode(const QString& s) {
 		const auto v = s.toLower();
 		if (v == "light") return ThemeManager::ThemeMode::Light;
 		if (v == "dark")  return ThemeManager::ThemeMode::Dark;
@@ -62,17 +62,16 @@ int main(int argc, char* argv[])
 		QSurfaceFormat::setDefaultFormat(fmt);
 
 		qDebug() << "Creating shared dependencies...";
-		
+
 		// 创建配置管理器并加载持久化设置
 		auto config = std::make_shared<AppConfig>();
 		config->load();
 
 		// 创建主题管理器
-		auto themeManager = std::make_shared<ThemeManager>();
+		const auto themeManager = std::make_shared<ThemeManager>();
 
 		// 从配置中恢复主题设置
-		const auto mode = config->themeMode();
-		if (mode == "light") {
+		if (const auto mode = config->themeMode(); mode == "light") {
 			themeManager->setMode(ThemeManager::ThemeMode::Light);
 		}
 		else if (mode == "dark") {
@@ -85,7 +84,7 @@ int main(int argc, char* argv[])
 		// 连接主题变化信号到配置持久化
 		QObject::connect(themeManager.get(), &ThemeManager::modeChanged,
 			config.get(), [config](const ThemeManager::ThemeMode themeMode) {
-				QString modeStr = modeToString(themeMode);
+				const QString modeStr = modeToString(themeMode);
 				config->setThemeMode(modeStr);
 				config->save();
 			});
@@ -97,7 +96,7 @@ int main(int argc, char* argv[])
 		// 从配置恢复窗口大小和位置
 		QByteArray geo = config->windowGeometry();
 		if (!geo.isEmpty() && geo.size() == sizeof(int) * 4) {
-			const int* data = reinterpret_cast<const int*>(geo.data());
+			const auto data = reinterpret_cast<const int*>(geo.data());
 			window.setPosition(data[0], data[1]);
 			window.resize(data[2], data[3]);
 		}
@@ -108,7 +107,7 @@ int main(int argc, char* argv[])
 		qDebug() << "Showing window...";
 		window.show();
 
-		int result = QApplication::exec();
+		const int result = QApplication::exec();
 
 		qDebug() << "Cleaning up...";
 		// 保存配置到持久化存储

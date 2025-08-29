@@ -51,17 +51,17 @@ public:
 	/// 参数：pos — 鼠标位置（逻辑像素坐标）
 	/// 返回：是否消耗了该事件
 	virtual bool onMousePress(const QPoint& pos) = 0;
-	
+
 	/// 功能：处理鼠标移动事件
 	/// 参数：pos — 鼠标位置（逻辑像素坐标）
 	/// 返回：是否消耗了该事件
 	virtual bool onMouseMove(const QPoint& pos) = 0;
-	
+
 	/// 功能：处理鼠标释放事件
 	/// 参数：pos — 鼠标位置（逻辑像素坐标）
 	/// 返回：是否消耗了该事件
 	virtual bool onMouseRelease(const QPoint& pos) = 0;
-	
+
 	/// 功能：处理鼠标滚轮事件
 	/// 参数：pos — 鼠标位置（逻辑像素坐标）
 	/// 参数：angleDelta — 滚轮角度增量
@@ -82,7 +82,7 @@ public:
 	/// 功能：主题变化回调（默认实现）
 	/// 参数：isDark — 是否为暗色主题
 	/// 说明：默认调用applyTheme()方法，子类可重写以自定义行为
-	void onThemeChanged(bool isDark) override {
+	void onThemeChanged(const bool isDark) override {
 		applyTheme(isDark);
 	}
 };

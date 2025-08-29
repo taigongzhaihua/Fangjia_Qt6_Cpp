@@ -53,23 +53,23 @@ public:
 	void setDirection(Direction dir);
 	[[nodiscard]] Direction direction() const noexcept { return m_direction; }
 
-	void setSpacing(int spacing) { m_spacing = std::max(0, spacing); }
+	void setSpacing(const int spacing) { m_spacing = std::max(0, spacing); }
 	[[nodiscard]] int spacing() const noexcept { return m_spacing; }
 
 	void setMargins(const QMargins& margins) { m_margins = margins; }
 	[[nodiscard]] const QMargins& margins() const noexcept { return m_margins; }
 
-	void setMainAlignment(MainAlignment a) { m_mainAlign = a; }
+	void setMainAlignment(const MainAlignment a) { m_mainAlign = a; }
 	[[nodiscard]] MainAlignment mainAlignment() const noexcept { return m_mainAlign; }
 
 	// 新增：主轴尺寸模式
-	void setSizeMode(SizeMode m) { m_sizeMode = m; }
+	void setSizeMode(const SizeMode m) { m_sizeMode = m; }
 	[[nodiscard]] SizeMode sizeMode() const noexcept { return m_sizeMode; }
-	UiBoxLayout& withSizeMode(SizeMode m) { setSizeMode(m); return *this; }
+	UiBoxLayout& withSizeMode(const SizeMode m) { setSizeMode(m); return *this; }
 
 	// 背景
 	void setBackgroundColor(const QColor& color) { m_bgColor = color; }
-	void setCornerRadius(float radius) { m_cornerRadius = std::max(0.0f, radius); }
+	void setCornerRadius(const float radius) { m_cornerRadius = std::max(0.0f, radius); }
 
 	// IUiContent
 	void setViewportRect(const QRect& r) override;
@@ -89,12 +89,12 @@ public:
 	UiBoxLayout& withSpacing(int spacing);
 	UiBoxLayout& withMargins(const QMargins& margins);
 	UiBoxLayout& withBackground(const QColor& color, float radius);
-	UiBoxLayout& withMainAlignment(MainAlignment a) { setMainAlignment(a); return *this; }
+	UiBoxLayout& withMainAlignment(const MainAlignment a) { setMainAlignment(a); return *this; }
 
 	QRect bounds() const override { return m_viewport; }
 	void onThemeChanged(bool isDark) override;
 
-	void applyTheme(bool dark) override { m_isDark = dark; IUiComponent::applyTheme(dark); }
+	void applyTheme(const bool dark) override { m_isDark = dark; IUiComponent::applyTheme(dark); }
 	bool isDarkTheme() const { return m_isDark; }
 
 	void setChildVisible(size_t index, bool visible);

@@ -20,22 +20,22 @@
 #include <qstringliteral.h>
 #include <utility>
 
-/// 页面容器：提供标题显示和内容区域管理的标准页面布局
-/// 
-/// 功能：
-/// - 页面标题显示与样式配置
-/// - 内容组件的生命周期管理和事件转发
-/// - 主题色彩方案应用（背景、标题色、正文色）
-/// - 滚轮事件在内容区域的精确转发
-/// 
-/// 布局结构：
-/// ┌─────────────────────┐
-/// │ 标题区域            │
-/// ├─────────────────────┤
-/// │                     │ ← 内容区域（转发事件到内容组件）
-/// │ 内容组件            │
-/// │                     │
-/// └─────────────────────┘
+ /// 页面容器：提供标题显示和内容区域管理的标准页面布局
+ /// 
+ /// 功能：
+ /// - 页面标题显示与样式配置
+ /// - 内容组件的生命周期管理和事件转发
+ /// - 主题色彩方案应用（背景、标题色、正文色）
+ /// - 滚轮事件在内容区域的精确转发
+ /// 
+ /// 布局结构：
+ /// ┌─────────────────────┐
+ /// │ 标题区域            │
+ /// ├─────────────────────┤
+ /// │                     │ ← 内容区域（转发事件到内容组件）
+ /// │ 内容组件            │
+ /// │                     │
+ /// └─────────────────────┘
 class UiPage : public IUiComponent
 {
 public:
@@ -52,7 +52,7 @@ public:
 	/// 功能：设置页面标题
 	/// 参数：title — 页面标题文本
 	void setTitle(QString title) { m_title = std::move(title); }
-	
+
 	/// 功能：获取页面标题
 	/// 返回：当前页面标题
 	QString title() const { return m_title; }
@@ -60,7 +60,7 @@ public:
 	/// 功能：设置页面色彩方案
 	/// 参数：p — 包含各元素颜色的色彩方案
 	void setPalette(const Palette& p) { m_pal = p; }
-	
+
 	/// 功能：获取当前色彩方案
 	/// 返回：当前页面的色彩方案
 	const Palette& palette() const { return m_pal; }
@@ -73,7 +73,7 @@ public:
 	/// 参数：content — 内容组件指针（不转移所有权）
 	/// 说明：页面负责将事件转发给内容组件
 	void setContent(IUiComponent* content) { m_content = content; }
-	
+
 	/// 功能：获取当前内容组件
 	/// 返回：内容组件指针
 	IUiComponent* content() const { return m_content; }
@@ -85,14 +85,14 @@ public:
 	bool onMousePress(const QPoint& pos) override;
 	bool onMouseMove(const QPoint& pos) override;
 	bool onMouseRelease(const QPoint& pos) override;
-	
+
 	/// 功能：处理滚轮事件并转发到内容区域
 	/// 参数：pos — 鼠标位置（逻辑像素坐标）
 	/// 参数：angleDelta — 滚轮角度增量
 	/// 返回：是否在内容区域内并被处理
 	/// 说明：仅在内容区域内的滚轮事件会被转发给内容组件
 	bool onWheel(const QPoint& pos, const QPoint& angleDelta) override;
-	
+
 	bool tick() override;
 	QRect bounds() const override { return m_viewport; }
 
@@ -103,7 +103,7 @@ public:
 
 	/// 功能：设置暗色主题状态
 	/// 参数：dark — 是否启用暗色主题
-	void setDarkTheme(bool dark) { m_isDark = dark; }
+	void setDarkTheme(const bool dark) { m_isDark = dark; }
 	bool isDarkTheme() const { return m_isDark; }
 
 	QRectF cardRectF() const;
@@ -115,7 +115,7 @@ public:
 	void setPadding(const QMargins& p) { m_padding = p; }
 	QMargins padding() const { return m_padding; }
 
-	void setCornerRadius(float r) { m_cornerRadius = r; }
+	void setCornerRadius(const float r) { m_cornerRadius = r; }
 	float cornerRadius() const { return m_cornerRadius; }
 
 	// 页面生命周期钩子

@@ -88,7 +88,7 @@ namespace UI {
 			m_view.updateLayout(windowSize);
 		}
 
-		void updateResourceContext(IconCache& cache, QOpenGLFunctions* gl, float devicePixelRatio) override {
+		void updateResourceContext(IconCache& cache, QOpenGLFunctions* gl, const float devicePixelRatio) override {
 			m_view.updateResourceContext(cache, gl, devicePixelRatio);
 			// 子内容资源上下文 UiTabView 内部已在当前选项卡上处理
 		}
@@ -148,8 +148,8 @@ namespace UI {
 						m_props.contentMargin.left() + m_props.contentMargin.right() +
 						m_props.contentPadding.left() + m_props.contentPadding.right()));
 
-					SizeConstraints contentCs = SizeConstraints::widthBounded(availableWidth);
-					QSize contentSize = layoutable->measure(contentCs);
+					const SizeConstraints contentCs = SizeConstraints::widthBounded(availableWidth);
+					const QSize contentSize = layoutable->measure(contentCs);
 					contentHeight = contentSize.height();
 				}
 				else {
@@ -176,7 +176,7 @@ namespace UI {
 			m_view.setViewportRect(finalRect);
 		}
 
-		void onThemeChanged(bool isDark) override {
+		void onThemeChanged(const bool isDark) override {
 			m_view.onThemeChanged(isDark);
 			// 当前内容主题变更 UiTabView 内部已传播
 		}

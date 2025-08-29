@@ -51,7 +51,7 @@ public:
 			)->alignment(Alignment::Stretch),
 			container(text("经典功能开发中")->fontSize(16)->align(Qt::AlignCenter))->alignment(Alignment::Stretch),
 				})
-			->onChanged([this](int idx)
+			->onChanged([this](const int idx)
 				{
 					// VM 模式下此回调仍会触发，可用于埋点/日志
 					// 持久化逻辑已移到 DataViewModel 中处理
@@ -73,14 +73,14 @@ DataPage::~DataPage() = default;
 void DataPage::initializeContent()
 {
 	// 构建声明式UI
-	auto widget = m_impl->buildUI();
+	const auto widget = m_impl->buildUI();
 	m_impl->builtComponent = widget->build();
 
 	// 设置为页面内容
 	setContent(m_impl->builtComponent.get());
 }
 
-void DataPage::applyPageTheme(bool isDark)
+void DataPage::applyPageTheme(const bool isDark)
 {
 	m_impl->isDark = isDark;
 

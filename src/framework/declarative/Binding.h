@@ -60,7 +60,7 @@ namespace UI {
 			// 2) 设置 builder：外部 Builder 产生 WidgetPtr，再 build 成 IUiComponent
 			host->setBuilder([b = m_builder]() -> std::unique_ptr<IUiComponent> {
 				if (!b) return {};
-				if (WidgetPtr w = b()) return w->build();
+				if (const WidgetPtr w = b()) return w->build();
 				return {};
 				});
 			// 3) 首次立即构建
@@ -76,9 +76,9 @@ namespace UI {
 		std::vector<Connector> m_connectors;
 	};
 
-// 便捷工厂
-inline std::shared_ptr<BindingHost> bindingHost(BindingHost::Builder b) {
-    return make_widget<BindingHost>(std::move(b));
-}
+	// 便捷工厂
+	inline std::shared_ptr<BindingHost> bindingHost(BindingHost::Builder b) {
+		return make_widget<BindingHost>(std::move(b));
+	}
 
 } // namespace UI

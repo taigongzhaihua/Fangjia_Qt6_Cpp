@@ -16,7 +16,7 @@ UiScrollView::UiScrollView() {
 	m_thumbAlpha = BASE_ALPHA; // 初始化为基础半透明状态
 }
 
-void UiScrollView::setScrollY(int scrollY) {
+void UiScrollView::setScrollY(const int scrollY) {
 	const int oldScrollY = m_scrollY;
 	m_scrollY = scrollY;
 	clampScrollY();
@@ -91,7 +91,7 @@ void UiScrollView::measureContent() {
 
 	if (auto* layoutable = dynamic_cast<ILayoutable*>(m_child)) {
 		// 给子组件提供宽度约束
-		SizeConstraints cs = SizeConstraints::widthBounded(
+		const SizeConstraints cs = SizeConstraints::widthBounded(
 			m_viewport.width() - (isScrollbarVisible() ? SCROLLBAR_WIDTH : 0)
 		);
 		const QSize childSize = layoutable->measure(cs);
@@ -186,7 +186,7 @@ void UiScrollView::clampScrollY() {
 	m_scrollY = std::clamp(m_scrollY, 0, maxScroll);
 }
 
-void UiScrollView::updateResourceContext(IconCache& cache, QOpenGLFunctions* gl, float devicePixelRatio) {
+void UiScrollView::updateResourceContext(IconCache& cache, QOpenGLFunctions* gl, const float devicePixelRatio) {
 	m_cache = &cache;
 	m_gl = gl;
 	m_dpr = devicePixelRatio;
@@ -438,23 +438,24 @@ bool UiScrollView::tick() {
 	if (m_repeatUp || m_repeatDown) {
 		const qint64 now = m_animClock.elapsed();
 		const qint64 timeSinceStart = now - m_repeatStartMs;
-		
+
 		// 检查是否超过初始延时，并且到了重复间隔
-		if (timeSinceStart > REPEAT_INITIAL_DELAY_MS && 
+		if (timeSinceStart > REPEAT_INITIAL_DELAY_MS &&
 			(now - m_lastRepeatMs) > REPEAT_INTERVAL_MS) {
-			
+
 			// 执行重复滚动
 			if (m_repeatUp) {
 				setScrollY(scrollY() - REPEAT_STEP_PX);
-			} else if (m_repeatDown) {
+			}
+			else if (m_repeatDown) {
 				setScrollY(scrollY() + REPEAT_STEP_PX);
 			}
-			
+
 			m_lastRepeatMs = now;
 			any = true; // 需要继续动画
 		}
-		else if (timeSinceStart <= REPEAT_INITIAL_DELAY_MS || 
-				 (now - m_lastRepeatMs) <= REPEAT_INTERVAL_MS) {
+		else if (timeSinceStart <= REPEAT_INITIAL_DELAY_MS ||
+			(now - m_lastRepeatMs) <= REPEAT_INTERVAL_MS) {
 			any = true; // 仍在等待阶段
 		}
 	}
@@ -495,7 +496,7 @@ void UiScrollView::showScrollbar() {
 	m_lastInteractMs = m_animClock.elapsed();
 }
 
-void UiScrollView::applyTheme(bool isDark) {
+void UiScrollView::applyTheme(const bool isDark) {
 	if (isDark) {
 		// 深色主题 - Fluent 风格
 		m_trackColor = QColor(255, 255, 255, 25);       // 半透明白色轨道
@@ -520,15 +521,15 @@ void UiScrollView::applyTheme(bool isDark) {
 QRect UiScrollView::getUpButtonRect() const {
 	const QRect scrollbarRect = getScrollbarRect();
 	if (!scrollbarRect.isValid()) return {};
-	
-	return QRect(scrollbarRect.left(), scrollbarRect.top(), 
-				 scrollbarRect.width(), BUTTON_HEIGHT);
+
+	return QRect(scrollbarRect.left(), scrollbarRect.top(),
+		scrollbarRect.width(), BUTTON_HEIGHT);
 }
 
 QRect UiScrollView::getDownButtonRect() const {
 	const QRect scrollbarRect = getScrollbarRect();
 	if (!scrollbarRect.isValid()) return {};
-	
-	return QRect(scrollbarRect.left(), scrollbarRect.bottom() - BUTTON_HEIGHT + 1, 
-				 scrollbarRect.width(), BUTTON_HEIGHT);
+
+	return QRect(scrollbarRect.left(), scrollbarRect.bottom() - BUTTON_HEIGHT + 1,
+		scrollbarRect.width(), BUTTON_HEIGHT);
 }

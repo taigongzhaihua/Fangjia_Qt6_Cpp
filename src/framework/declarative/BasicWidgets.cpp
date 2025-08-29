@@ -71,7 +71,7 @@ namespace UI {
 			QFont font;
 			font.setPixelSize(std::max(1, m_fontSize));
 			font.setWeight(m_fontWeight);
-			QFontMetrics fm(font);
+			const QFontMetrics fm(font);
 
 			const int lineH = fm.height();
 			const int lineGap = (m_lineSpacing >= 0) ? m_lineSpacing : std::lround(lineH * 0.2);
@@ -93,9 +93,9 @@ namespace UI {
 				int wMax = 0;
 				int hTot = 0;
 				int curW = 0;
-				for (auto i : m_text)
+				for (const auto i : m_text)
 				{
-					int chW = fm.horizontalAdvance(i);
+					const int chW = fm.horizontalAdvance(i);
 					if (maxW > 0 && curW + chW > maxW) {
 						wMax = std::max(wMax, curW);
 						hTot += (hTot == 0 ? lineH : (lineH + lineGap));
@@ -141,13 +141,13 @@ namespace UI {
 			QFont font;
 			font.setPixelSize(std::lround(static_cast<float>(m_fontSize) * m_dpr));
 			font.setWeight(m_fontWeight);
-			QFontMetrics fm(font);
+			const QFontMetrics fm(font);
 
 			// 计算行高和行间距（设备像素）
 			const int lineHpx = fm.height();
 			const int lineGapPx = (m_lineSpacing >= 0) ? std::lround(static_cast<float>(m_lineSpacing) * m_dpr)
 				: std::lround(lineHpx * 0.2);
-			
+
 			// 可用区域转换为设备像素
 			const int availWpx = std::max(0, static_cast<int>(std::lround(static_cast<float>(m_bounds.width()) * m_dpr)));
 			const int availHpx = std::max(0, static_cast<int>(std::lround(static_cast<float>(m_bounds.height()) * m_dpr)));
@@ -430,7 +430,7 @@ namespace UI {
 
 			// 生成/获取纹理
 			const int px = std::lround(static_cast<float>(logicalS) * m_dpr);
-			QByteArray svg = RenderUtils::loadSvgCached(pathToUse);
+			const QByteArray svg = RenderUtils::loadSvgCached(pathToUse);
 			const QString key = RenderUtils::makeIconCacheKey(pathToUse, px);
 			const int tex = m_cache->ensureSvgPx(key, svg, QSize(px, px), m_gl);
 			const QSize ts = m_cache->textureSizePx(tex);

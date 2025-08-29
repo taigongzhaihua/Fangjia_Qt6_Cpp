@@ -21,17 +21,17 @@ namespace UI {
 			return self<TabView>();
 		}
 
-		std::shared_ptr<TabView> indicatorStyle(UiTabView::IndicatorStyle s) {
+		std::shared_ptr<TabView> indicatorStyle(const UiTabView::IndicatorStyle s) {
 			m_indicatorStyle = s;
 			return self<TabView>();
 		}
 
-		std::shared_ptr<TabView> tabHeight(int h) {
+		std::shared_ptr<TabView> tabHeight(const int h) {
 			m_tabHeight = h;
 			return self<TabView>();
 		}
 
-		std::shared_ptr<TabView> animationDuration(int ms) {
+		std::shared_ptr<TabView> animationDuration(const int ms) {
 			m_animDuration = ms;
 			return self<TabView>();
 		}
@@ -42,7 +42,7 @@ namespace UI {
 			return self<TabView>();
 		}
 
-		std::shared_ptr<TabView> setContent(int index, WidgetPtr item) {
+		std::shared_ptr<TabView> setContent(const int index, WidgetPtr item) {
 			if (index < 0) return self<TabView>();
 			if (static_cast<size_t>(index) >= m_contents.size()) {
 				m_contents.resize(static_cast<size_t>(index) + 1);
@@ -64,8 +64,8 @@ namespace UI {
 		std::shared_ptr<TabView> tabBarPadding(const QMargins& p) { m_tabBarPadding = p; return self<TabView>(); }
 		std::shared_ptr<TabView> contentMargin(const QMargins& m) { m_contentMargin = m; return self<TabView>(); }
 		std::shared_ptr<TabView> contentPadding(const QMargins& p) { m_contentPadding = p; return self<TabView>(); }
-		std::shared_ptr<TabView> tabBarSpacing(int s) { m_tabBarSpacing = s; return self<TabView>(); }
-		std::shared_ptr<TabView> spacing(int s) { m_spacing = s; return self<TabView>(); }
+		std::shared_ptr<TabView> tabBarSpacing(const int s) { m_tabBarSpacing = s; return self<TabView>(); }
+		std::shared_ptr<TabView> spacing(const int s) { m_spacing = s; return self<TabView>(); }
 
 		// 新增：自定义调色板（覆盖主题默认）
 		std::shared_ptr<TabView> palette(const UiTabView::Palette& pal) {

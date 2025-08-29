@@ -17,7 +17,7 @@
 
 UiBoxLayout::UiBoxLayout(Direction dir) : m_direction(dir) {}
 
-void UiBoxLayout::addChild(IUiComponent* component, float weight, Alignment align)
+void UiBoxLayout::addChild(IUiComponent* component, const float weight, const Alignment align)
 {
 	if (!component) return;
 	const auto it = std::ranges::find_if(m_children,
@@ -27,7 +27,7 @@ void UiBoxLayout::addChild(IUiComponent* component, float weight, Alignment alig
 	}
 }
 
-void UiBoxLayout::insertChild(size_t index, IUiComponent* component, float weight, Alignment align)
+void UiBoxLayout::insertChild(size_t index, IUiComponent* component, const float weight, const Alignment align)
 {
 	if (!component) return;
 	const auto it = std::ranges::find_if(m_children,
@@ -45,7 +45,7 @@ void UiBoxLayout::removeChild(IUiComponent* component)
 	if (it != m_children.end()) m_children.erase(it, m_children.end());
 }
 
-void UiBoxLayout::removeChildAt(size_t index)
+void UiBoxLayout::removeChildAt(const size_t index)
 {
 	if (index < m_children.size()) m_children.erase(m_children.begin() + index);
 }
@@ -56,18 +56,18 @@ void UiBoxLayout::clearChildren()
 	m_childRects.clear();
 }
 
-IUiComponent* UiBoxLayout::childAt(size_t index) const
+IUiComponent* UiBoxLayout::childAt(const size_t index) const
 {
 	if (index < m_children.size()) return m_children[index].component;
 	return nullptr;
 }
 
-void UiBoxLayout::setDirection(Direction dir)
+void UiBoxLayout::setDirection(const Direction dir)
 {
 	if (m_direction != dir) { m_direction = dir; calculateLayout(); }
 }
 
-void UiBoxLayout::setChildVisible(size_t index, bool visible)
+void UiBoxLayout::setChildVisible(const size_t index, const bool visible)
 {
 	if (index < m_children.size()) {
 		m_children[index].visible = visible;
@@ -75,7 +75,7 @@ void UiBoxLayout::setChildVisible(size_t index, bool visible)
 	}
 }
 
-bool UiBoxLayout::isChildVisible(size_t index) const
+bool UiBoxLayout::isChildVisible(const size_t index) const
 {
 	if (index < m_children.size()) return m_children[index].visible;
 	return false;
@@ -277,7 +277,7 @@ void UiBoxLayout::updateLayout(const QSize& windowSize)
 	}
 }
 
-void UiBoxLayout::updateResourceContext(IconCache& cache, QOpenGLFunctions* gl, float devicePixelRatio)
+void UiBoxLayout::updateResourceContext(IconCache& cache, QOpenGLFunctions* gl, const float devicePixelRatio)
 {
 	for (const auto& child : m_children) {
 		if (child.component) {
@@ -361,7 +361,7 @@ bool UiBoxLayout::tick()
 	return active;
 }
 
-void UiBoxLayout::setChildWeight(size_t index, float weight)
+void UiBoxLayout::setChildWeight(const size_t index, const float weight)
 {
 	if (index < m_children.size()) {
 		m_children[index].weight = std::max(0.0f, weight);
@@ -369,13 +369,13 @@ void UiBoxLayout::setChildWeight(size_t index, float weight)
 	}
 }
 
-float UiBoxLayout::childWeight(size_t index) const
+float UiBoxLayout::childWeight(const size_t index) const
 {
 	if (index < m_children.size()) return m_children[index].weight;
 	return 0.0f;
 }
 
-void UiBoxLayout::setChildAlignment(size_t index, Alignment align)
+void UiBoxLayout::setChildAlignment(const size_t index, const Alignment align)
 {
 	if (index < m_children.size()) {
 		m_children[index].alignment = align;
@@ -383,7 +383,7 @@ void UiBoxLayout::setChildAlignment(size_t index, Alignment align)
 	}
 }
 
-void UiBoxLayout::onThemeChanged(bool isDark)
+void UiBoxLayout::onThemeChanged(const bool isDark)
 {
 	m_isDark = isDark;
 	for (const auto& child : m_children) {
@@ -391,6 +391,6 @@ void UiBoxLayout::onThemeChanged(bool isDark)
 	}
 }
 
-UiBoxLayout& UiBoxLayout::withSpacing(int spacing) { setSpacing(spacing); return *this; }
+UiBoxLayout& UiBoxLayout::withSpacing(const int spacing) { setSpacing(spacing); return *this; }
 UiBoxLayout& UiBoxLayout::withMargins(const QMargins& margins) { setMargins(margins); return *this; }
-UiBoxLayout& UiBoxLayout::withBackground(const QColor& color, float radius) { setBackgroundColor(color); setCornerRadius(radius); return *this; }
+UiBoxLayout& UiBoxLayout::withBackground(const QColor& color, const float radius) { setBackgroundColor(color); setCornerRadius(radius); return *this; }

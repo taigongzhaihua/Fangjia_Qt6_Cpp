@@ -51,12 +51,12 @@ public:
 		return roots;
 	}
 
-	QVector<int> childIndices(int nodeId) const override
+	QVector<int> childIndices(const int nodeId) const override
 	{
 		return m_vm ? m_vm->childIndices(nodeId) : QVector<int>{};
 	}
 
-	UiTreeList::NodeInfo nodeInfo(int nodeId) const override
+	UiTreeList::NodeInfo nodeInfo(const int nodeId) const override
 	{
 		UiTreeList::NodeInfo info;
 		if (!m_vm) return info;
@@ -69,8 +69,8 @@ public:
 	}
 
 	int selectedId() const override { return m_vm ? m_vm->selectedIndex() : -1; }
-	void setSelectedId(int nodeId) override { if (m_vm) m_vm->setSelectedIndex(nodeId); }
-	void setExpanded(int nodeId, bool on) override { if (m_vm) m_vm->setExpanded(nodeId, on); }
+	void setSelectedId(const int nodeId) override { if (m_vm) m_vm->setSelectedIndex(nodeId); }
+	void setExpanded(const int nodeId, const bool on) override { if (m_vm) m_vm->setExpanded(nodeId, on); }
 
 private:
 	FormulaViewModel* m_vm{ nullptr };
@@ -80,7 +80,7 @@ private:
 class UiFormulaView::VSplitter : public IUiComponent, public IUiContent
 {
 public:
-	explicit VSplitter(QColor color, int logicalW = 1) : m_color(color), m_w(std::max(1, logicalW))
+	explicit VSplitter(const QColor color, const int logicalW = 1) : m_color(color), m_w(std::max(1, logicalW))
 	{
 	}
 
@@ -122,11 +122,11 @@ private:
 class UiFormulaView::WidthHint : public IUiComponent, public IUiContent, public ILayoutable
 {
 public:
-	explicit WidthHint(IUiComponent* wrapped, int preferredW = 0) : m_child(wrapped), m_prefW(std::max(0, preferredW))
+	explicit WidthHint(IUiComponent* wrapped, const int preferredW = 0) : m_child(wrapped), m_prefW(std::max(0, preferredW))
 	{
 	}
 
-	void setPreferredWidth(int w) { m_prefW = std::max(0, w); }
+	void setPreferredWidth(const int w) { m_prefW = std::max(0, w); }
 
 	void setViewportRect(const QRect& r) override
 	{
@@ -149,7 +149,7 @@ public:
 
 	void updateLayout(const QSize& windowSize) override { if (m_child) m_child->updateLayout(windowSize); }
 
-	void updateResourceContext(IconCache& cache, QOpenGLFunctions* gl, float dpr) override
+	void updateResourceContext(IconCache& cache, QOpenGLFunctions* gl, const float dpr) override
 	{
 		if (m_child) m_child->updateResourceContext(cache, gl, dpr);
 	}
@@ -161,7 +161,7 @@ public:
 	bool onWheel(const QPoint& pos, const QPoint& angleDelta) override { return m_child ? m_child->onWheel(pos, angleDelta) : false; }
 	bool tick() override { return m_child ? m_child->tick() : false; }
 	QRect bounds() const override { return { 0, 0, std::max(0, m_prefW), 0 }; }
-	void onThemeChanged(bool isDark) override { if (m_child) m_child->onThemeChanged(isDark); }
+	void onThemeChanged(const bool isDark) override { if (m_child) m_child->onThemeChanged(isDark); }
 
 private:
 	IUiComponent* m_child{ nullptr }; // 非拥有
@@ -295,7 +295,7 @@ void UiFormulaView::buildChildren()
 	addChild(m_detailWrap.get(), CrossAlign::Stretch);
 }
 
-void UiFormulaView::setDarkTheme(bool dark)
+void UiFormulaView::setDarkTheme(const bool dark)
 {
 	if (m_isDark == dark) return;
 	m_isDark = dark;
@@ -337,7 +337,7 @@ void UiFormulaView::applyPalettes() const
 	}
 }
 
-void UiFormulaView::onThemeChanged(bool isDark)
+void UiFormulaView::onThemeChanged(const bool isDark)
 {
 	m_isDark = isDark;
 	applyPalettes();

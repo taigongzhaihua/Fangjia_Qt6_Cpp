@@ -1,5 +1,6 @@
 #include "ThemeManager.h"
 
+#include <qglobal.h>
 #include <qguiapplication.h>
 #include <qnamespace.h>
 #include <qobject.h>
@@ -7,7 +8,6 @@
 #include <qstring.h>
 #include <qstylehints.h>
 #include <qtmetamacros.h>
-#include <qglobal.h>
 
 namespace {
 	constexpr auto K_SETTINGS_GROUP = "Theme";
@@ -64,7 +64,7 @@ void ThemeManager::setMode(const ThemeMode mode)
 
 void ThemeManager::updateEffectiveColorScheme()
 {
-	Qt::ColorScheme newScheme = Qt::ColorScheme::Light;
+	auto newScheme = Qt::ColorScheme::Light;
 	switch (m_mode) {
 	case ThemeMode::FollowSystem:
 		newScheme = systemColorScheme();

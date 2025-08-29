@@ -41,7 +41,7 @@ namespace UI {
 		/// 参数：c — 文本颜色
 		/// 返回：当前文本组件实例（支持链式调用）
 		/// 说明：一旦调用则不再跟随主题自动变色
-		std::shared_ptr<Text> color(QColor c) {
+		std::shared_ptr<Text> color(const QColor c) {
 			m_color = c;
 			m_autoColor = false;
 			m_useThemeColor = false; // 显式设色优先，取消主题色
@@ -53,7 +53,7 @@ namespace UI {
 		/// 参数：dark — 暗色主题下的文本颜色
 		/// 返回：当前文本组件实例（支持链式调用）
 		/// 说明：随主题变化自动切换颜色，优先级高于默认自动配色
-		std::shared_ptr<Text> themeColor(QColor light, QColor dark) {
+		std::shared_ptr<Text> themeColor(const QColor light, const QColor dark) {
 			m_colorLight = light;
 			m_colorDark = dark;
 			m_useThemeColor = true;
@@ -64,7 +64,7 @@ namespace UI {
 		/// 功能：设置字体大小
 		/// 参数：size — 字体大小（逻辑像素）
 		/// 返回：当前文本组件实例（支持链式调用）
-		std::shared_ptr<Text> fontSize(int size) {
+		std::shared_ptr<Text> fontSize(const int size) {
 			m_fontSize = size;
 			return self<Text>();
 		}
@@ -72,7 +72,7 @@ namespace UI {
 		/// 功能：设置字体粗细
 		/// 参数：weight — 字体粗细枚举值
 		/// 返回：当前文本组件实例（支持链式调用）
-		std::shared_ptr<Text> fontWeight(QFont::Weight weight) {
+		std::shared_ptr<Text> fontWeight(const QFont::Weight weight) {
 			m_fontWeight = weight;
 			return self<Text>();
 		}
@@ -81,13 +81,13 @@ namespace UI {
 		/// 参数：align — 对齐方式（水平+垂直组合）
 		/// 返回：当前文本组件实例（支持链式调用）
 		/// 说明：控制文本在自身矩形内的对齐位置
-		std::shared_ptr<Text> align(Qt::Alignment align) {
+		std::shared_ptr<Text> align(const Qt::Alignment align) {
 			m_alignment = align;
 			return self<Text>();
 		}
 
 		// 开启自动换行（默认 false）
-		std::shared_ptr<Text> wrap(bool on = true) {
+		std::shared_ptr<Text> wrap(const bool on = true) {
 			m_wrap = on;
 			// 默认多行时不限行数（0 表示不限），单行时限定为 1
 			if (on && m_maxLines == 1) m_maxLines = 0;
@@ -96,25 +96,25 @@ namespace UI {
 		}
 
 		// 最大行数（0 表示不限）
-		std::shared_ptr<Text> maxLines(int n) {
+		std::shared_ptr<Text> maxLines(const int n) {
 			m_maxLines = std::max(0, n);
 			return self<Text>();
 		}
 
 		// 溢出处理：Visible / Clip / Ellipsis
-		std::shared_ptr<Text> overflow(Overflow o) {
+		std::shared_ptr<Text> overflow(const Overflow o) {
 			m_overflow = o;
 			return self<Text>();
 		}
 
 		// 单词优先换行（默认 true），false 时按字符断行
-		std::shared_ptr<Text> wordWrap(bool on) {
+		std::shared_ptr<Text> wordWrap(const bool on) {
 			m_wordWrap = on;
 			return self<Text>();
 		}
 
 		// 行距（像素，逻辑像素；负数表示使用默认行距）
-		std::shared_ptr<Text> lineSpacing(int px) {
+		std::shared_ptr<Text> lineSpacing(const int px) {
 			m_lineSpacing = px;
 			return self<Text>();
 		}
@@ -147,13 +147,13 @@ namespace UI {
 		explicit Icon(QString path) : m_path(std::move(path)) {}
 
 		// 显式设色：一旦调用则不再跟随主题自动变色
-		std::shared_ptr<Icon> color(QColor c) {
+		std::shared_ptr<Icon> color(const QColor c) {
 			m_color = c;
 			m_autoColor = false;
 			return self<Icon>();
 		}
 
-		std::shared_ptr<Icon> size(int s) {
+		std::shared_ptr<Icon> size(const int s) {
 			m_size = s;
 			return self<Icon>();
 		}
@@ -190,7 +190,7 @@ namespace UI {
 			return self<Container>();
 		}
 
-		std::shared_ptr<Container> alignment(Alignment align) {
+		std::shared_ptr<Container> alignment(const Alignment align) {
 			m_alignment = align;
 			return self<Container>();
 		}

@@ -275,7 +275,7 @@ void UiPanel::append(Render::FrameData& fd) const
 		}
 	}
 
-	const QRectF parentClip = QRectF(contentRect());
+	const auto parentClip = QRectF(contentRect());
 
 	for (size_t i = 0; i < m_children.size(); ++i) {
 		const auto& ch = m_children[i];

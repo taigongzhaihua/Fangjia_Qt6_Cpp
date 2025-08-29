@@ -24,7 +24,7 @@
 #include <utility>
 #include <vector>
 
-// 前向声明：导航数据视图模型
+ // 前向声明：导航数据视图模型
 class NavViewModel;
 
 namespace Ui {
@@ -81,30 +81,30 @@ namespace Ui {
 
 		/// 功能：设置暗色主题状态
 		/// 参数：dark — 是否启用暗色主题
-		void setDarkTheme(bool dark) { m_isDark = dark; }
-		
+		void setDarkTheme(const bool dark) { m_isDark = dark; }
+
 		/// 功能：设置导航栏色彩方案
 		/// 参数：p — 包含各状态颜色的色彩方案
 		void setPalette(const NavPalette& p) { m_pal = p; }
 
 		/// 功能：设置图标逻辑尺寸
 		/// 参数：s — 图标逻辑像素尺寸（最小20）
-		void setIconLogicalSize(int s) { m_iconLogical = s > 0 ? s : 20; }
-		
+		void setIconLogicalSize(const int s) { m_iconLogical = s > 0 ? s : 20; }
+
 		/// 功能：设置导航项高度
 		/// 参数：h — 单个导航项的高度（最小44）
-		void setItemHeight(int h) { m_itemH = h > 24 ? h : 44; }
+		void setItemHeight(const int h) { m_itemH = h > 24 ? h : 44; }
 
 		/// 功能：设置导航栏宽度（折叠/展开状态）
 		/// 参数：collapsedW — 折叠状态宽度（最小40）
 		/// 参数：expandedW — 展开状态宽度（最小为折叠宽度+40）
 		/// 说明：自动调整展开插值参数范围
-		void setWidths(int collapsedW, int expandedW) {
+		void setWidths(const int collapsedW, const int expandedW) {
 			m_collapsedW = std::max(40, collapsedW);
 			m_expandedW = std::max(m_collapsedW + 40, expandedW);
 			m_expandT = std::clamp(m_expandT, 0.0f, 1.0f);
 		}
-		
+
 		/// 功能：计算当前实际宽度
 		/// 返回：基于展开插值的当前宽度
 		/// 说明：在折叠宽度和展开宽度之间线性插值
@@ -112,7 +112,7 @@ namespace Ui {
 			return static_cast<int>(std::lround(static_cast<float>(m_collapsedW) + static_cast<float>(m_expandedW - m_collapsedW) * m_expandT));
 		}
 
-		void setLabelFontPx(int px) { m_labelFontPx = std::max(10, px); }
+		void setLabelFontPx(const int px) { m_labelFontPx = std::max(10, px); }
 
 		void setSelectedIndex(int idx);
 		int  selectedIndex() const noexcept { return m_selected; }
@@ -121,7 +121,7 @@ namespace Ui {
 		bool expanded() const noexcept { return m_expandT > 0.5f; }
 
 		void updateLayout(const QSize& windowSize) override { m_rect = QRect(0, 0, currentWidth(), windowSize.height()); }
-		void updateResourceContext(IconCache& iconCache, QOpenGLFunctions* gl, float devicePixelRatio) override {
+		void updateResourceContext(IconCache& iconCache, QOpenGLFunctions* gl, const float devicePixelRatio) override {
 			m_cache = &iconCache; m_gl = gl; m_dpr = std::max(0.5f, devicePixelRatio);
 		}
 		void append(Render::FrameData& fd) const override;
@@ -130,7 +130,7 @@ namespace Ui {
 		bool onMouseRelease(const QPoint& pos) override;
 		bool tick() override;
 
-		void onThemeChanged(bool isDark) override {
+		void onThemeChanged(const bool isDark) override {
 			setDarkTheme(isDark);
 			setPalette(isDark ? getDarkPalette() : getLightPalette());
 		}

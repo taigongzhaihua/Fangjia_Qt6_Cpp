@@ -7,12 +7,12 @@
 #include <cmath>
 #include <qbytearray.h>
 #include <qcolor.h>
+#include <qglobal.h>
 #include <qopenglfunctions.h>
 #include <qpoint.h>
 #include <qrect.h>
 #include <qsize.h>
 #include <qstring.h>
-#include <qglobal.h>
 #include <RenderUtils.hpp>
 #include <utility>
 
@@ -133,7 +133,7 @@ void UiTopBar::updateResourceContext(IconCache& cache, QOpenGLFunctions* gl, con
 		const int px = std::lround(iconLogical * m_dpr);
 		const QString key = RenderUtils::makeIconCacheKey(themeBaseKey, px);
 
-		QByteArray svg = RenderUtils::loadSvgCached(themePath);
+		const QByteArray svg = RenderUtils::loadSvgCached(themePath);
 		const int tex = m_cache->ensureSvgPx(key, svg, QSize(px, px), m_gl);
 		const QSize texSz = m_cache->textureSizePx(tex);
 
@@ -150,7 +150,7 @@ void UiTopBar::updateResourceContext(IconCache& cache, QOpenGLFunctions* gl, con
 		const int px = std::lround(iconLogical * m_dpr);
 		const QString key = RenderUtils::makeIconCacheKey(followBaseKey, px);
 
-		QByteArray svg = RenderUtils::loadSvgCached(followPath);
+		const QByteArray svg = RenderUtils::loadSvgCached(followPath);
 		const int tex = m_cache->ensureSvgPx(key, svg, QSize(px, px), m_gl);
 		const QSize texSz = m_cache->textureSizePx(tex);
 
@@ -167,7 +167,7 @@ void UiTopBar::updateResourceContext(IconCache& cache, QOpenGLFunctions* gl, con
 			const int px = std::lround(static_cast<float>(logicalPx) * m_dpr);
 			const QString key = RenderUtils::makeIconCacheKey(baseKey, px);
 
-			QByteArray svg = RenderUtils::loadSvgCached(path);
+			const QByteArray svg = RenderUtils::loadSvgCached(path);
 			const int tex = m_cache->ensureSvgPx(key, svg, QSize(px, px), m_gl);
 			const QSize texSz = m_cache->textureSizePx(tex);
 
@@ -247,7 +247,7 @@ void UiTopBar::append(Render::FrameData& fd) const
 
 bool UiTopBar::tick()
 {
-	bool active = m_animPhase != AnimPhase::Idle;
+	const bool active = m_animPhase != AnimPhase::Idle;
 
 	if (!active) return false;
 	if (!m_animClock.isValid()) m_animClock.start();

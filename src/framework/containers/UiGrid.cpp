@@ -169,7 +169,7 @@ std::vector<int> UiGrid::computeColumnWidths(const int contentW) const {
 	std::vector out(n, 0);
 	for (int i = 0; i < n; ++i) {
 		if (m_cols[i].type == TrackDef::Type::Star) {
-			int add = (totalStar > 0.0f) ? static_cast<int>(std::floor(avail * (starWeight[i] / totalStar))) : 0;
+			const int add = (totalStar > 0.0f) ? static_cast<int>(std::floor(avail * (starWeight[i] / totalStar))) : 0;
 			out[i] = starMin[i] + add;
 		}
 		else {
@@ -177,7 +177,7 @@ std::vector<int> UiGrid::computeColumnWidths(const int contentW) const {
 		}
 	}
 	// 处理分配误差
-	int sumOut = std::accumulate(out.begin(), out.end(), 0);
+	const int sumOut = std::accumulate(out.begin(), out.end(), 0);
 	int error = (fixed - std::accumulate(width.begin(), width.end(), 0) - std::accumulate(starMin.begin(), starMin.end(), 0)) + (avail - (sumOut - (fixed - std::max(0, n - 1) * m_colSpacing)));
 	// 把误差补到最后一个 Star/Auto
 	for (int i = n - 1; i >= 0 && error != 0; --i) {
@@ -244,7 +244,7 @@ std::vector<int> UiGrid::computeRowHeights(const int contentH, const std::vector
 		}
 		sum += std::max(0, ch.rowSpan - 1) * m_rowSpacing;
 
-		int need = d.height() - sum;
+		const int need = d.height() - sum;
 		if (need <= 0) continue;
 
 		if (sumStarW > 0.0f) {
@@ -281,7 +281,7 @@ std::vector<int> UiGrid::computeRowHeights(const int contentH, const std::vector
 	std::vector out(rN, 0);
 	for (int r = 0; r < rN; ++r) {
 		if (m_rows[r].type == TrackDef::Type::Star) {
-			int add = (totalStar > 0.0f) ? static_cast<int>(std::floor(avail * (starWeight[r] / totalStar))) : 0;
+			const int add = (totalStar > 0.0f) ? static_cast<int>(std::floor(avail * (starWeight[r] / totalStar))) : 0;
 			out[r] = starMin[r] + add;
 		}
 		else {
@@ -289,7 +289,7 @@ std::vector<int> UiGrid::computeRowHeights(const int contentH, const std::vector
 		}
 	}
 	// 误差补偿
-	int sumOut = std::accumulate(out.begin(), out.end(), 0);
+	const int sumOut = std::accumulate(out.begin(), out.end(), 0);
 	int error = (fixed - std::accumulate(height.begin(), height.end(), 0) - std::accumulate(starMin.begin(), starMin.end(), 0)) + (avail - (sumOut - (fixed - std::max(0, rN - 1) * m_rowSpacing)));
 	for (int r = rN - 1; r >= 0 && error != 0; --r) {
 		if (m_rows[r].type == TrackDef::Type::Star) { out[r] += error; error = 0; break; }
@@ -430,7 +430,7 @@ void UiGrid::updateResourceContext(IconCache& cache, QOpenGLFunctions* gl, const
 }
 
 void UiGrid::append(Render::FrameData& fd) const {
-	const QRectF parentClip = QRectF(contentRect());
+	const auto parentClip = QRectF(contentRect());
 
 	for (const auto& ch : m_children) {
 		if (!ch.visible || !ch.component) continue;

@@ -19,8 +19,8 @@ public:
 	IUiComponent* child() const noexcept { return m_child; }
 
 	// 统一设置两轴对齐
-	void setAlignment(Align h, Align v) { m_hAlign = h; m_vAlign = v; }
-	void setAlignment(Align a) { setAlignment(a, a); }
+	void setAlignment(const Align h, const Align v) { m_hAlign = h; m_vAlign = v; }
+	void setAlignment(const Align a) { setAlignment(a, a); }
 
 	// IUiContent
 	void setViewportRect(const QRect& r) override;

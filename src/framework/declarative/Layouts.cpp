@@ -28,7 +28,7 @@ namespace UI {
 	// Spacer
 	class SpacerComponent : public IUiComponent {
 	public:
-		explicit SpacerComponent(int size) : m_size(size) {}
+		explicit SpacerComponent(const int size) : m_size(size) {}
 		void updateLayout(const QSize&) override {}
 		void updateResourceContext(IconCache&, QOpenGLFunctions*, float) override {}
 		void append(Render::FrameData&) const override {}

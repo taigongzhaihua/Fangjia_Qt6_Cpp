@@ -40,8 +40,8 @@ public:
 	void setOrientation(const Orientation o) { m_orient = o; }
 	void setMargins(const QMargins& m) { m_margins = m; }
 	void setPadding(const QMargins& p) { m_padding = p; }
-	void setSpacing(int px) { m_spacing = std::max(0, px); }
-	void setBackground(QColor c, float radius = 0.0f) { m_bg = c; m_radius = std::max(0.0f, radius); }
+	void setSpacing(const int px) { m_spacing = std::max(0, px); }
+	void setBackground(const QColor c, const float radius = 0.0f) { m_bg = c; m_radius = std::max(0.0f, radius); }
 
 	// ILayoutable（新增）
 	QSize measure(const SizeConstraints& cs) override;

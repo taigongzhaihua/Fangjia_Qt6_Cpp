@@ -7,10 +7,10 @@
 #include <cstdint>
 #include <qcolor.h>
 #include <qelapsedtimer.h>
+#include <qglobal.h>
 #include <qopenglfunctions.h>
 #include <qrect.h>
 #include <qstring.h>
-#include <qglobal.h>
 
 // 右上角按钮（主题/跟随 + 三大键）
 class UiTopBar final : public IUiComponent
@@ -49,7 +49,7 @@ public:
 	bool onMouseRelease(const QPoint& pos) override;
 	bool tick() override;
 
-	void onThemeChanged(bool isDark) override {
+	void onThemeChanged(const bool isDark) override {
 		setDarkTheme(isDark);
 		setPalette(isDark ? getDarkPalette() : getLightPalette());
 	}
@@ -87,7 +87,7 @@ public:
 private:
 	enum class AnimPhase : uint8_t { Idle, HideTheme_FadeOut, MoveFollow_Right, MoveFollow_Left, ShowTheme_FadeIn };
 	static float easeInOut(float t);
-	static float lerp(float a, float b, float t) { return a + (b - a) * t; }
+	static float lerp(const float a, const float b, const float t) { return a + (b - a) * t; }
 
 	void startAnimSequence(bool followOn);
 	void beginPhase(AnimPhase ph, int durationMs);
