@@ -1,4 +1,4 @@
-﻿cmake_minimum_required(VERSION 3.16)
+cmake_minimum_required(VERSION 3.16)
 
 # MSVC热重载支持：启用EditAndContinue调试信息格式
 if (POLICY CMP0141)
