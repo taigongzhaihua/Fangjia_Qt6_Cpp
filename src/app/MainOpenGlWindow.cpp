@@ -20,7 +20,7 @@
 #include <UiNav.h>
 #include <UiTopBar.h>
 #include <NavViewModel.h>
-#include <gl/GL.h>
+#include <GL/gl.h>
 #include <memory>
 #include <qcontainerfwd.h>
 #include <qsize.h>
