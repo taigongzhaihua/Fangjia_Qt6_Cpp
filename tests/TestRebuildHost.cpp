@@ -4,6 +4,7 @@
 #include "framework/declarative/RebuildHost.h"
 #include "framework/declarative/Binding.h"
 #include "framework/base/UiComponent.hpp"
+#include "framework/base/ILayoutable.hpp"
 #include "core/rendering/RenderData.hpp"
 
 // Test ViewModel for binding tests
@@ -267,6 +268,49 @@ private slots:
         
         // No verification needed - just ensure it doesn't crash
         QVERIFY(true);
+    }
+
+    void testILayoutableInterface()
+    {
+        UI::RebuildHost host;
+        
+        // Test that RebuildHost implements ILayoutable
+        ILayoutable* layoutable = dynamic_cast<ILayoutable*>(&host);
+        QVERIFY(layoutable != nullptr);
+        
+        // Test measure with empty host
+        SizeConstraints cs;
+        cs.minW = 10; cs.minH = 20;
+        cs.maxW = 500; cs.maxH = 400;
+        
+        QSize measured = host.measure(cs);
+        
+        // Empty host should return size within constraints
+        QVERIFY(measured.width() >= cs.minW && measured.width() <= cs.maxW);
+        QVERIFY(measured.height() >= cs.minH && measured.height() <= cs.maxH);
+        
+        // Test arrange method doesn't crash
+        QRect finalRect(0, 0, 200, 100);
+        host.arrange(finalRect);
+        
+        // After arrange, viewport should be set
+        QRect bounds = host.bounds();
+        QCOMPARE(bounds, finalRect);
+        
+        // Test with a built child component
+        bool builderCalled = false;
+        host.setBuilder([&builderCalled]() -> std::unique_ptr<IUiComponent> {
+            builderCalled = true;
+            return std::make_unique<TestComponent>();
+        });
+        
+        QVERIFY(builderCalled);
+        
+        // Measure should now delegate to child
+        QSize measured2 = host.measure(cs);
+        // We can't verify exact size since TestComponent returns empty bounds,
+        // but we can verify it doesn't crash and returns valid size
+        QVERIFY(measured2.width() >= 0 && measured2.height() >= 0);
     }
 };
 

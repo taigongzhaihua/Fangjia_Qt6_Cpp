@@ -1,13 +1,15 @@
 #pragma once
 #include "UiComponent.hpp"
 #include "UiContent.hpp"
+#include "ILayoutable.hpp"
 #include <functional>
 #include <memory>
+#include <algorithm>
 
 namespace UI {
 
 	// 可重建的宿主组件：用于将某一段 Widget 构造成的 IUiComponent 动态重建
-	class RebuildHost : public IUiComponent, public IUiContent {
+	class RebuildHost : public IUiComponent, public IUiContent, public ILayoutable {
 	public:
 		using BuildFn = std::function<std::unique_ptr<IUiComponent>()>;
 
@@ -52,6 +54,41 @@ namespace UI {
 			m_hasViewport = true;
 			if (auto* c = dynamic_cast<IUiContent*>(m_child.get())) {
 				c->setViewportRect(r);
+			}
+		}
+
+		// ILayoutable
+		QSize measure(const SizeConstraints& cs) override {
+			if (!m_child) {
+				return QSize(std::clamp(0, cs.minW, cs.maxW),
+					std::clamp(0, cs.minH, cs.maxH));
+			}
+
+			QSize inner(0, 0);
+			if (auto* l = dynamic_cast<ILayoutable*>(m_child.get())) {
+				inner = l->measure(cs);
+			}
+			else {
+				inner = m_child->bounds().size();
+				inner.setWidth(std::clamp(inner.width(), cs.minW, cs.maxW));
+				inner.setHeight(std::clamp(inner.height(), cs.minH, cs.maxH));
+			}
+			return inner;
+		}
+
+		void arrange(const QRect& finalRect) override {
+			m_viewport = finalRect;
+			m_hasViewport = true;
+			
+			if (!m_child || !finalRect.isValid()) return;
+
+			// Propagate viewport to child
+			if (auto* c = dynamic_cast<IUiContent*>(m_child.get())) {
+				c->setViewportRect(finalRect);
+			}
+			// Call child's arrange if available  
+			if (auto* l = dynamic_cast<ILayoutable*>(m_child.get())) {
+				l->arrange(finalRect);
 			}
 		}
 
