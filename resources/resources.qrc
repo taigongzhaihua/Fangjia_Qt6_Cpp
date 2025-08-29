@@ -1,14 +1,14 @@
 <RCC>
-	<!-- 图标资源：前缀 /icons -->
+	<!-- 图标资源：前缀 /icons，包含应用所需的SVG图标文件 -->
 	<qresource prefix="/icons">
 
-		<!-- alias 是资源内的文件名，实际磁盘（或资源目录）路径写在文本内容 -->
+		<!-- 别名(alias)是资源内的文件名，实际文件路径写在标签内容中 -->
 		<file alias="sun.svg">icons/sun.svg</file>
 		<file alias="moon.svg">icons/moon.svg</file>
 		<file alias="follow_on.svg">icons/follow_on.svg</file>
 		<file alias="follow_off.svg">icons/follow_off.svg</file>
 
-		<!-- 左侧导航（示例） -->
+		<!-- 左侧导航图标（亮色/暗色主题适配） -->
 		<file alias="home_light.svg">icons/home_light.svg</file>
 		<file alias="home_dark.svg">icons/home_dark.svg</file>
 		<file alias="data_light.svg">icons/data_light.svg</file>
@@ -20,16 +20,16 @@
 		<file alias="settings_light.svg">icons/settings_light.svg</file>
 		<file alias="settings_dark.svg">icons/settings_dark.svg</file>
 
-		<!-- 新增：系统三大键 -->
+		<!-- 系统窗口控制按钮 -->
 		<file alias="sys_min.svg">icons/sys_min.svg</file>
 		<file alias="sys_max.svg">icons/sys_max.svg</file>
 		<file alias="sys_close.svg">icons/sys_close.svg</file>
 
-		<!-- 其他图标 -->
+		<!-- 导航和界面控制图标 -->
 		<file alias="nav_toggle_expand.svg">icons/nav_toggle_expand.svg</file>
 		<file alias="nav_toggle_collapse.svg">icons/nav_toggle_collapse.svg</file>
 
-		<!-- TreeView 展开/折叠箭头（上/下） -->
+		<!-- 树形视图展开/折叠箭头 -->
 		<file alias="tree_arrow_down.svg">icons/tree_arrow_down.svg</file>
 		<file alias="tree_arrow_up.svg">icons/tree_arrow_up.svg</file>
 		

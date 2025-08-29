@@ -1,3 +1,11 @@
+/*
+ * 文件名：BasicWidgets.cpp
+ * 职责：基础声明式UI组件的具体实现，包括文本组件的渲染、布局和交互逻辑。
+ * 依赖：UI组件接口、渲染系统、布局系统、图标缓存。
+ * 线程：仅在UI线程使用。
+ * 备注：实现文本的多行布局、换行处理、溢出策略和主题色彩适配。
+ */
+
 #include "BasicWidgets.h"
 #include "IconCache.h"
 #include "Layouts.h"
@@ -29,7 +37,7 @@
 
 namespace UI {
 
-	// 简单的文本组件实现（支持换行 / 裁切 / 省略）
+	/// 文本组件具体实现：支持多行、换行、溢出处理和主题适配的文本渲染组件
 	class TextComponent final : public IUiComponent, public IUiContent, public ILayoutable {
 	public:
 		TextComponent(QString text,
@@ -124,26 +132,31 @@ namespace UI {
 		void updateResourceContext(IconCache& cache, QOpenGLFunctions* gl, const float dpr) override {
 			m_cache = &cache;
 			m_gl = gl;
-			m_dpr = std::max(0.5f, dpr);
+			m_dpr = std::max(0.5f, dpr);  // DPR（设备像素比）最小限制0.5倍，避免过小导致模糊
 		}
 
 		void append(Render::FrameData& fd) const override {
 			if (!m_cache || !m_gl || m_text.isEmpty() || !m_bounds.isValid()) return;
 
+			// 根据DPR换算字体像素大小：逻辑像素 -> 设备像素
 			QFont font;
 			font.setPixelSize(std::lround(static_cast<float>(m_fontSize) * m_dpr));
 			font.setWeight(m_fontWeight);
 			QFontMetrics fm(font);
 
+			// 计算行高和行间距（设备像素）
 			const int lineHpx = fm.height();
 			const int lineGapPx = (m_lineSpacing >= 0) ? std::lround(static_cast<float>(m_lineSpacing) * m_dpr)
 				: std::lround(lineHpx * 0.2);
+			
+			// 可用区域转换为设备像素
 			const int availWpx = std::max(0, static_cast<int>(std::lround(static_cast<float>(m_bounds.width()) * m_dpr)));
 			const int availHpx = std::max(0, static_cast<int>(std::lround(static_cast<float>(m_bounds.height()) * m_dpr)));
 
 			struct Line { QString text; int tex{ 0 }; QSize texPx; int drawWpx{ 0 }; };
 			std::vector<Line> lines;
 
+			// 创建文本纹理的Lambda：生成缓存键并请求纹理
 			auto makeTex = [&](const QString& s) -> Line {
 				const QString key = QString("text_%1_%2_%3").arg(s).arg(m_fontSize).arg(m_color.name(QColor::HexArgb));
 				const int tex = m_cache->ensureTextPx(key, font, s, m_color, m_gl);
