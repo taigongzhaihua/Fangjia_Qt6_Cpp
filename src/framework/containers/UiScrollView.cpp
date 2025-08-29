@@ -5,6 +5,7 @@
 #include <qpoint.h>
 #include <qrect.h>
 #include <qsize.h>
+#include <qtypes.h>
 #include <RenderData.hpp>
 #include <RenderUtils.hpp>
 #include <UiComponent.hpp>
@@ -262,6 +263,10 @@ void UiScrollView::renderScrollbar(Render::FrameData& fd) const {
 
 bool UiScrollView::onMousePress(const QPoint& pos) {
 	if (!m_viewport.contains(pos)) return false;
+	// 继续传递给子组件
+	if (m_child && m_child->onMousePress(pos)) {
+		return true;
+	}
 
 	// 检查是否点击在滚动条区域
 	if (isScrollbarVisible() && isPointInScrollbar(pos)) {
@@ -297,11 +302,6 @@ bool UiScrollView::onMousePress(const QPoint& pos) {
 
 	// 否则开始内容拖拽
 	startContentDrag(pos);
-
-	// 继续传递给子组件
-	if (m_child) {
-		return m_child->onMousePress(pos);
-	}
 
 	return false;
 }
@@ -350,6 +350,11 @@ bool UiScrollView::onMouseMove(const QPoint& pos) {
 	const bool wasInScrollbar = isScrollbarVisible() && isPointInScrollbar(pos);
 	m_thumbHovered = isScrollbarVisible() && isPointInThumb(pos);
 
+	// 传递给子组件
+	if (m_child && m_child->onMouseMove(pos)) {
+		return true;
+	}
+
 	// 如果鼠标在滚动条区域（包括轨道和拇指），显示滚动条
 	if (wasInScrollbar) {
 		showScrollbar();
@@ -376,10 +381,7 @@ bool UiScrollView::onMouseMove(const QPoint& pos) {
 		return true;
 	}
 
-	// 传递给子组件
-	if (m_child) {
-		return m_child->onMouseMove(pos);
-	}
+
 
 	return wasHovered != m_thumbHovered; // 如果悬停状态改变，则需要重绘
 }
