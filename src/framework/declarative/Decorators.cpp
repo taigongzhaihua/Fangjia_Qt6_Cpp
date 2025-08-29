@@ -173,7 +173,8 @@ namespace UI
 		if (m_child && m_child->onMousePress(pos)) return true;
 		
 		// 如果子组件没有处理，且我们有onTap回调，检查是否在可点击区域内
-		if (m_p.onTap && m_drawRect.contains(pos))
+		// 对于交互元素，使用完整的viewport而不是drawRect，这样margin区域也可以点击
+		if (m_p.onTap && m_viewport.contains(pos))
 		{
 			m_pressed = true;
 			return true; // 声明处理此事件
@@ -189,7 +190,8 @@ namespace UI
 		if (m_child) handled = m_child->onMouseMove(pos) || handled;
 		if (m_p.onHover)
 		{
-			const bool hov = m_drawRect.contains(pos);
+			// 对于交互元素，hover也应该使用完整的viewport区域
+			const bool hov = m_viewport.contains(pos);
 			if (hov != m_hover)
 			{
 				m_hover = hov;
@@ -207,7 +209,8 @@ namespace UI
 		if (m_child) handled = m_child->onMouseRelease(pos) || handled;
 		
 		// 检查是否为有效的点击：之前按下且释放时仍在区域内
-		if (m_p.onTap && m_pressed && m_drawRect.contains(pos))
+		// 对于交互元素，使用完整的viewport而不是drawRect，保持与onMousePress一致
+		if (m_p.onTap && m_pressed && m_viewport.contains(pos))
 		{
 			m_p.onTap();
 			handled = true;
