@@ -151,8 +151,18 @@ std::vector<int> UiGrid::computeColumnWidths(const int contentW) const {
 			for (int c = c1; c >= c0 && rem > 0; --c) if (m_cols[c].type == TrackDef::Type::Auto) { width[c] += 1; --rem; }
 		}
 		else {
-			// 只有 Pixel：放到最后一列（避免复杂收缩）
-			width[c1] += need;
+			// 只有 Pixel：均匀分配额外宽度而不是全部给最后一列
+			const int pixelCount = c1 - c0 + 1;
+			const int each = need / pixelCount;
+			const int remainder = need % pixelCount;
+			
+			for (int c = c0; c <= c1; ++c) {
+				width[c] += each;
+				// 余数分配给前几列
+				if (c - c0 < remainder) {
+					width[c] += 1;
+				}
+			}
 		}
 	}
 
@@ -176,12 +186,33 @@ std::vector<int> UiGrid::computeColumnWidths(const int contentW) const {
 			out[i] = width[i];
 		}
 	}
-	// 处理分配误差
+	// 处理分配误差：保证不变式 sum(out[i]) + totalSpacing == contentW
 	const int sumOut = std::accumulate(out.begin(), out.end(), 0);
-	int error = (fixed - std::accumulate(width.begin(), width.end(), 0) - std::accumulate(starMin.begin(), starMin.end(), 0)) + (avail - (sumOut - (fixed - std::max(0, n - 1) * m_colSpacing)));
-	// 把误差补到最后一个 Star/Auto
-	for (int i = n - 1; i >= 0 && error != 0; --i) {
-		if (m_cols[i].type == TrackDef::Type::Star) { out[i] += error; error = 0; break; }
+	const int remainder = contentW - (sumOut + std::max(0, n - 1) * m_colSpacing);
+	
+	// 把余数补到最后一个 Star，如果没有 Star 则补到最后一个 Auto，最后才是任意列
+	if (remainder != 0) {
+		bool handled = false;
+		// 优先补给最后一个 Star 列
+		for (int i = n - 1; i >= 0 && !handled; --i) {
+			if (m_cols[i].type == TrackDef::Type::Star) { 
+				out[i] += remainder; 
+				handled = true; 
+			}
+		}
+		// 如果没有 Star 列，补给最后一个 Auto 列
+		if (!handled) {
+			for (int i = n - 1; i >= 0 && !handled; --i) {
+				if (m_cols[i].type == TrackDef::Type::Auto) { 
+					out[i] += remainder; 
+					handled = true; 
+				}
+			}
+		}
+		// 最后的回退：补给最后一列（如果全是 Pixel）
+		if (!handled && n > 0) {
+			out[n - 1] += remainder;
+		}
 	}
 
 	return out;
@@ -267,7 +298,18 @@ std::vector<int> UiGrid::computeRowHeights(const int contentH, const std::vector
 			for (int r = r1; r >= r0 && rem > 0; --r) if (m_rows[r].type == TrackDef::Type::Auto) { height[r] += 1; --rem; }
 		}
 		else {
-			height[r1] += need; // 只有 Pixel：补到最后一行
+			// 只有 Pixel：均匀分配额外高度而不是全部给最后一行
+			const int pixelCount = r1 - r0 + 1;
+			const int each = need / pixelCount;
+			const int remainder = need % pixelCount;
+			
+			for (int r = r0; r <= r1; ++r) {
+				height[r] += each;
+				// 余数分配给前几行
+				if (r - r0 < remainder) {
+					height[r] += 1;
+				}
+			}
 		}
 	}
 
@@ -288,11 +330,33 @@ std::vector<int> UiGrid::computeRowHeights(const int contentH, const std::vector
 			out[r] = height[r];
 		}
 	}
-	// 误差补偿
+	// 处理分配误差：保证不变式 sum(out[r]) + totalSpacing == contentH
 	const int sumOut = std::accumulate(out.begin(), out.end(), 0);
-	int error = (fixed - std::accumulate(height.begin(), height.end(), 0) - std::accumulate(starMin.begin(), starMin.end(), 0)) + (avail - (sumOut - (fixed - std::max(0, rN - 1) * m_rowSpacing)));
-	for (int r = rN - 1; r >= 0 && error != 0; --r) {
-		if (m_rows[r].type == TrackDef::Type::Star) { out[r] += error; error = 0; break; }
+	const int remainder = contentH - (sumOut + std::max(0, rN - 1) * m_rowSpacing);
+	
+	// 把余数补到最后一个 Star，如果没有 Star 则补到最后一个 Auto，最后才是任意行
+	if (remainder != 0) {
+		bool handled = false;
+		// 优先补给最后一个 Star 行
+		for (int r = rN - 1; r >= 0 && !handled; --r) {
+			if (m_rows[r].type == TrackDef::Type::Star) { 
+				out[r] += remainder; 
+				handled = true; 
+			}
+		}
+		// 如果没有 Star 行，补给最后一个 Auto 行
+		if (!handled) {
+			for (int r = rN - 1; r >= 0 && !handled; --r) {
+				if (m_rows[r].type == TrackDef::Type::Auto) { 
+					out[r] += remainder; 
+					handled = true; 
+				}
+			}
+		}
+		// 最后的回退：补给最后一行（如果全是 Pixel）
+		if (!handled && rN > 0) {
+			out[rN - 1] += remainder;
+		}
 	}
 	return out;
 }

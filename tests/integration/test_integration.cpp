@@ -38,8 +38,8 @@ private slots:
         
         // 验证 TabView 需要 VM 才能工作
         UiTabView tabView;
-        tabView.setViewModel(tabVm.get());
-        QVERIFY(tabView.viewModel() == tabVm.get());
+        tabView.setDataProvider(tabVm.get());
+        QVERIFY(tabView.dataProvider() == tabVm.get());
     }
     
     void testUiComponentIntegration() {
@@ -61,7 +61,7 @@ private slots:
             {.id = "tab1", .label = "Tab 1"},
             {.id = "tab2", .label = "Tab 2"}
         });
-        tabView->setViewModel(tabVm.get());
+        tabView->setDataProvider(tabVm.get());
         
         // 添加到根
         root.add(nav.get());
