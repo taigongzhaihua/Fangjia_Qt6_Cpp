@@ -9,6 +9,11 @@
 #include "AppConfig.h"
 #include "MainOpenGlWindow.h"
 #include "ThemeManager.h"
+#include "SettingsRepository.h"
+#include "usecases/GetSettingsUseCase.h"
+#include "usecases/UpdateSettingsUseCase.h"
+#include "usecases/ToggleThemeUseCase.h"
+#include "DependencyProvider.h"
 #include <exception>
 #include <memory>
 #include <qapplication.h>
@@ -67,26 +72,45 @@ int main(int argc, char* argv[])
 		auto config = std::make_shared<AppConfig>();
 		config->load();
 
+		// === Domain/Data Layer Composition Root ===
+		// 创建数据层仓储（适配器模式：包装AppConfig）
+		auto settingsRepository = std::make_shared<data::repositories::SettingsRepository>(config);
+		
+		// 创建领域用例
+		auto getSettingsUseCase = std::make_shared<domain::usecases::GetSettingsUseCase>(settingsRepository);
+		auto updateSettingsUseCase = std::make_shared<domain::usecases::UpdateSettingsUseCase>(settingsRepository);
+		auto toggleThemeUseCase = std::make_shared<domain::usecases::ToggleThemeUseCase>(settingsRepository);
+
+		// 配置依赖提供者（临时服务定位器）
+		auto& deps = DependencyProvider::instance();
+		deps.setGetSettingsUseCase(getSettingsUseCase);
+		deps.setUpdateSettingsUseCase(updateSettingsUseCase);
+		deps.setToggleThemeUseCase(toggleThemeUseCase);
+
 		// 创建主题管理器
 		const auto themeManager = std::make_shared<ThemeManager>();
 
-		// 从配置中恢复主题设置
-		if (const auto mode = config->themeMode(); mode == "light") {
-			themeManager->setMode(ThemeManager::ThemeMode::Light);
-		}
-		else if (mode == "dark") {
-			themeManager->setMode(ThemeManager::ThemeMode::Dark);
-		}
-		else {
-			themeManager->setMode(ThemeManager::ThemeMode::FollowSystem);
+		// 从配置中恢复主题设置（通过用例）
+		{
+			const auto settings = getSettingsUseCase->execute();
+			const auto& mode = settings.themeMode;
+			if (mode == "light") {
+				themeManager->setMode(ThemeManager::ThemeMode::Light);
+			}
+			else if (mode == "dark") {
+				themeManager->setMode(ThemeManager::ThemeMode::Dark);
+			}
+			else {
+				themeManager->setMode(ThemeManager::ThemeMode::FollowSystem);
+			}
 		}
 
-		// 连接主题变化信号到配置持久化
+		// 连接主题变化信号到配置持久化（通过用例）
 		QObject::connect(themeManager.get(), &ThemeManager::modeChanged,
-			config.get(), [config](const ThemeManager::ThemeMode themeMode) {
-				const QString modeStr = modeToString(themeMode);
-				config->setThemeMode(modeStr);
-				config->save();
+			[updateSettingsUseCase, getSettingsUseCase](const ThemeManager::ThemeMode themeMode) {
+				auto settings = getSettingsUseCase->execute();
+				settings.themeMode = modeToString(themeMode).toStdString();
+				updateSettingsUseCase->execute(settings);
 			});
 
 		qDebug() << "Creating main window...";

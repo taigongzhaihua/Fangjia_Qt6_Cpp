@@ -60,16 +60,20 @@ endif()
 file(GLOB FJ_DATA_SOURCES
     "data/sources/local/*.cpp"
     "data/sources/local/*.h"
+    "data/repositories/*.cpp"
+    "data/repositories/*.h"
 )
 
 add_library(fj_data STATIC ${FJ_DATA_SOURCES})
 target_link_libraries(fj_data PUBLIC 
+    fj_domain
     Qt6::Core
     Qt6::Widgets
 )
 target_include_directories(fj_data PUBLIC 
     data/sources
     data/sources/local
+    data/repositories
 )
 
 # Presentation Layer - UI Framework (base, containers, widgets, declarative)
@@ -98,7 +102,7 @@ target_include_directories(fj_presentation_ui PUBLIC
     presentation/ui/containers
     presentation/ui/widgets
     presentation/ui/declarative
-    presentation/viewmodels  # TODO: Remove this dependency in next phase
+    presentation/viewmodels  # TODO: Remove this dependency in Stage 4 (UI-ViewModel decoupling)
 )
 
 # Presentation Layer - ViewModels
@@ -109,10 +113,14 @@ file(GLOB FJ_PRESENTATION_VM_SOURCES
 )
 
 add_library(fj_presentation_vm STATIC ${FJ_PRESENTATION_VM_SOURCES})
-target_link_libraries(fj_presentation_vm PUBLIC Qt6::Core Qt6::Gui)
+target_link_libraries(fj_presentation_vm PUBLIC 
+    fj_domain
+    Qt6::Core 
+    Qt6::Gui
+)
 target_include_directories(fj_presentation_vm PUBLIC 
     presentation/viewmodels
-    data/sources/local
+    data/sources/local  # TODO: Remove when ViewModels fully migrated to use cases
 )
 
 # Presentation Layer - Pages and Views
@@ -136,8 +144,16 @@ target_include_directories(fj_presentation_pages PUBLIC
     data/sources/local
 )
 
-# Domain Layer - Empty placeholder for Stage 2/3
-add_library(fj_domain INTERFACE)
+# Domain Layer - Core business logic and abstractions (Pure C++)
+file(GLOB FJ_DOMAIN_SOURCES
+    "domain/entities/*.h"
+    "domain/repositories/*.h" 
+    "domain/usecases/*.cpp"
+    "domain/usecases/*.h"
+)
+
+add_library(fj_domain STATIC ${FJ_DOMAIN_SOURCES})
+target_include_directories(fj_domain PUBLIC domain)
 
 # Application - Main executable
 file(GLOB APP_SOURCES

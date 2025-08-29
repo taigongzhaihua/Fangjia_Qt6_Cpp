@@ -22,6 +22,9 @@
 // Core test for DecoratedBox
 #include "presentation/ui/declarative/Decorators.h"
 
+// Domain layer tests  
+#include "tests/domain/test_usecases.cpp"
+
 // Framework tests
 #include "presentation/ui/containers/UiScrollView.h"
 #include "presentation/ui/containers/UiPage.h"
@@ -557,6 +560,9 @@ int main(int argc, char *argv[])
         runner.runUiPageWheelTests();
         runner.runUiTreeListWheelTests();
         runner.runDecoratedBoxTests();
+        
+        // Run domain tests
+        tests::runDomainTests();
         
         qDebug() << "===========================================";
         qDebug() << "ALL CORE TESTS PASSED ✅";
