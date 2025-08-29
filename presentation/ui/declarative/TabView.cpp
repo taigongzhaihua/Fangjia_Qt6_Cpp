@@ -21,7 +21,7 @@ namespace UI {
 	class TabViewComponent : public IUiComponent, public IUiContent, public ILayoutable {
 	public:
 		struct Props {
-			TabViewModel* vm{ nullptr };
+			fj::presentation::binding::ITabDataProvider* dataProvider{ nullptr };
 			UiTabView::IndicatorStyle indicatorStyle{ UiTabView::IndicatorStyle::Bottom };
 			int tabHeight{ 43 };
 			int animDuration{ 220 };
@@ -62,9 +62,9 @@ namespace UI {
 			m_view.setTabBarSpacing(m_props.tabBarSpacing);
 			m_view.setSpacing(m_props.spacing);
 
-			// 仅支持 VM 模式
-			if (m_props.vm) {
-				m_view.setViewModel(m_props.vm);
+			// 仅支持 DataProvider 模式
+			if (m_props.dataProvider) {
+				m_view.setDataProvider(m_props.dataProvider);
 			}
 
 			// 设置每个 tab 的内容（UiTabView 内部仅存裸指针，这里需持有 unique_ptr 保证生命周期）
@@ -105,8 +105,8 @@ namespace UI {
 		bool tick() override {
 			bool any = m_view.tick();
 
-			// 检测 VM 模式下选中变化并回调
-			if (m_props.onChanged && m_props.vm) {
+			// 检测 DataProvider 模式下选中变化并回调
+			if (m_props.onChanged && m_props.dataProvider) {
 				const int cur = m_view.selectedIndex();
 				if (cur != m_lastSelected) {
 					m_lastSelected = cur;
@@ -198,7 +198,7 @@ namespace UI {
 		}
 
 		TabViewComponent::Props p;
-		p.vm = m_vm;
+		p.dataProvider = m_dataProvider;
 		p.indicatorStyle = m_indicatorStyle;
 		p.tabHeight = m_tabHeight;
 		p.animDuration = m_animDuration;

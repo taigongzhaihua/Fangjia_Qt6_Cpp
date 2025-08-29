@@ -3,6 +3,7 @@
 #include "RenderData.hpp"
 #include "UiComponent.hpp"
 #include "UiContent.hpp"
+#include "tab_interface.h"
 
 #include <algorithm>
 #include <qcolor.h>
@@ -16,8 +17,9 @@
 #include <unordered_map>
 #include <vector>
 
-// 前向声明
-class TabViewModel;
+namespace fj::presentation::binding {
+    class ITabDataProvider;
+}
 
 // 通用 TabView 组件：支持 ViewModel 数据驱动
 class UiTabView final : public IUiComponent, public IUiContent
@@ -42,9 +44,9 @@ public:
 	UiTabView() = default;
 	~UiTabView() override = default;
 
-	// 接入 ViewModel（必须设置）
-	void setViewModel(TabViewModel* vm);
-	[[nodiscard]] TabViewModel* viewModel() const noexcept { return m_vm; }
+	// 接入 DataProvider（必须设置）
+	void setDataProvider(fj::presentation::binding::ITabDataProvider* provider);
+	[[nodiscard]] fj::presentation::binding::ITabDataProvider* dataProvider() const noexcept { return m_dataProvider; }
 
 	// 获取当前选中索引（仅在设置 VM 后有效）
 	[[nodiscard]] int selectedIndex() const noexcept;
@@ -98,7 +100,7 @@ private:
 	int tabCount() const;
 	QString tabLabel(int i) const;
 
-	void syncFromVmInstant();
+	void syncFromProviderInstant();
 	void startHighlightAnim(float toCenterX);
 
 	// 新增：确保当前选中内容拥有 viewport 与资源上下文
@@ -109,7 +111,7 @@ private:
 
 private:
 	QRect m_viewport;
-	TabViewModel* m_vm{ nullptr };
+	fj::presentation::binding::ITabDataProvider* m_dataProvider{ nullptr };
 
 	QMargins m_margin{ 0,0,0,0 };
 	QMargins m_padding{ 0,0,0,0 };

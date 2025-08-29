@@ -1,5 +1,5 @@
 #include "RenderData.hpp"
-#include "TabViewModel.h"
+#include "tab_interface.h"
 #include "UiTabView.h"
 
 #include "IconCache.h"
@@ -20,30 +20,30 @@
 
 #include "RenderUtils.hpp"
 
-void UiTabView::setViewModel(TabViewModel* vm)
+void UiTabView::setDataProvider(fj::presentation::binding::ITabDataProvider* provider)
 {
-	if (m_vm == vm) return;
-	m_vm = vm;
+	if (m_dataProvider == provider) return;
+	m_dataProvider = provider;
 
 	// 清理交互状态
 	m_hover = -1;
 	m_pressed = -1;
 
 	// 同步视图状态（无动画）
-	syncFromVmInstant();
+	syncFromProviderInstant();
 
 	// 确保当前内容拿到 viewport 与资源上下文
 	ensureCurrentContentSynced();
 }
 
-void UiTabView::syncFromVmInstant()
+void UiTabView::syncFromProviderInstant()
 {
-	if (!m_vm) return;
+	if (!m_dataProvider) return;
 
-	const int sel = m_vm->selectedIndex();
+	const int sel = m_dataProvider->selectedIndex();
 	m_viewSelected = sel;
 
-	if (sel >= 0 && sel < m_vm->count()) {
+	if (sel >= 0 && sel < m_dataProvider->count()) {
 		const QRectF r = tabRectF(sel);
 		m_highlightCenterX = r.isValid() ? static_cast<float>(r.center().x()) : -1.0f;
 	}
@@ -55,13 +55,13 @@ void UiTabView::syncFromVmInstant()
 
 int UiTabView::tabCount() const
 {
-	return m_vm ? m_vm->count() : 0;
+	return m_dataProvider ? m_dataProvider->count() : 0;
 }
 
 QString UiTabView::tabLabel(const int i) const
 {
-	if (m_vm) {
-		if (const auto& items = m_vm->items(); i >= 0 && i < items.size()) {
+	if (m_dataProvider) {
+		if (const auto& items = m_dataProvider->items(); i >= 0 && i < items.size()) {
 			return items[i].label;
 		}
 	}
@@ -100,7 +100,7 @@ QRectF UiTabView::contentRectF() const
 }
 int UiTabView::selectedIndex() const noexcept
 {
-	return m_vm ? m_vm->selectedIndex() : -1;
+	return m_dataProvider ? m_dataProvider->selectedIndex() : -1;
 }
 
 void UiTabView::updateLayout(const QSize& windowSize)
@@ -370,13 +370,13 @@ bool UiTabView::onMouseRelease(const QPoint& pos)
 	}
 
 	if (hit >= 0 && hit == wasPressed) {
-		if (m_vm) {
-			m_vm->setSelectedIndex(hit);
+		if (m_dataProvider) {
+			m_dataProvider->setSelectedIndex(hit);
 			// 立即保证新内容具备上下文与视口
 			ensureCurrentContentSynced();
 			return true;
 		}
-		// 如果没有 VM，不处理点击事件
+		// 如果没有 DataProvider，不处理点击事件
 	}
 
 	const int curIdx = selectedIndex();
@@ -404,19 +404,19 @@ bool UiTabView::tick()
 	bool any = false;
 	if (!m_clock.isValid()) m_clock.start();
 
-	// VM 模式：检查并同步变化
-	if (m_vm) {
-		const int vmSel = m_vm->selectedIndex();
-		if (vmSel != m_viewSelected) {
-			if (vmSel >= 0 && vmSel < m_vm->count()) {
-				const QRectF targetR = tabRectF(vmSel);
+	// DataProvider 模式：检查并同步变化
+	if (m_dataProvider) {
+		const int providerSel = m_dataProvider->selectedIndex();
+		if (providerSel != m_viewSelected) {
+			if (providerSel >= 0 && providerSel < m_dataProvider->count()) {
+				const QRectF targetR = tabRectF(providerSel);
 				startHighlightAnim(static_cast<float>(targetR.center().x()));
 			}
 			else {
 				m_highlightCenterX = -1.0f;
 				m_animHighlight.active = false;
 			}
-			m_viewSelected = vmSel;
+			m_viewSelected = providerSel;
 
 			// 选中项变化后，确保当前内容上下文与视口同步
 			ensureCurrentContentSynced();

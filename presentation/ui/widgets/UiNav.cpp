@@ -1,4 +1,4 @@
-#include "NavViewModel.h"
+#include "nav_interface.h"
 #include "RenderData.hpp"
 #include "UiNav.h"
 
@@ -24,13 +24,13 @@
 
 namespace Ui {
 
-	void NavRail::setItems(std::vector<NavItem> items)
+	void NavRail::setItems(std::vector<UiNavItem> items)
 	{
 		m_items = std::move(items);
 		m_hover = m_pressed = -1;
 		m_toggleHovered = m_togglePressed = false;
-		if (!m_vm) {
-			// 仅在未接 VM 的旧模式下设置初始选中/指示条
+		if (!m_dataProvider) {
+			// 仅在未接 DataProvider 的旧模式下设置初始选中/指示条
 			if (m_selected < 0 && count() > 0) {
 				m_selected = 0;
 				const QRectF r = itemRectF(m_selected);
@@ -38,39 +38,39 @@ namespace Ui {
 			}
 		}
 		else {
-			// 已接 VM 时，以 VM 为准
-			syncFromVmInstant();
+			// 已接 DataProvider 时，以 DataProvider 为准
+			syncFromProviderInstant();
 		}
 	}
 
-	int NavRail::vmCount() const noexcept
+	int NavRail::dataProviderCount() const noexcept
 	{
-		return m_vm ? m_vm->count() : 0;
+		return m_dataProvider ? m_dataProvider->count() : 0;
 	}
 
-	void NavRail::setViewModel(NavViewModel* vm)
+	void NavRail::setDataProvider(fj::presentation::binding::INavDataProvider* provider)
 	{
-		if (m_vm == vm) return;
-		m_vm = vm;
+		if (m_dataProvider == provider) return;
+		m_dataProvider = provider;
 		// 清理交互态
 		m_hover = m_pressed = -1;
 		m_toggleHovered = m_togglePressed = false;
 
-		// 以 VM 为真值，视图状态瞬时对齐
-		syncFromVmInstant();
+		// 以 DataProvider 为真值，视图状态瞬时对齐
+		syncFromProviderInstant();
 	}
 
-	void NavRail::syncFromVmInstant()
+	void NavRail::syncFromProviderInstant()
 	{
-		if (!m_vm) return;
+		if (!m_dataProvider) return;
 
 		// 展开插值
-		m_expandT = m_vm->expanded() ? 1.0f : 0.0f;
+		m_expandT = m_dataProvider->expanded() ? 1.0f : 0.0f;
 		m_animExpand.active = false;
 
 		// 选中项与“整体高亮”锚点（使用选中项中心 Y）
-		const int sel = m_vm->selectedIndex();
-		if (sel >= 0 && sel < vmCount()) {
+		const int sel = m_dataProvider->selectedIndex();
+		if (sel >= 0 && sel < dataProviderCount()) {
 			const QRectF r = itemRectF(sel);
 			m_indicatorY = static_cast<float>(r.center().y());
 		}
@@ -94,8 +94,8 @@ namespace Ui {
 	// 将“设置”固定到底部。若找不到 id=="settings"，返回 -1（全部走顶部流式布局）。
 	int NavRail::findSettingsIndex() const
 	{
-		if (m_vm) {
-			const auto& vitems = m_vm->items();
+		if (m_dataProvider) {
+			const auto& vitems = m_dataProvider->items();
 			for (int i = 0; i < vitems.size(); ++i) {
 				if (vitems[i].id.compare(QStringLiteral("settings"), Qt::CaseInsensitive) == 0)
 					return i;
@@ -145,19 +145,19 @@ namespace Ui {
 
 	void NavRail::setSelectedIndex(const int idx)
 	{
-		if (m_vm) {
-			// 接入 VM 后，优先驱动 VM，并立即触发视图动画
-			if (idx < 0 || idx >= vmCount()) return;
-			if (m_vm->selectedIndex() == idx && m_indicatorY >= 0.0f) return;
+		if (m_dataProvider) {
+			// 接入 DataProvider 后，优先驱动 DataProvider，并立即触发视图动画
+			if (idx < 0 || idx >= dataProviderCount()) return;
+			if (m_dataProvider->selectedIndex() == idx && m_indicatorY >= 0.0f) return;
 
-			m_vm->setSelectedIndex(idx);
+			m_dataProvider->setSelectedIndex(idx);
 			const QRectF targetR = itemRectF(idx);
 			startIndicatorAnim(static_cast<float>(targetR.center().y()), 240);
 			m_selected = idx; // 视图高亮立即对齐
 			return;
 		}
 
-		// 旧模式（未接 VM）
+		// 旧模式（未接 DataProvider）
 		if (idx < 0 || idx >= count()) return;
 		if (m_selected == idx && m_indicatorY >= 0.0f) return;
 
@@ -179,9 +179,9 @@ namespace Ui {
 
 	void NavRail::toggleExpanded()
 	{
-		if (m_vm) {
-			const bool newExpanded = !m_vm->expanded();
-			m_vm->setExpanded(newExpanded);
+		if (m_dataProvider) {
+			const bool newExpanded = !m_dataProvider->expanded();
+			m_dataProvider->setExpanded(newExpanded);
 			startExpandAnim(newExpanded ? 1.0f : 0.0f, 220);
 			return;
 		}
@@ -249,9 +249,9 @@ namespace Ui {
 
 		// 释放在 toggle 上：切换展开
 		if (toggleWasPressed && toggleRectF().toRect().contains(pos)) {
-			if (m_vm) {
-				const bool newExpanded = !m_vm->expanded();
-				m_vm->setExpanded(newExpanded);
+			if (m_dataProvider) {
+				const bool newExpanded = !m_dataProvider->expanded();
+				m_dataProvider->setExpanded(newExpanded);
 				startExpandAnim(newExpanded ? 1.0f : 0.0f, 220);
 			}
 			else {
@@ -266,8 +266,8 @@ namespace Ui {
 			if (itemRectF(i).toRect().contains(pos)) { iHit = i; break; }
 		}
 		if (iHit >= 0 && iHit == wasPressed) {
-			if (m_vm) {
-				m_vm->setSelectedIndex(iHit);
+			if (m_dataProvider) {
+				m_dataProvider->setSelectedIndex(iHit);
 				const QRectF targetR = itemRectF(iHit);
 				startIndicatorAnim(static_cast<float>(targetR.center().y()), 240);
 				m_selected = iHit; // 视图高亮立即对齐
@@ -285,7 +285,7 @@ namespace Ui {
 		fd.roundedRects.push_back(Render::RoundedRectCmd{ .rect = QRectF(m_rect), .radiusPx = 0.0f, .color = m_pal.railBg });
 
 		// 2) “整体高亮单元”（将原选中背景矩形 + 指示条合并为一体，并整体移动）
-		const int selForHighlight = m_vm ? m_vm->selectedIndex() : m_selected;
+		const int selForHighlight = m_dataProvider ? m_dataProvider->selectedIndex() : m_selected;
 		if (selForHighlight >= 0 && m_indicatorY >= 0.0f) {
 			const QRectF rSelTmpl = itemRectF(selForHighlight);
 			// 背景胶囊：相对模板项左右/上下内缩，Y 由 m_indicatorY 控制（与动画一致）
@@ -329,8 +329,8 @@ namespace Ui {
 
 		const float iconLeftExpanded = static_cast<float>(m_rect.left()) + 13.0f;
 
-		if (m_vm) {
-			const auto& vitems = m_vm->items();
+		if (m_dataProvider) {
+			const auto& vitems = m_dataProvider->items();
 			for (int i = 0; i < vitems.size(); ++i) {
 				const QRectF r = itemRectF(i);
 
@@ -538,13 +538,13 @@ namespace Ui {
 		const qint64 now = m_clock.elapsed();
 		bool any = false;
 
-		// 如果接入 VM，则在每次 tick 时对比 VM 真值，触发必要动画
-		if (m_vm) {
-			const int vmSel = m_vm->selectedIndex();
-			if (vmSel != m_selected) {
+		// 如果接入 DataProvider，则在每次 tick 时对比 DataProvider 真值，触发必要动画
+		if (m_dataProvider) {
+			const int providerSel = m_dataProvider->selectedIndex();
+			if (providerSel != m_selected) {
 				// 同步视图高亮并启动“整体高亮单元”动画/或清除
-				if (vmSel >= 0 && vmSel < vmCount()) {
-					const QRectF targetR = itemRectF(vmSel);
+				if (providerSel >= 0 && providerSel < dataProviderCount()) {
+					const QRectF targetR = itemRectF(providerSel);
 					startIndicatorAnim(static_cast<float>(targetR.center().y()), 240);
 				}
 				else {
@@ -552,10 +552,10 @@ namespace Ui {
 					m_indicatorY = -1.0f;
 					m_animIndicator.active = false;
 				}
-				m_selected = vmSel;
+				m_selected = providerSel;
 				any = true;
 			}
-			const float targetT = m_vm->expanded() ? 1.0f : 0.0f;
+			const float targetT = m_dataProvider->expanded() ? 1.0f : 0.0f;
 			// 若没有处于动画，且当前值与目标值差异明显，则开启动画
 			if (!m_animExpand.active && std::abs(targetT - m_expandT) > 0.001f) {
 				startExpandAnim(targetT, 220);
