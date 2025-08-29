@@ -167,8 +167,18 @@ namespace UI
 
 	bool DecoratedBox::onMousePress(const QPoint& pos)
 	{
-		if (!m_p.visible || !m_viewport.contains(pos)) return false;
+		if (!m_p.visible) return false;
+		
+		// 首先尝试让子组件处理
 		if (m_child && m_child->onMousePress(pos)) return true;
+		
+		// 如果子组件没有处理，且我们有onTap回调，检查是否在可点击区域内
+		if (m_p.onTap && m_drawRect.contains(pos))
+		{
+			m_pressed = true;
+			return true; // 声明处理此事件
+		}
+		
 		return false;
 	}
 
@@ -179,7 +189,7 @@ namespace UI
 		if (m_child) handled = m_child->onMouseMove(pos) || handled;
 		if (m_p.onHover)
 		{
-			const bool hov = m_viewport.contains(pos);
+			const bool hov = m_drawRect.contains(pos);
 			if (hov != m_hover)
 			{
 				m_hover = hov;
@@ -195,11 +205,17 @@ namespace UI
 		if (!m_p.visible) return false;
 		bool handled = false;
 		if (m_child) handled = m_child->onMouseRelease(pos) || handled;
-		if (m_p.onTap && m_viewport.contains(pos))
+		
+		// 检查是否为有效的点击：之前按下且释放时仍在区域内
+		if (m_p.onTap && m_pressed && m_drawRect.contains(pos))
 		{
 			m_p.onTap();
 			handled = true;
 		}
+		
+		// 重置按下状态
+		m_pressed = false;
+		
 		return handled;
 	}
 
