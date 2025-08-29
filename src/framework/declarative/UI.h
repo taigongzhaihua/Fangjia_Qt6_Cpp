@@ -6,7 +6,6 @@
 #include "TabView.h"
 #include "ScrollView.h"
 #include "Widget.h"
-#include "Binding.h"    // 新增：导出 BindingHost API
 
 namespace UI {
 

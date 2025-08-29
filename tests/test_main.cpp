@@ -17,7 +17,6 @@
 
 // Core test for RebuildHost
 #include "framework/declarative/RebuildHost.h"
-#include "framework/declarative/Binding.h"
 #include "framework/base/UiComponent.hpp"
 
 // Framework tests

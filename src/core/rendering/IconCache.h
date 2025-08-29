@@ -1,8 +1,6 @@
 #pragma once
 #include <qbytearray.h>
-#include <qchar.h>
 #include <qcolor.h>
-#include <qfont.h>
 #include <qhash.h>
 #include <qopenglfunctions.h>
 #include <qsize.h>

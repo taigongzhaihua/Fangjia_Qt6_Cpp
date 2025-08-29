@@ -5,7 +5,6 @@
 
 #include <algorithm>
 #include <cstdint>
-#include <limits>
 #include <vector>
 #include <qopenglfunctions.h>
 #include <qrect.h>

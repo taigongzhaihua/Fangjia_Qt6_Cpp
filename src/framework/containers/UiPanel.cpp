@@ -2,7 +2,6 @@
 #include <algorithm>
 
 #include "ILayoutable.hpp"
-#include <IconCache.h>
 #include <limits>
 #include <qopenglfunctions.h>
 #include <qpoint.h>

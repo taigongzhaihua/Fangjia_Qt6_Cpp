@@ -2,7 +2,6 @@
 
 #include <algorithm>
 #include <qbytearray.h>
-#include <qchar.h>
 #include <qcolor.h>
 #include <qfont.h>
 #include <qfontmetrics.h>

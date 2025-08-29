@@ -1,5 +1,4 @@
 #pragma once
-#include "RenderData.hpp"
 #include "UiComponent.hpp"
 #include <functional>
 #include <memory>

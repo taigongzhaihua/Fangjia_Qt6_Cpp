@@ -1,5 +1,4 @@
 #pragma once
-#include <qcolor.h>
 #include <qopenglfunctions.h>
 #include <qopenglshaderprogram.h>
 #include <qopenglvertexarrayobject.h>

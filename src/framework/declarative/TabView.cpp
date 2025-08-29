@@ -9,7 +9,6 @@
 #include <memory>
 #include <qmargins.h>
 #include <qopenglfunctions.h>
-#include <qpoint.h>
 #include <qrect.h>
 #include <qsize.h>
 #include <UiComponent.hpp>

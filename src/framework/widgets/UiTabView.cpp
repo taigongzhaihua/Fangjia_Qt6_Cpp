@@ -8,14 +8,12 @@
 #include <algorithm>
 #include <cmath>
 #include <qcolor.h>
-#include <qcontainerfwd.h>
 #include <qfont.h>
 #include <qopenglfunctions.h>
 #include <qpoint.h>
 #include <qrect.h>
 #include <qsize.h>
 #include <qstring.h>
-#include <qglobal.h>
 #include <ranges>
 #include <unordered_map>
 #include <vector>

@@ -23,7 +23,6 @@
 
 #include "ILayoutable.hpp"
 #include <qbytearray.h>
-#include <qchar.h>
 
 #include "RenderUtils.hpp"
 

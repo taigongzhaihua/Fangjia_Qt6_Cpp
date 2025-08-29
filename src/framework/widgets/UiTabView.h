@@ -6,7 +6,6 @@
 
 #include <algorithm>
 #include <qcolor.h>
-#include <qcontainerfwd.h>
 #include <qelapsedtimer.h>
 #include <qmargins.h>
 #include <qopenglfunctions.h>
@@ -14,7 +13,6 @@
 #include <qrect.h>
 #include <qsize.h>
 #include <qstring.h>
-#include <qglobal.h>
 #include <unordered_map>
 #include <vector>
 

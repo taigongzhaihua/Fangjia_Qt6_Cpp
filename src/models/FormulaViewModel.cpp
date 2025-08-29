@@ -1,6 +1,4 @@
 #include "FormulaViewModel.h"
-#include <qlogging.h>
-#include <algorithm>
 
 FormulaViewModel::FormulaViewModel(QObject* parent)
     : QObject(parent)

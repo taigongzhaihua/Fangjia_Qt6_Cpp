@@ -3,7 +3,6 @@
 #include "Widget.h"
 #include <functional>
 #include <memory>
-#include <qcontainerfwd.h>
 #include <qmargins.h>
 #include <UiComponent.hpp>
 #include <utility>

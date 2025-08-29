@@ -4,9 +4,7 @@
 #if defined(Q_OS_WIN) || defined(_WIN32)
 
 #include <QAbstractNativeEventFilter>
-#include <QList>
 #include <QPointer>
-#include <QRect>
 #include <QWindow>
 #include <functional>
 

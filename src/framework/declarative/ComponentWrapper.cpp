@@ -1,7 +1,6 @@
 #include "ComponentWrapper.h"
 #include "IconCache.h"
 #include "RenderData.hpp"
-#include <qopenglfunctions.h>
 
 #include "UiContent.hpp"
 

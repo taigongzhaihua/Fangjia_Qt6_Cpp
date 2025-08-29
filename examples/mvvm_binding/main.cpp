@@ -4,7 +4,6 @@
 #include <QDebug>
 #include <iostream>
 #include "framework/declarative/RebuildHost.h"
-#include "framework/declarative/Binding.h"
 #include "framework/base/UiComponent.hpp"
 #include "core/rendering/RenderData.hpp"
 

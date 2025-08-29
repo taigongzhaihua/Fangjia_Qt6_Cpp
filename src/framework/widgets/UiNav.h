@@ -11,10 +11,8 @@
 #include <qopenglfunctions.h>
 #include <qrect.h>
 
-#include <qpoint.h>
 #include <qsize.h>
 #include <qstring.h>
-#include <qglobal.h>
 #include <utility>
 #include <vector>
 

@@ -10,7 +10,6 @@
 #include <qcolor.h>
 #include <qfile.h>
 #include <qfont.h>
-#include <qiodevice.h>
 #include <qnamespace.h>
 #include <qpoint.h>
 #include <qrect.h>
