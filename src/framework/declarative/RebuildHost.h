@@ -15,7 +15,13 @@ namespace UI {
 		~RebuildHost() override = default;
 
 		// 设置子树的构建函数
-		void setBuilder(BuildFn fn) { m_builder = std::move(fn); }
+		// 默认会立即构建一次，避免初始为空（可通过 buildImmediately=false 关闭）
+		void setBuilder(BuildFn fn, bool buildImmediately = true) {
+			m_builder = std::move(fn);
+			if (buildImmediately) {
+				requestRebuild();
+			}
+		}
 
 		// 请求重建（可在任意时机调用，比如 VM 的某个 signal 里）
 		void requestRebuild() {

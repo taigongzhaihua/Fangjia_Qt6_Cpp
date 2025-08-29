@@ -142,14 +142,14 @@ public slots:
             return nullptr; // Simplified for test
         });
         
-        QCOMPARE(buildCount, 0);
+        QCOMPARE(buildCount, 1); // Now builder is called immediately
         
         // Request rebuild
         host.requestRebuild();
-        QCOMPARE(buildCount, 1);
+        QCOMPARE(buildCount, 2);
         
         host.requestRebuild();
-        QCOMPARE(buildCount, 2);
+        QCOMPARE(buildCount, 3);
         
         qDebug() << "RebuildHost tests PASSED ✅";
     }

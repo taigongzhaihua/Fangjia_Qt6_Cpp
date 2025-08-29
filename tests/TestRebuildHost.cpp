@@ -75,16 +75,16 @@ private slots:
             return std::make_unique<TestComponent>();
         });
         
-        // Initial state - builder is set but not called yet
-        QCOMPARE(buildCallCount, 0);
-        
-        // Request rebuild should call builder
-        host.requestRebuild();
+        // With new default behavior - builder is called immediately
         QCOMPARE(buildCallCount, 1);
+        
+        // Request rebuild should call builder again
+        host.requestRebuild();
+        QCOMPARE(buildCallCount, 2);
         
         // Another rebuild should call builder again
         host.requestRebuild();
-        QCOMPARE(buildCallCount, 2);
+        QCOMPARE(buildCallCount, 3);
     }
 
     void testRebuildRequest()
@@ -99,13 +99,43 @@ private slots:
             return std::move(testComponent);
         });
         
-        // Request rebuild
-        host.requestRebuild();
+        // With new default behavior, builder is called immediately
         QVERIFY(builderCalled);
         
         // Test that the component was properly set up
         // Since we moved the component, we can't access it directly anymore
         // But we can verify the builder was called
+    }
+
+    void testBuildImmediatelyParameter()
+    {
+        UI::RebuildHost host;
+        int buildCallCount = 0;
+        
+        // Test buildImmediately = false
+        host.setBuilder([&buildCallCount]() -> std::unique_ptr<IUiComponent> {
+            buildCallCount++;
+            return std::make_unique<TestComponent>();
+        }, false); // Don't build immediately
+        
+        // Builder should not be called yet with buildImmediately = false
+        QCOMPARE(buildCallCount, 0);
+        
+        // Manual requestRebuild should work
+        host.requestRebuild();
+        QCOMPARE(buildCallCount, 1);
+        
+        // Test default behavior (buildImmediately = true)
+        UI::RebuildHost host2;
+        int buildCallCount2 = 0;
+        
+        host2.setBuilder([&buildCallCount2]() -> std::unique_ptr<IUiComponent> {
+            buildCallCount2++;
+            return std::make_unique<TestComponent>();
+        }); // Default buildImmediately = true
+        
+        // Builder should be called immediately with default behavior
+        QCOMPARE(buildCallCount2, 1);
     }
 
     void testViewModelSignalBinding()

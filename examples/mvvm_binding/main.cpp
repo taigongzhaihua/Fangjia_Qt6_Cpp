@@ -88,10 +88,8 @@ int main(int argc, char *argv[])
     
     std::cout << "✅ MVVM binding established!" << std::endl;
     std::cout << "Counter changes will now trigger UI rebuilds." << std::endl;
+    std::cout << "Note: Initial UI build happens automatically when setBuilder is called." << std::endl;
     std::cout << std::endl;
-    
-    // 初始构建
-    rebuildHost.requestRebuild();
     
     // 设置定时器在 8 秒后退出
     QTimer::singleShot(8000, &app, &QGuiApplication::quit);

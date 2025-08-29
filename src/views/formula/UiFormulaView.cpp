@@ -251,9 +251,7 @@ UiFormulaView::UiFormulaView()
 
 			// 使用声明式 ScrollView 包装内容
 			return scrollView(root)->build();
-		});
-	// 重要：首次构建一次（避免初始为空）
-	m_detailHost->requestRebuild();
+		}); // 注意：RebuildHost::setBuilder 现已默认执行一次首次构建
 
 	// 3) 监听 VM 变化 => 刷新树/重建详情
 	QObject::connect(m_vm.get(), &FormulaViewModel::selectedChanged, [this](int)
