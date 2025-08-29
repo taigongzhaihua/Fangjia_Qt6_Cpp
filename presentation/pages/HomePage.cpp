@@ -150,7 +150,7 @@ private:
 								->padding(8, 4)
 								->background(QColor(220, 100, 100), 4.0f),
 								0, 1)
-						  ->colSpacing(0)
+						  ->colSpacing(10)
 						  ->size(120, 30),
 
 					spacer(5),
