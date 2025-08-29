@@ -86,6 +86,7 @@ namespace UI {
 		QRect   m_contentRect;
 
 		bool    m_hover{ false };
+		bool    m_pressed{ false };    // 新增：保存按下状态
 		bool    m_isDark{ false };     // 新增：保存当前主题
 		IconCache* m_cache{ nullptr };
 		QOpenGLFunctions* m_gl{ nullptr };
