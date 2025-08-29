@@ -2,6 +2,10 @@
 #include "usecases/GetSettingsUseCase.h"
 #include "usecases/UpdateSettingsUseCase.h"
 #include "usecases/ToggleThemeUseCase.h"
+#include "usecases/GetThemeModeUseCase.h"
+#include "usecases/SetThemeModeUseCase.h"
+#include "usecases/GetRecentTabUseCase.h"
+#include "usecases/SetRecentTabUseCase.h"
 
 DependencyProvider& DependencyProvider::instance()
 {
@@ -24,6 +28,26 @@ void DependencyProvider::setToggleThemeUseCase(std::shared_ptr<domain::usecases:
     m_toggleThemeUseCase = std::move(useCase);
 }
 
+void DependencyProvider::setGetThemeModeUseCase(std::shared_ptr<domain::usecases::GetThemeModeUseCase> useCase)
+{
+    m_getThemeModeUseCase = std::move(useCase);
+}
+
+void DependencyProvider::setSetThemeModeUseCase(std::shared_ptr<domain::usecases::SetThemeModeUseCase> useCase)
+{
+    m_setThemeModeUseCase = std::move(useCase);
+}
+
+void DependencyProvider::setGetRecentTabUseCase(std::shared_ptr<domain::usecases::GetRecentTabUseCase> useCase)
+{
+    m_getRecentTabUseCase = std::move(useCase);
+}
+
+void DependencyProvider::setSetRecentTabUseCase(std::shared_ptr<domain::usecases::SetRecentTabUseCase> useCase)
+{
+    m_setRecentTabUseCase = std::move(useCase);
+}
+
 std::shared_ptr<domain::usecases::GetSettingsUseCase> DependencyProvider::getGetSettingsUseCase() const
 {
     return m_getSettingsUseCase;
@@ -37,4 +61,24 @@ std::shared_ptr<domain::usecases::UpdateSettingsUseCase> DependencyProvider::get
 std::shared_ptr<domain::usecases::ToggleThemeUseCase> DependencyProvider::getToggleThemeUseCase() const
 {
     return m_toggleThemeUseCase;
+}
+
+std::shared_ptr<domain::usecases::GetThemeModeUseCase> DependencyProvider::getGetThemeModeUseCase() const
+{
+    return m_getThemeModeUseCase;
+}
+
+std::shared_ptr<domain::usecases::SetThemeModeUseCase> DependencyProvider::getSetThemeModeUseCase() const
+{
+    return m_setThemeModeUseCase;
+}
+
+std::shared_ptr<domain::usecases::GetRecentTabUseCase> DependencyProvider::getGetRecentTabUseCase() const
+{
+    return m_getRecentTabUseCase;
+}
+
+std::shared_ptr<domain::usecases::SetRecentTabUseCase> DependencyProvider::getSetRecentTabUseCase() const
+{
+    return m_setRecentTabUseCase;
 }

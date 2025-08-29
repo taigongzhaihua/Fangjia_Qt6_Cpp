@@ -1,11 +1,16 @@
 #include "DataViewModel.h"
-#include "AppConfig.h"
+#include "usecases/GetRecentTabUseCase.h"
+#include "usecases/SetRecentTabUseCase.h"
 #include <qlogging.h>
+#include <qdebug.h>
 
-DataViewModel::DataViewModel(AppConfig& config, QObject* parent)
+DataViewModel::DataViewModel(std::shared_ptr<domain::usecases::GetRecentTabUseCase> getRecentTabUseCase,
+                             std::shared_ptr<domain::usecases::SetRecentTabUseCase> setRecentTabUseCase,
+                             QObject* parent)
 	: ViewModelBase(parent)
-	, m_config(config)
 	, m_tabViewModel(std::make_unique<TabViewModel>(this))
+	, m_getRecentTabUseCase(std::move(getRecentTabUseCase))
+	, m_setRecentTabUseCase(std::move(setRecentTabUseCase))
 {
 	// 初始化标签页数据
 	initializeTabs();
@@ -25,14 +30,15 @@ int DataViewModel::selectedTab() const
 
 void DataViewModel::onTabSelectionChanged(const int index)
 {
-	// 写回 AppConfig 并保存 (TODO: Replace with use cases)
+	// 写回设置并保存 (Use domain use cases)
 	const auto& items = m_tabViewModel->items();
 	if (index >= 0 && index < items.size()) {
 		const QString& tabId = items[index].id;
 		qDebug() << "DataViewModel: Tab changed to" << tabId << "at index" << index;
 
-		m_config.setRecentTab(tabId);
-		m_config.save();
+		if (m_setRecentTabUseCase) {
+			m_setRecentTabUseCase->execute(tabId.toStdString());
+		}
 	}
 
 	// 发射属性变更通知
@@ -54,14 +60,17 @@ void DataViewModel::initializeTabs()
 
 void DataViewModel::restoreRecentTab()
 {
-	// 从配置恢复最近标签页 (TODO: Replace with use cases)
-	const QString recentTabId = m_config.recentTab();
-	
-	if (!recentTabId.isEmpty()) {
-		const int tabIdx = m_tabViewModel->findById(recentTabId);
-		if (tabIdx >= 0) {
-			qDebug() << "DataViewModel: Restoring recent tab" << recentTabId << "at index" << tabIdx;
-			m_tabViewModel->setSelectedIndex(tabIdx);
+	// 从配置恢复最近标签页 (Use domain use cases)
+	if (m_getRecentTabUseCase) {
+		const auto tabId = m_getRecentTabUseCase->execute();
+		const QString recentTabId = QString::fromStdString(tabId);
+		
+		if (!recentTabId.isEmpty()) {
+			const int tabIdx = m_tabViewModel->findById(recentTabId);
+			if (tabIdx >= 0) {
+				qDebug() << "DataViewModel: Restoring recent tab" << recentTabId << "at index" << tabIdx;
+				m_tabViewModel->setSelectedIndex(tabIdx);
+			}
 		}
 	}
 }

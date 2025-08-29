@@ -120,7 +120,6 @@ target_link_libraries(fj_presentation_vm PUBLIC
 )
 target_include_directories(fj_presentation_vm PUBLIC 
     presentation/viewmodels
-    data/sources/local  # TODO: Remove when ViewModels fully migrated to use cases
 )
 
 # Presentation Layer - Pages and Views
@@ -136,6 +135,7 @@ target_link_libraries(fj_presentation_pages PUBLIC
     fj_presentation_ui 
     fj_presentation_vm 
     fj_infra_gfx
+    fj_data
 )
 target_include_directories(fj_presentation_pages PUBLIC 
     presentation/pages
