@@ -10,6 +10,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <IconCache.h>
 #include <ILayoutable.hpp>
 #include <Layouts.h>
 #include <memory>
@@ -122,7 +123,8 @@ private:
 class UiFormulaView::WidthHint : public IUiComponent, public IUiContent, public ILayoutable
 {
 public:
-	explicit WidthHint(IUiComponent* wrapped, const int preferredW = 0) : m_child(wrapped), m_prefW(std::max(0, preferredW))
+	explicit WidthHint(IUiComponent* wrapped, const int preferredW = 0) : m_child(wrapped),
+		m_prefW(std::max(0, preferredW))
 	{
 	}
 
@@ -158,7 +160,12 @@ public:
 	bool onMousePress(const QPoint& pos) override { return m_child ? m_child->onMousePress(pos) : false; }
 	bool onMouseMove(const QPoint& pos) override { return m_child ? m_child->onMouseMove(pos) : false; }
 	bool onMouseRelease(const QPoint& pos) override { return m_child ? m_child->onMouseRelease(pos) : false; }
-	bool onWheel(const QPoint& pos, const QPoint& angleDelta) override { return m_child ? m_child->onWheel(pos, angleDelta) : false; }
+
+	bool onWheel(const QPoint& pos, const QPoint& angleDelta) override
+	{
+		return m_child ? m_child->onWheel(pos, angleDelta) : false;
+	}
+
 	bool tick() override { return m_child ? m_child->tick() : false; }
 	QRect bounds() const override { return { 0, 0, std::max(0, m_prefW), 0 }; }
 	void onThemeChanged(const bool isDark) override { if (m_child) m_child->onThemeChanged(isDark); }
@@ -204,7 +211,8 @@ UiFormulaView::UiFormulaView()
 				auto section = [&](const QString& head, const QString& content) -> WidgetPtr
 					{
 						if (content.isEmpty()) return container();
-						return panel({
+						return
+							panel({
 								text(head + "：")
 								->fontSize(13)
 								->fontWeight(QFont::DemiBold)
@@ -216,7 +224,7 @@ UiFormulaView::UiFormulaView()
 									->color(body)
 									->wrap(true)
 								)->padding(20, 0, 0, 0)
-							})->vertical()
+								})->vertical()
 							->spacing(12)
 							->crossAxisAlignment(Alignment::Stretch);
 					};
