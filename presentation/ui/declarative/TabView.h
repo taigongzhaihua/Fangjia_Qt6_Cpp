@@ -1,6 +1,7 @@
 #pragma once
 #include "UiTabView.h"
 #include "Widget.h"
+#include "tab_interface.h"
 #include <functional>
 #include <memory>
 #include <qmargins.h>
@@ -15,9 +16,9 @@ namespace UI {
 	public:
 		TabView() = default;
 
-		// 配置：必须设置 VM
-		std::shared_ptr<TabView> viewModel(TabViewModel* vm) {
-			m_vm = vm;
+		// 配置：必须设置 DataProvider
+		std::shared_ptr<TabView> dataProvider(fj::presentation::binding::ITabDataProvider* provider) {
+			m_dataProvider = provider;
 			return self<TabView>();
 		}
 
@@ -77,7 +78,7 @@ namespace UI {
 		std::unique_ptr<IUiComponent> build() const override;
 
 	private:
-		TabViewModel* m_vm{ nullptr };
+		fj::presentation::binding::ITabDataProvider* m_dataProvider{ nullptr };
 		UiTabView::IndicatorStyle m_indicatorStyle{ UiTabView::IndicatorStyle::Bottom };
 		int m_tabHeight{ 43 };
 		int m_animDuration{ 220 };

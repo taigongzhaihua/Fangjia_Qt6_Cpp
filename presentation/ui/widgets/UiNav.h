@@ -10,6 +10,7 @@
 #include "IconCache.h"
 #include "RenderData.hpp"
 #include "UiComponent.hpp"
+#include "nav_interface.h"
 
 #include <algorithm>
 #include <cmath>
@@ -24,8 +25,10 @@
 #include <utility>
 #include <vector>
 
- // 前向声明：导航数据视图模型
-class NavViewModel;
+ // Forward declaration
+namespace fj::presentation::binding {
+    class INavDataProvider;
+}
 
 namespace Ui {
 
@@ -40,8 +43,8 @@ namespace Ui {
 		QColor indicator;      // 选中指示器色
 	};
 
-	/// 导航项数据结构
-	struct NavItem {
+	/// 导航项数据结构 (UI层内部使用，与binding::NavItem兼容)
+	struct UiNavItem {
 		QString id;           // 导航项唯一标识
 		QString svgLight;     // 亮色主题图标路径
 		QString svgDark;      // 暗色主题图标路径
@@ -66,18 +69,18 @@ namespace Ui {
 	public:
 		/// 功能：设置导航项数据（内置模式）
 		/// 参数：items — 导航项列表
-		/// 说明：切换到内置数据模式，清除外部ViewModel绑定
-		void setItems(std::vector<NavItem> items);
+		/// 说明：切换到内置数据模式，清除外部DataProvider绑定
+		void setItems(std::vector<UiNavItem> items);
 
 		/// 功能：获取导航项总数
 		/// 返回：当前导航项数量
-		/// 说明：自动选择数据源（ViewModel优先，否则使用内置数据）
-		int  count() const noexcept { return m_vm ? vmCount() : static_cast<int>(m_items.size()); }
+		/// 说明：自动选择数据源（DataProvider优先，否则使用内置数据）
+		int  count() const noexcept { return m_dataProvider ? dataProviderCount() : static_cast<int>(m_items.size()); }
 
-		/// 功能：绑定外部ViewModel（外部模式）
-		/// 参数：vm — 导航数据视图模型指针
-		/// 说明：切换到外部数据模式，导航项数据由ViewModel提供
-		void setViewModel(NavViewModel* vm);
+		/// 功能：绑定外部DataProvider（外部模式）
+		/// 参数：provider — 导航数据提供者指针
+		/// 说明：切换到外部数据模式，导航项数据由DataProvider提供
+		void setDataProvider(fj::presentation::binding::INavDataProvider* provider);
 
 		/// 功能：设置暗色主题状态
 		/// 参数：dark — 是否启用暗色主题
@@ -168,8 +171,8 @@ namespace Ui {
 		void startIndicatorAnim(float toY, int durationMs = 220);
 		void startExpandAnim(float toT, int durationMs = 220);
 
-		void syncFromVmInstant();
-		int vmCount() const noexcept;
+		void syncFromProviderInstant();
+		int dataProviderCount() const noexcept;
 
 		static Ui::NavPalette getDarkPalette() {
 			return Ui::NavPalette{
@@ -198,7 +201,7 @@ namespace Ui {
 	private:
 		QRect m_rect;
 
-		std::vector<NavItem> m_items;
+		std::vector<UiNavItem> m_items;
 		NavPalette m_pal;
 		bool m_isDark{ true };
 
@@ -227,7 +230,7 @@ namespace Ui {
 		QOpenGLFunctions* m_gl{ nullptr };
 		float m_dpr{ 1.0f };
 
-		NavViewModel* m_vm{ nullptr };
+		fj::presentation::binding::INavDataProvider* m_dataProvider{ nullptr };
 
 		QString m_svgToggleExpand{ ":/icons/nav_toggle_expand.svg" };
 		QString m_svgToggleCollapse{ ":/icons/nav_toggle_collapse.svg" };

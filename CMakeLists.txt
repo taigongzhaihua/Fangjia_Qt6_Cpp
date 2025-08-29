@@ -76,6 +76,16 @@ target_include_directories(fj_data PUBLIC
     data/repositories
 )
 
+# Presentation Layer - Binding interfaces (new)
+file(GLOB FJ_PRESENTATION_BINDING_SOURCES
+    "presentation/binding/*.h"
+    "presentation/binding/*.hpp"
+    "presentation/binding/*.cpp"
+)
+add_library(fj_presentation_binding STATIC ${FJ_PRESENTATION_BINDING_SOURCES})
+target_link_libraries(fj_presentation_binding PUBLIC Qt6::Core)
+target_include_directories(fj_presentation_binding PUBLIC presentation/binding)
+
 # Presentation Layer - UI Framework (base, containers, widgets, declarative)
 file(GLOB FJ_PRESENTATION_UI_SOURCES
     "presentation/ui/base/*.hpp"
@@ -90,19 +100,21 @@ file(GLOB FJ_PRESENTATION_UI_SOURCES
 )
 
 add_library(fj_presentation_ui STATIC ${FJ_PRESENTATION_UI_SOURCES})
+# Link to binding to access interfaces only
 target_link_libraries(fj_presentation_ui PUBLIC 
     fj_infra_gfx 
+    fj_presentation_binding
     Qt6::Core 
     Qt6::Gui 
     Qt6::Widgets
 )
+# Remove dependency on presentation/viewmodels (Stage 5)
 target_include_directories(fj_presentation_ui PUBLIC 
     presentation/ui
     presentation/ui/base
     presentation/ui/containers
     presentation/ui/widgets
     presentation/ui/declarative
-    presentation/viewmodels  # TODO: Remove this dependency in Stage 4 (UI-ViewModel decoupling)
 )
 
 # Presentation Layer - ViewModels
@@ -113,8 +125,10 @@ file(GLOB FJ_PRESENTATION_VM_SOURCES
 )
 
 add_library(fj_presentation_vm STATIC ${FJ_PRESENTATION_VM_SOURCES})
+# VMs implement binding interfaces
 target_link_libraries(fj_presentation_vm PUBLIC 
     fj_domain
+    fj_presentation_binding
     Qt6::Core 
     Qt6::Gui
 )
