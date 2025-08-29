@@ -19,6 +19,9 @@
 #include "framework/declarative/RebuildHost.h"
 #include "framework/base/UiComponent.hpp"
 
+// Core test for DecoratedBox
+#include "framework/declarative/Decorators.h"
+
 // Framework tests
 #include "framework/containers/UiScrollView.h"
 #include "framework/containers/UiPage.h"
@@ -435,6 +438,99 @@ public slots:
         
         qDebug() << "UiTreeList wheel event tests PASSED ✅";
     }
+    
+    void runDecoratedBoxTests()
+    {
+        qDebug() << "=== Testing DecoratedBox onTap and hover ===";
+        
+        // Mock child component
+        class MockChild : public IUiComponent {
+        public:
+            void updateLayout(const QSize&) override {}
+            void updateResourceContext(IconCache&, QOpenGLFunctions*, float) override {}
+            void append(Render::FrameData&) const override {}
+            bool onMousePress(const QPoint&) override { return false; } // Child doesn't handle
+            bool onMouseMove(const QPoint&) override { return false; }
+            bool onMouseRelease(const QPoint&) override { return false; }
+            bool onWheel(const QPoint&, const QPoint&) override { return false; }
+            bool tick() override { return false; }
+            QRect bounds() const override { return QRect(0, 0, 50, 20); }
+            void onThemeChanged(bool) override {}
+        };
+        
+        auto child = std::make_unique<MockChild>();
+        
+        // Set up DecoratedBox with padding (like HomePage buttons)
+        UI::DecoratedBox::Props props;
+        props.padding = QMargins(8, 4, 8, 4); // Same as HomePage buttons: padding(8, 4)
+        props.visible = true;
+        
+        bool tapCalled = false;
+        props.onTap = [&tapCalled]() {
+            tapCalled = true;
+        };
+        
+        bool isHovered = false;
+        props.onHover = [&isHovered](bool hover) {
+            isHovered = hover;
+        };
+        
+        auto decoratedBox = std::make_unique<UI::DecoratedBox>(std::move(child), props);
+        
+        // Set viewport (simulating button layout)
+        QRect buttonRect(0, 0, 66, 28); // Width: 50 + 8*2 padding, Height: 20 + 4*2 padding
+        decoratedBox->setViewportRect(buttonRect);
+        
+        // Test 1: Click in the padding area (left edge) - should work with fix
+        QPoint paddingClick(4, 14); // In the left padding area
+        qDebug() << "Testing click in padding area at" << paddingClick;
+        
+        bool paddingPressHandled = decoratedBox->onMousePress(paddingClick);
+        QVERIFY(paddingPressHandled); // Should handle the press with fix
+        
+        bool paddingReleaseHandled = decoratedBox->onMouseRelease(paddingClick);
+        QVERIFY(paddingReleaseHandled); // Should handle the release
+        QVERIFY(tapCalled); // onTap should have been called
+        
+        // Reset for next test
+        tapCalled = false;
+        
+        // Test 2: Click in the content area - should also work
+        QPoint contentClick(33, 14); // In the center of the button
+        qDebug() << "Testing click in content area at" << contentClick;
+        
+        bool contentPressHandled = decoratedBox->onMousePress(contentClick);
+        QVERIFY(contentPressHandled);
+        
+        bool contentReleaseHandled = decoratedBox->onMouseRelease(contentClick);
+        QVERIFY(contentReleaseHandled);
+        QVERIFY(tapCalled);
+        
+        // Reset for next test
+        tapCalled = false;
+        
+        // Test 3: Click outside the viewport - should not work
+        QPoint outsideClick(70, 14); // Outside the button
+        qDebug() << "Testing click outside at" << outsideClick;
+        
+        bool outsidePressHandled = decoratedBox->onMousePress(outsideClick);
+        QVERIFY(!outsidePressHandled); // Should not handle clicks outside
+        QVERIFY(!tapCalled); // onTap should not be called
+        
+        // Test 4: Hover in padding area
+        QPoint paddingHover(4, 14);
+        bool hoverHandled = decoratedBox->onMouseMove(paddingHover);
+        QVERIFY(hoverHandled);
+        QVERIFY(isHovered);
+        
+        // Test 5: Hover outside
+        QPoint outsideHover(70, 14);
+        hoverHandled = decoratedBox->onMouseMove(outsideHover);
+        QVERIFY(hoverHandled); // Should handle the change
+        QVERIFY(!isHovered); // Should not be hovered anymore
+        
+        qDebug() << "DecoratedBox tests PASSED ✅";
+    }
 };
 
 int main(int argc, char *argv[])
@@ -460,6 +556,7 @@ int main(int argc, char *argv[])
         runner.runUiScrollViewTests();
         runner.runUiPageWheelTests();
         runner.runUiTreeListWheelTests();
+        runner.runDecoratedBoxTests();
         
         qDebug() << "===========================================";
         qDebug() << "ALL CORE TESTS PASSED ✅";

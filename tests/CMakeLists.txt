@@ -29,7 +29,6 @@ target_link_libraries(FangJia_Tests PRIVATE
     Qt6::OpenGL
     Qt6::Widgets
     core_rendering
-    core_di
     core_config
     ui_framework
     models
