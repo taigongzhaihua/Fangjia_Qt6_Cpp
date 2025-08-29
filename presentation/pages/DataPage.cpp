@@ -6,6 +6,7 @@
 #include "usecases/SetRecentTabUseCase.h"
 #include "UI.h"
 #include "UiFormulaView.h"
+#include "tab_interface.h"
 #include <BasicWidgets.h>
 #include <ComponentWrapper.h>
 #include <Layouts.h>
@@ -17,6 +18,35 @@
 #include <UiTabView.h>
 #include <Widget.h>
 
+// Simple adapter to bridge TabViewModel to binding interface
+class TabViewModelAdapter : public fj::presentation::binding::ITabDataProvider
+{
+	Q_OBJECT
+public:
+	explicit TabViewModelAdapter(TabViewModel* vm, QObject* parent = nullptr) 
+		: ITabDataProvider(parent), m_vm(vm) {
+		connect(m_vm, &TabViewModel::itemsChanged, this, &ITabDataProvider::itemsChanged);
+		connect(m_vm, &TabViewModel::selectedIndexChanged, this, &ITabDataProvider::selectedIndexChanged);
+	}
+	
+	QVector<fj::presentation::binding::TabItem> items() const override {
+		QVector<fj::presentation::binding::TabItem> result;
+		for (const auto& item : m_vm->items()) {
+			result.append({item.id, item.label, item.tooltip});
+		}
+		return result;
+	}
+	
+	int count() const override { return m_vm->count(); }
+	int selectedIndex() const override { return m_vm->selectedIndex(); }
+	void setSelectedIndex(int idx) override { m_vm->setSelectedIndex(idx); }
+	QString selectedId() const override { return m_vm->selectedId(); }
+	int findById(const QString& id) const override { return m_vm->findById(id); }
+	
+private:
+	TabViewModel* m_vm;
+};
+
 // 内部实现类
 class DataPage::Impl
 {
@@ -24,6 +54,7 @@ public:
 	std::unique_ptr<DataViewModel> dataViewModel;
 	std::unique_ptr<UiFormulaView> formulaView;
 	std::unique_ptr<IUiComponent> builtComponent;
+	std::unique_ptr<TabViewModelAdapter> tabAdapter;
 	bool isDark = false;
 
 	explicit Impl(AppConfig* config)
@@ -37,6 +68,9 @@ public:
 
 		// Create DataViewModel with domain use cases
 		dataViewModel = std::make_unique<DataViewModel>(getRecentTabUseCase, setRecentTabUseCase);
+		
+		// Create adapter to bridge TabViewModel to binding interface
+		tabAdapter = std::make_unique<TabViewModelAdapter>(dataViewModel->tabs());
 
 		// 创建方剂视图
 		formulaView = std::make_unique<UiFormulaView>();
@@ -45,8 +79,8 @@ public:
 	WidgetPtr buildUI() const
 	{
 		return tabView()
-			// 使用 DataViewModel 中的 TabViewModel（移除对 ServiceLocator 的依赖）
-			->viewModel(dataViewModel->tabs())
+			// 使用适配器替代直接使用 TabViewModel（实现 UI-ViewModel 解耦）
+			->dataProvider(tabAdapter.get())
 			->indicatorStyle(UiTabView::IndicatorStyle::Bottom)
 			->tabHeight(43)
 			->animationDuration(220)
@@ -115,3 +149,5 @@ TabViewModel* DataPage::tabViewModel() const
 {
 	return m_impl->dataViewModel->tabs();
 }
+
+#include "DataPage.moc"
