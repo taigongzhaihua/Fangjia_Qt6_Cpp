@@ -3,7 +3,7 @@
 #include <QTemporaryFile>
 #include <QSettings>
 #include "../../src/models/DataViewModel.h"
-#include "../../src/core/config/AppConfig.h"
+#include "AppConfig.h"
 
 class TestDataViewModel : public QObject
 {

@@ -88,7 +88,6 @@ file(GLOB FJ_PRESENTATION_UI_SOURCES
 add_library(fj_presentation_ui STATIC ${FJ_PRESENTATION_UI_SOURCES})
 target_link_libraries(fj_presentation_ui PUBLIC 
     fj_infra_gfx 
-    fj_presentation_vm
     Qt6::Core 
     Qt6::Gui 
     Qt6::Widgets
@@ -99,7 +98,7 @@ target_include_directories(fj_presentation_ui PUBLIC
     presentation/ui/containers
     presentation/ui/widgets
     presentation/ui/declarative
-    presentation/viewmodels  # For viewmodel dependencies
+    presentation/viewmodels  # TODO: Remove this dependency in next phase
 )
 
 # Presentation Layer - ViewModels
@@ -113,7 +112,7 @@ add_library(fj_presentation_vm STATIC ${FJ_PRESENTATION_VM_SOURCES})
 target_link_libraries(fj_presentation_vm PUBLIC Qt6::Core Qt6::Gui)
 target_include_directories(fj_presentation_vm PUBLIC 
     presentation/viewmodels
-    src/core/config  # For AppConfig forwarding header
+    data/sources/local
 )
 
 # Presentation Layer - Pages and Views
@@ -134,6 +133,7 @@ target_include_directories(fj_presentation_pages PUBLIC
     presentation/pages
     presentation/views
     presentation/views/formula
+    data/sources/local
 )
 
 # Domain Layer - Empty placeholder for Stage 2/3
@@ -173,10 +173,10 @@ if(WIN32 AND TARGET fj_infra_platform)
 endif()
 
 target_link_libraries(FangJia PRIVATE ${APP_LIBS})
-target_include_directories(FangJia PRIVATE apps/fangjia)
-
-# Maintain compatibility with old include paths
-target_include_directories(FangJia PRIVATE src/core/config)
+target_include_directories(FangJia PRIVATE 
+    apps/fangjia
+    data/sources/local
+)
 
 # ========================================
 # 测试子项目

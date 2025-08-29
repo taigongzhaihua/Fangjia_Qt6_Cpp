@@ -7,7 +7,7 @@
 #include "presentation/viewmodels/ThemeManager.h"
 
 // Core test for AppConfig  
-#include "core/config/AppConfig.h"
+#include "AppConfig.h"
 
 // Core test for TabViewModel
 #include "presentation/viewmodels/TabViewModel.h"

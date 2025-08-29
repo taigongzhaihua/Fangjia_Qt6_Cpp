@@ -1,7 +1,7 @@
 #include <QtTest>
 #include <QTemporaryFile>
 #include <QSignalSpy>
-#include "../../src/core/config/AppConfig.h"
+#include "AppConfig.h"
 
 class TestAppConfig : public QObject
 {

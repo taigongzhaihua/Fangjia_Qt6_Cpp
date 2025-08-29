@@ -17,6 +17,7 @@ target_include_directories(FangJia_Tests PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}
     ${CMAKE_SOURCE_DIR}
     ${CMAKE_SOURCE_DIR}/src
+    ${CMAKE_SOURCE_DIR}/data/sources/local
 )
 
 # 链接库
