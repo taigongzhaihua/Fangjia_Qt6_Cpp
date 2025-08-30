@@ -33,20 +33,20 @@ void UiRoot::clear()
 
 void UiRoot::updateLayout(const QSize& windowSize) const
 {
-	// First, update all children's layout
-	for (auto* c : m_children) c->updateLayout(windowSize);
-	
-	// Then, set full-window viewport and arrange for top-level declarative children
+	// Reordered to fix content overflow: set viewport and arrange first, then updateLayout
 	const QRect fullWindowRect(0, 0, windowSize.width(), windowSize.height());
+	
 	for (auto* c : m_children) {
-		// Set viewport for IUiContent children
+		// 1) Set viewport for IUiContent children first
 		if (auto* content = dynamic_cast<IUiContent*>(c)) {
 			content->setViewportRect(fullWindowRect);
 		}
-		// Call arrange for ILayoutable children
+		// 2) Call arrange for ILayoutable children
 		if (auto* layoutable = dynamic_cast<ILayoutable*>(c)) {
 			layoutable->arrange(fullWindowRect);
 		}
+		// 3) Then update layout with valid viewport in place
+		c->updateLayout(windowSize);
 	}
 }
 
