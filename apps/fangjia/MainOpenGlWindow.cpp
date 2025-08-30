@@ -628,7 +628,3 @@ void MainOpenGlWindow::initializeDeclarativeShell()
 	m_uiRoot.add(shellComponent.release());  // 转移所有权给UiRoot
 }
 
-void MainOpenGlWindow::setupShellConnectors()
-{
-	// 这个方法现在不需要了，连接器在initializeDeclarativeShell中直接设置
-}
