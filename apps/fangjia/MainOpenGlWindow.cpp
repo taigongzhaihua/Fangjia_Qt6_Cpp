@@ -36,7 +36,7 @@
 #include <exception>
 #include <qlogging.h>
 #include <utility>
-#include <qtenvironmentvariables.h>
+#include <QProcessEnvironment>
 #include <Binding.h>
 #include <ComponentWrapper.h>
 #include <RebuildHost.h>
