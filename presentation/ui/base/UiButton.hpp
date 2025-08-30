@@ -102,6 +102,10 @@ namespace Ui
 		[[nodiscard]] bool hovered() const noexcept { return m_hovered; }
 		[[nodiscard]] bool pressed() const noexcept { return m_pressed; }
 
+		// 程序化状态模拟（用于键盘激活）
+		void simulatePress() { if (m_enabled) m_pressed = true; }
+		void simulateRelease() { if (m_enabled) m_pressed = false; }
+
 		void append(Render::FrameData& fd) const
 		{
 			if (m_opacity <= 0.001f) return; // 完全透明不绘制

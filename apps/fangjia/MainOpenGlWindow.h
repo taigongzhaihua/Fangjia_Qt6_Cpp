@@ -89,6 +89,10 @@ protected:
 	void mouseDoubleClickEvent(QMouseEvent* e) override;
 	void wheelEvent(QWheelEvent* e) override;
 
+	/// 键盘事件处理：转发到UI组件层次结构
+	void keyPressEvent(QKeyEvent* e) override;
+	void keyReleaseEvent(QKeyEvent* e) override;
+
 private:
 	// 初始化子系统
 	void initializeNavigation();

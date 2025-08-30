@@ -10,6 +10,8 @@
 #include "UiComponent.hpp"
 #include "UiContent.hpp"
 #include "ILayoutable.hpp"
+#include "IFocusable.hpp"
+#include "IKeyInput.hpp"
 #include "UiButton.hpp"
 #include "RenderUtils.hpp"
 
@@ -34,13 +36,14 @@
 /// btn.setVariant(UiPushButton::Variant::Primary);
 /// btn.setSize(UiPushButton::Size::M);
 /// btn.setOnTap([](){ /* 点击处理 */ });
-class UiPushButton final : public IUiComponent, public IUiContent, public ILayoutable {
+class UiPushButton final : public IUiComponent, public IUiContent, public ILayoutable, public IFocusable, public IKeyInput {
 public:
 	/// 按钮视觉变体
 	enum class Variant {
-		Primary,   // 主要按钮：高对比背景色
-		Secondary, // 次要按钮：较低对比背景色  
-		Ghost      // 幽灵按钮：透明背景，仅边框/文字
+		Primary,    // 主要按钮：高对比背景色
+		Secondary,  // 次要按钮：较低对比背景色  
+		Ghost,      // 幽灵按钮：透明背景，仅边框/文字
+		Destructive // 破坏性按钮：警告色背景，用于删除等危险操作
 	};
 
 	/// 按钮尺寸预设
@@ -128,6 +131,15 @@ public:
 	bool tick() override;
 	QRect bounds() const override;
 
+	// === IFocusable 接口 ===
+	bool isFocused() const override;
+	void setFocused(bool focused) override;
+	bool canFocus() const override;
+
+	// === IKeyInput 接口 ===
+	bool onKeyPress(int key, Qt::KeyboardModifiers modifiers) override;
+	bool onKeyRelease(int key, Qt::KeyboardModifiers modifiers) override;
+
 protected:
 	// === IThemeAware 接口 ===
 	void applyTheme(bool isDark) override;
@@ -163,6 +175,7 @@ private:
 	// === 运行时状态 ===
 	QRect m_bounds;
 	bool m_isDarkTheme{ false };
+	bool m_focused{ false };  // 焦点状态
 	
 	// === 渲染资源 ===
 	IconCache* m_cache{ nullptr };

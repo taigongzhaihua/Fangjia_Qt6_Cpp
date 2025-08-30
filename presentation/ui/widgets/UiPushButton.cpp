@@ -106,13 +106,33 @@ void UiPushButton::append(Render::FrameData& fd) const {
 	// 委托给内部按钮进行背景和图标绘制
 	m_button.append(fd);
 	
+	// 绘制焦点环（在按钮内容之后，这样焦点环在最上层）
+	if (m_focused && !m_disabled) {
+		const QRectF buttonRect = m_button.visualRectF();
+		const float focusRingWidth = 2.0f;
+		const QRectF focusRect = buttonRect.adjusted(-focusRingWidth, -focusRingWidth, focusRingWidth, focusRingWidth);
+		
+		// 焦点环颜色：根据主题选择
+		QColor focusColor = m_isDarkTheme ? QColor(120, 170, 255, 120) : QColor(70, 130, 255, 120);
+		
+		// 添加焦点环（绘制一个外部矩形作为焦点指示）
+		fd.roundedRects.push_back(Render::RoundedRectCmd{
+			.rect = focusRect,
+			.radiusPx = m_cornerRadius + focusRingWidth,
+			.color = focusColor,
+			.clipRect = focusRect
+		});
+	}
+	
 	// 应用父级剪裁到新增的命令
 	RenderUtils::applyParentClip(fd, rr0, im0, QRectF(m_bounds));
 }
 
 bool UiPushButton::onMousePress(const QPoint& pos) {
 	if (m_disabled) return false;
-	return m_button.onMousePress(pos);
+	const bool handled = m_button.onMousePress(pos);
+	// Focus will be automatically set by UiRoot when this returns true
+	return handled;
 }
 
 bool UiPushButton::onMouseMove(const QPoint& pos) {
@@ -239,7 +259,7 @@ void UiPushButton::updateButtonPalette() {
 			bgPressed = QColor(220, 222, 225);
 			textColor = QColor(60, 65, 70);
 		}
-	} else { // Ghost
+	} else if (m_variant == Variant::Ghost) {
 		if (m_isDarkTheme) {
 			bg = QColor(0, 0, 0, 0);            // 透明背景
 			bgHover = QColor(255, 255, 255, 20); // 悬停时微弱白色
@@ -250,6 +270,18 @@ void UiPushButton::updateButtonPalette() {
 			bgHover = QColor(0, 0, 0, 20);
 			bgPressed = QColor(0, 0, 0, 40);
 			textColor = QColor(60, 65, 70);
+		}
+	} else { // Destructive
+		if (m_isDarkTheme) {
+			bg = QColor(220, 60, 60);           // 红色破坏性按钮
+			bgHover = QColor(240, 80, 80);      // 悬停时更亮
+			bgPressed = QColor(200, 40, 40);    // 按下时更暗
+			textColor = QColor(255, 255, 255);  // 白色文字
+		} else {
+			bg = QColor(210, 50, 50);
+			bgHover = QColor(230, 70, 70);
+			bgPressed = QColor(190, 30, 30);
+			textColor = QColor(255, 255, 255);
 		}
 	}
 	
@@ -356,4 +388,64 @@ void UiPushButton::createIconAndTextPainter() {
 			}
 		}
 	});
+}
+
+// === IFocusable 接口实现 ===
+
+bool UiPushButton::isFocused() const {
+	return m_focused;
+}
+
+void UiPushButton::setFocused(bool focused) {
+	if (m_focused != focused) {
+		m_focused = focused;
+		// 焦点状态改变时，可能需要重新绘制焦点环
+		// 实际绘制在append()方法中处理
+	}
+}
+
+bool UiPushButton::canFocus() const {
+	// 只有启用的按钮可以获得焦点
+	return !m_disabled;
+}
+
+// === IKeyInput 接口实现 ===
+
+bool UiPushButton::onKeyPress(int key, Qt::KeyboardModifiers modifiers) {
+	Q_UNUSED(modifiers);
+	
+	// 只有有焦点且启用的按钮才响应键盘输入
+	if (!m_focused || m_disabled) {
+		return false;
+	}
+	
+	// 空格键和回车键可以激活按钮
+	if (key == Qt::Key_Space || key == Qt::Key_Return || key == Qt::Key_Enter) {
+		// 模拟鼠标按下，触发按下状态
+		m_button.simulatePress();
+		return true;
+	}
+	
+	return false;
+}
+
+bool UiPushButton::onKeyRelease(int key, Qt::KeyboardModifiers modifiers) {
+	Q_UNUSED(modifiers);
+	
+	// 只有有焦点且启用的按钮才响应键盘输入
+	if (!m_focused || m_disabled) {
+		return false;
+	}
+	
+	// 空格键和回车键释放时执行点击回调
+	if (key == Qt::Key_Space || key == Qt::Key_Return || key == Qt::Key_Enter) {
+		// 模拟鼠标释放并触发点击
+		m_button.simulateRelease();
+		if (m_onTap) {
+			m_onTap();
+		}
+		return true;
+	}
+	
+	return false;
 }

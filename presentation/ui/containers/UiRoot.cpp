@@ -60,6 +60,14 @@ bool UiRoot::onMousePress(const QPoint& pos)
 	{
 		if (it->onMousePress(pos)) {
 			m_pointerCapture = it; // 捕获
+			
+			// 如果点击的组件可以获得焦点，则自动设置焦点
+			if (auto* focusable = dynamic_cast<IFocusable*>(it)) {
+				if (focusable->canFocus()) {
+					setFocus(it);
+				}
+			}
+			
 			return true;
 		}
 	}
@@ -119,5 +127,61 @@ void UiRoot::propagateThemeChange(const bool isDark) const
 		if (c) {
 			c->onThemeChanged(isDark);
 		}
+	}
+}
+
+bool UiRoot::onKeyPress(int key, Qt::KeyboardModifiers modifiers)
+{
+	// 只有有焦点的组件才能响应键盘输入
+	if (m_focusedComponent) {
+		// 尝试转换为IKeyInput接口
+		if (auto* keyInput = dynamic_cast<IKeyInput*>(m_focusedComponent)) {
+			return keyInput->onKeyPress(key, modifiers);
+		}
+	}
+	return false;
+}
+
+bool UiRoot::onKeyRelease(int key, Qt::KeyboardModifiers modifiers)
+{
+	// 只有有焦点的组件才能响应键盘输入
+	if (m_focusedComponent) {
+		// 尝试转换为IKeyInput接口
+		if (auto* keyInput = dynamic_cast<IKeyInput*>(m_focusedComponent)) {
+			return keyInput->onKeyRelease(key, modifiers);
+		}
+	}
+	return false;
+}
+
+void UiRoot::setFocus(IUiComponent* component)
+{
+	// 清除当前焦点
+	if (m_focusedComponent) {
+		if (auto* focusable = dynamic_cast<IFocusable*>(m_focusedComponent)) {
+			focusable->setFocused(false);
+		}
+	}
+	
+	// 设置新焦点
+	m_focusedComponent = component;
+	if (m_focusedComponent) {
+		if (auto* focusable = dynamic_cast<IFocusable*>(m_focusedComponent)) {
+			if (focusable->canFocus()) {
+				focusable->setFocused(true);
+			} else {
+				m_focusedComponent = nullptr; // 不能获得焦点则清空
+			}
+		}
+	}
+}
+
+void UiRoot::clearFocus()
+{
+	if (m_focusedComponent) {
+		if (auto* focusable = dynamic_cast<IFocusable*>(m_focusedComponent)) {
+			focusable->setFocused(false);
+		}
+		m_focusedComponent = nullptr;
 	}
 }

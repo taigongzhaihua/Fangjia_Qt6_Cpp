@@ -313,6 +313,42 @@ void MainOpenGlWindow::wheelEvent(QWheelEvent* e)
 	}
 }
 
+void MainOpenGlWindow::keyPressEvent(QKeyEvent* e)
+{
+	// 将键盘按下事件转发到UI组件层次结构
+	const bool handled = m_uiRoot.onKeyPress(e->key(), e->modifiers());
+	
+	if (handled) {
+		// 如有消费则启动动画计时器并重绘
+		if (!m_animTimer.isActive()) {
+			m_animClock.start();
+			m_animTimer.start();
+		}
+		update();
+		e->accept();
+	} else {
+		QOpenGLWindow::keyPressEvent(e);
+	}
+}
+
+void MainOpenGlWindow::keyReleaseEvent(QKeyEvent* e)
+{
+	// 将键盘释放事件转发到UI组件层次结构
+	const bool handled = m_uiRoot.onKeyRelease(e->key(), e->modifiers());
+	
+	if (handled) {
+		// 如有消费则启动动画计时器并重绘
+		if (!m_animTimer.isActive()) {
+			m_animClock.start();
+			m_animTimer.start();
+		}
+		update();
+		e->accept();
+	} else {
+		QOpenGLWindow::keyReleaseEvent(e);
+	}
+}
+
 void MainOpenGlWindow::initializeNavigation()
 {
 	// 设置导航项
@@ -628,7 +664,3 @@ void MainOpenGlWindow::initializeDeclarativeShell()
 	m_uiRoot.add(shellComponent.release());  // 转移所有权给UiRoot
 }
 
-void MainOpenGlWindow::setupShellConnectors()
-{
-	// 这个方法现在不需要了，连接器在initializeDeclarativeShell中直接设置
-}

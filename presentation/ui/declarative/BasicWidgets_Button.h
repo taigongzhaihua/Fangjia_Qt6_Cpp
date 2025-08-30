@@ -32,9 +32,10 @@ namespace UI {
 	public:
 		/// 按钮变体枚举（映射到UiPushButton::Variant）
 		enum class Variant {
-			Primary,   // 主要按钮：高对比背景色，用于主要操作
-			Secondary, // 次要按钮：较低对比背景色，用于辅助操作
-			Ghost      // 幽灵按钮：透明背景，仅边框/文字，用于轻量操作
+			Primary,     // 主要按钮：高对比背景色，用于主要操作
+			Secondary,   // 次要按钮：较低对比背景色，用于辅助操作
+			Ghost,       // 幽灵按钮：透明背景，仅边框/文字，用于轻量操作
+			Destructive  // 破坏性按钮：警告色背景，用于删除等危险操作
 		};
 
 		/// 按钮尺寸枚举（映射到UiPushButton::Size）
@@ -67,6 +68,14 @@ namespace UI {
 		/// 说明：幽灵按钮用于链接式操作，视觉重量最轻
 		std::shared_ptr<Button> ghost() {
 			m_variant = Variant::Ghost;
+			return self<Button>();
+		}
+
+		/// 功能：设置按钮变体为破坏性样式
+		/// 返回：当前按钮实例（支持链式调用）
+		/// 说明：破坏性按钮用于删除、清空等危险操作，使用警告色
+		std::shared_ptr<Button> destructive() {
+			m_variant = Variant::Destructive;
 			return self<Button>();
 		}
 
