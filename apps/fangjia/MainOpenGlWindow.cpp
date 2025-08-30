@@ -573,9 +573,8 @@ void MainOpenGlWindow::onAnimationTick()
 		updateLayout();
 		
 		// 如果使用声明式Shell且导航栏有动画，请求重建以保持列宽同步
-		if (m_useDeclarativeShell && m_appShell) {
-			// AppShell内部会通过BindingHost的RebuildHost来处理重建
-			// 动画期间导航栏宽度变化会触发布局重建
+		if (m_useDeclarativeShell && m_shellRebuildHost) {
+			m_shellRebuildHost->requestRebuild();
 		}
 	}
 
@@ -591,34 +590,41 @@ void MainOpenGlWindow::initializeDeclarativeShell()
 	// 创建页面宿主适配器
 	m_pageHost = std::make_unique<CurrentPageHost>(m_pageRouter);
 
-	// 创建声明式AppShell并设置连接器
-	m_appShell = UI::appShell()
-		->nav(UI::wrap(&m_nav))
-		->topBar(UI::wrap(&m_topBar))
-		->content([this]() -> UI::WidgetPtr {
-			// 内容构建器：总是返回当前页面宿主
-			return UI::wrap(m_pageHost.get());
-		})
-		->navWidthProvider([this]() {
-			// 导航栏宽度提供器：反映运行时动画状态
-			return m_nav.currentWidth();
-		})
-		->topBarHeight(56)  // 固定顶栏高度
-		->connect([this](UI::RebuildHost* host) {
-			// 观察导航展开状态变化
-			UI::observe(&m_navVm, &NavViewModel::expandedChanged, [host](bool) {
-				host->requestRebuild();
+	// 创建包装整个Shell的BindingHost，这样可以在动画期间重建整个布局
+	m_shellHost = UI::bindingHost([this]() -> UI::WidgetPtr {
+		// Shell构建器：每次重建时都创建新的AppShell布局
+		return UI::appShell()
+			->nav(UI::wrap(&m_nav))
+			->topBar(UI::wrap(&m_topBar))
+			->content([this]() -> UI::WidgetPtr {
+				// 内容构建器：总是返回当前页面宿主
+				return UI::wrap(m_pageHost.get());
+			})
+			->navWidthProvider([this]() {
+				// 导航栏宽度提供器：反映运行时动画状态
+				return m_nav.currentWidth();
+			})
+			->topBarHeight(56)  // 固定顶栏高度
+			->connect([this](UI::RebuildHost* host) {
+				// 观察导航选择变化（展开/收缩由动画tick处理）
+				UI::observe(&m_navVm, &NavViewModel::selectedIndexChanged, [host](int) {
+					host->requestRebuild();
+				});
 			});
-		})
-		->connect([this](UI::RebuildHost* host) {
-			// 观察导航选择变化
-			UI::observe(&m_navVm, &NavViewModel::selectedIndexChanged, [host](int) {
-				host->requestRebuild();
-			});
-		});
+	});
 
-	// 将AppShell作为Widget添加到UiRoot
-	auto shellComponent = m_appShell->build();
+	// 添加观察导航展开状态变化的连接器（用于非动画的立即变化）
+	m_shellHost->connect([this](UI::RebuildHost* host) {
+		// 保存RebuildHost引用以便在动画期间使用
+		m_shellRebuildHost = host;
+		
+		UI::observe(&m_navVm, &NavViewModel::expandedChanged, [host](bool) {
+			host->requestRebuild();
+		});
+	});
+
+	// 将Shell BindingHost添加到UiRoot
+	auto shellComponent = m_shellHost->build();
 	m_uiRoot.add(shellComponent.release());  // 转移所有权给UiRoot
 }
 
