@@ -22,6 +22,10 @@
 // Core test for DecoratedBox
 #include "presentation/ui/declarative/Decorators.h"
 
+// Core test for AppShell
+#include "presentation/ui/declarative/AppShell.h"
+#include "presentation/ui/declarative/UI.h"
+
 // Domain layer tests  
 #include "tests/domain/test_usecases.cpp"
 
@@ -534,6 +538,47 @@ public slots:
         
         qDebug() << "DecoratedBox tests PASSED ✅";
     }
+    
+    void runAppShellTests()
+    {
+        qDebug() << "=== Testing AppShell ===";
+        
+        // Test basic construction
+        auto shell = UI::appShell();
+        QVERIFY(shell != nullptr);
+        
+        // Test that it can build without crashing (even with no components)
+        auto component = shell->build();
+        QVERIFY(component != nullptr);
+        
+        // Test fluent API returns self
+        auto nav = UI::text("Nav");
+        auto topBar = UI::text("TopBar");
+        
+        auto result = shell->nav(nav)
+                           ->topBar(topBar)
+                           ->topBarHeight(64)
+                           ->navWidthProvider([]() { return 250; });
+        
+        QCOMPARE(result.get(), shell.get());
+        
+        // Test connector registration with content
+        bool connectorCalled = false;
+        shell->connect([&connectorCalled](UI::RebuildHost* host) {
+            connectorCalled = true;
+            QVERIFY(host != nullptr);
+        });
+        
+        // Set a content builder to trigger BindingHost creation
+        shell->content([]() { return UI::text("Content"); });
+        
+        // Build to trigger connector execution
+        component = shell->build();
+        QVERIFY(component != nullptr);
+        QVERIFY(connectorCalled);
+        
+        qDebug() << "AppShell tests PASSED ✅";
+    }
 };
 
 int main(int argc, char *argv[])
@@ -560,6 +605,7 @@ int main(int argc, char *argv[])
         runner.runUiPageWheelTests();
         runner.runUiTreeListWheelTests();
         runner.runDecoratedBoxTests();
+        runner.runAppShellTests();
         
         // Run domain tests
         tests::runDomainTests();

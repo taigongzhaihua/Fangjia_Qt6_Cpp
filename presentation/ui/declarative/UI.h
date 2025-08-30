@@ -6,6 +6,7 @@
 #include "TabView.h"
 #include "ScrollView.h"
 #include "Widget.h"
+#include "AppShell.h"
 
 namespace UI {
 
@@ -28,6 +29,9 @@ namespace UI {
 	inline auto scrollView(WidgetPtr child = nullptr) { 
 		return make_widget<ScrollView>()->child(child); 
 	}
+
+	// AppShell factory (declarative)
+	inline auto appShell() { return make_widget<AppShell>(); }
 
 	// 条件渲染
 	inline auto when(bool condition, WidgetPtr ifTrue, WidgetPtr ifFalse = nullptr) {
