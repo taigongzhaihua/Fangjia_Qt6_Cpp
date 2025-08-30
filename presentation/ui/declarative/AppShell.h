@@ -37,7 +37,7 @@ namespace UI {
 		std::vector<BindingHost::Connector> m_connectors;
 
 		// Layout providers
-		int m_topBarH{ 56 };
+		int m_topBarH{ 42 };
 		std::function<int()> m_navWidthProvider = []() { return 200; };
 	};
 

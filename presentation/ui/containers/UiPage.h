@@ -12,6 +12,7 @@
 #include "UiComponent.hpp"
 
 #include <qcolor.h>
+#include <qmargins.h>
 #include <qopenglfunctions.h>
 #include <qpoint.h>
 #include <qrect.h>
@@ -127,7 +128,7 @@ protected:
 	virtual void applyPageTheme(bool isDark);
 
 protected:
-	QMargins m_margins{ 8, 52, 8, 8 };
+	QMargins m_margins{ 8, 0, 8, 8 };
 	QMargins m_padding{ 16,0,16,8 };
 	float m_cornerRadius = 8.0f;
 

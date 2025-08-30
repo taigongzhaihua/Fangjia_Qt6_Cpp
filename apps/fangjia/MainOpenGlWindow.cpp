@@ -1,13 +1,13 @@
 #include "MainOpenGlWindow.h"
 
 #include "AppConfig.h"
+#include "CurrentPageHost.h"
 #include "DataPage.h"
 #include "ExplorePage.h"
 #include "FavoritesPage.h"
 #include "HomePage.h"
 #include "SettingsPage.h"
 #include "ThemeManager.h"
-#include "CurrentPageHost.h"
 
 #ifdef Q_OS_WIN
 #include "WinWindowChrome.h"
@@ -36,7 +36,12 @@
 #include <exception>
 #include <qlogging.h>
 #include <utility>
-#include <cstdlib>
+#include <qtenvironmentvariables.h>
+#include <Binding.h>
+#include <ComponentWrapper.h>
+#include <RebuildHost.h>
+#include <UI.h>
+#include <Widget.h>
 
 namespace {
 	MainOpenGlWindow::Theme schemeToTheme(const Qt::ColorScheme s) {
@@ -69,7 +74,8 @@ MainOpenGlWindow::MainOpenGlWindow(
 		if (!envValue.isEmpty() && envValue == "0") {
 			m_useDeclarativeShell = false;
 			qDebug() << "Declarative shell disabled via environment variable";
-		} else {
+		}
+		else {
 			m_useDeclarativeShell = true;
 			qDebug() << "Declarative shell enabled";
 		}
@@ -167,7 +173,8 @@ void MainOpenGlWindow::initializeGL()
 		if (m_useDeclarativeShell) {
 			qDebug() << "Initializing declarative shell...";
 			initializeDeclarativeShell();
-		} else {
+		}
+		else {
 			qDebug() << "Using imperative UI composition...";
 			// 添加UI组件到根容器（旧方式）
 			m_uiRoot.add(&m_nav);
@@ -242,7 +249,7 @@ void MainOpenGlWindow::mouseReleaseEvent(QMouseEvent* e)
 	if (e->button() == Qt::LeftButton) {
 		const bool handled = m_uiRoot.onMouseRelease(e->pos());
 		bool actionsTaken = false;
-		
+
 		if (handled) {
 			// 处理顶栏按钮点击
 			if (bool theme = false, follow = false; m_topBar.takeActions(theme, follow)) {
@@ -269,7 +276,7 @@ void MainOpenGlWindow::mouseReleaseEvent(QMouseEvent* e)
 
 		// Always schedule a redraw on left-button release to ensure VM-driven rebuilds are rendered
 		update();
-		
+
 		if (handled || actionsTaken) {
 			e->accept();
 			return;
@@ -299,7 +306,7 @@ void MainOpenGlWindow::wheelEvent(QWheelEvent* e)
 {
 	// 将 QWheelEvent 的位置与 angleDelta 传给 UiRoot
 	const bool handled = m_uiRoot.onWheel(e->position().toPoint(), e->angleDelta());
-	
+
 	if (handled) {
 		// 如有消费则启动动画计时器并重绘
 		if (!m_animTimer.isActive()) {
@@ -308,7 +315,8 @@ void MainOpenGlWindow::wheelEvent(QWheelEvent* e)
 		}
 		update();
 		e->accept();
-	} else {
+	}
+	else {
 		QOpenGLWindow::wheelEvent(e);
 	}
 }
@@ -317,7 +325,7 @@ void MainOpenGlWindow::keyPressEvent(QKeyEvent* e)
 {
 	// 将键盘按下事件转发到UI组件层次结构
 	const bool handled = m_uiRoot.onKeyPress(e->key(), e->modifiers());
-	
+
 	if (handled) {
 		// 如有消费则启动动画计时器并重绘
 		if (!m_animTimer.isActive()) {
@@ -326,7 +334,8 @@ void MainOpenGlWindow::keyPressEvent(QKeyEvent* e)
 		}
 		update();
 		e->accept();
-	} else {
+	}
+	else {
 		QOpenGLWindow::keyPressEvent(e);
 	}
 }
@@ -335,7 +344,7 @@ void MainOpenGlWindow::keyReleaseEvent(QKeyEvent* e)
 {
 	// 将键盘释放事件转发到UI组件层次结构
 	const bool handled = m_uiRoot.onKeyRelease(e->key(), e->modifiers());
-	
+
 	if (handled) {
 		// 如有消费则启动动画计时器并重绘
 		if (!m_animTimer.isActive()) {
@@ -344,7 +353,8 @@ void MainOpenGlWindow::keyReleaseEvent(QKeyEvent* e)
 		}
 		update();
 		e->accept();
-	} else {
+	}
+	else {
 		QOpenGLWindow::keyReleaseEvent(e);
 	}
 }
@@ -473,7 +483,8 @@ void MainOpenGlWindow::updateLayout()
 			const QRect pageViewport(navWidth, 0, std::max(0, winSize.width() - navWidth), winSize.height());
 			currentPage->setViewportRect(pageViewport);
 		}
-	} else {
+	}
+	else {
 		// 命令式模式：手动设置页面视口
 		const QRect pageViewport(navWidth, 0, std::max(0, winSize.width() - navWidth), winSize.height());
 		if (auto* currentPage = m_pageRouter.currentPage()) {
@@ -556,7 +567,8 @@ void MainOpenGlWindow::onNavSelectionChanged(const int index)
 					newPage->updateResourceContext(m_iconCache, this, static_cast<float>(devicePixelRatio()));
 				}
 			}
-		} else {
+		}
+		else {
 			// 命令式模式：手动管理UiRoot中的页面
 			// 从UiRoot中移除旧页面
 			if (auto* oldPage = m_pageRouter.currentPage()) {
@@ -607,7 +619,7 @@ void MainOpenGlWindow::onAnimationTick()
 
 	if (m_nav.hasActiveAnimation()) {
 		updateLayout();
-		
+
 		// 如果使用声明式Shell且导航栏有动画，请求重建以保持列宽同步
 		if (m_useDeclarativeShell && m_shellRebuildHost) {
 			m_shellRebuildHost->requestRebuild();
@@ -633,31 +645,31 @@ void MainOpenGlWindow::initializeDeclarativeShell()
 			->nav(UI::wrap(&m_nav))
 			->topBar(UI::wrap(&m_topBar))
 			->content([this]() -> UI::WidgetPtr {
-				// 内容构建器：总是返回当前页面宿主
-				return UI::wrap(m_pageHost.get());
-			})
+			// 内容构建器：总是返回当前页面宿主
+			return UI::wrap(m_pageHost.get());
+				})
 			->navWidthProvider([this]() {
-				// 导航栏宽度提供器：反映运行时动画状态
-				return m_nav.currentWidth();
-			})
-			->topBarHeight(56)  // 固定顶栏高度
+			// 导航栏宽度提供器：反映运行时动画状态
+			return m_nav.currentWidth();
+				})
+			->topBarHeight(48)  // 固定顶栏高度
 			->connect([this](UI::RebuildHost* host) {
-				// 观察导航选择变化（展开/收缩由动画tick处理）
-				UI::observe(&m_navVm, &NavViewModel::selectedIndexChanged, [host](int) {
-					host->requestRebuild();
+			// 观察导航选择变化（展开/收缩由动画tick处理）
+			UI::observe(&m_navVm, &NavViewModel::selectedIndexChanged, [host](int) {
+				host->requestRebuild();
 				});
-			});
-	});
+				});
+		});
 
 	// 添加观察导航展开状态变化的连接器（用于非动画的立即变化）
 	m_shellHost->connect([this](UI::RebuildHost* host) {
 		// 保存RebuildHost引用以便在动画期间使用
 		m_shellRebuildHost = host;
-		
+
 		UI::observe(&m_navVm, &NavViewModel::expandedChanged, [host](bool) {
 			host->requestRebuild();
+			});
 		});
-	});
 
 	// 将Shell BindingHost添加到UiRoot
 	auto shellComponent = m_shellHost->build();
