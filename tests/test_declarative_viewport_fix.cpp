@@ -1,11 +1,9 @@
 #include <iostream>
 #include <cassert>
 #include <memory>
-#include <qsize.h>
-#include <qrect.h>
-#include <qstring.h>
-#include <qbytearray.h>
-#include <qenvironmentvariables.h>
+#include <QSize>
+#include <QRect>
+#include <QString>
 
 // Include necessary headers for testing
 #include "apps/fangjia/CurrentPageHost.h"
@@ -83,29 +81,7 @@ void testCurrentPageHostViewportDelegation() {
     std::cout << "✅ CurrentPageHost correctly delegates viewport to current page" << std::endl;
 }
 
-// Test that environment variable controls declarative mode
-void testDeclarativeMode() {
-    std::cout << "Testing declarative mode detection..." << std::endl;
-    
-    // Test default behavior (should be declarative)
-    qunsetenv("FJ_USE_DECL_SHELL");
-    QByteArray envValue = qgetenv("FJ_USE_DECL_SHELL");
-    bool useDeclarative = envValue.isEmpty() || envValue != "0";
-    assert(useDeclarative == true);
-    std::cout << "✅ Default mode is declarative" << std::endl;
-    
-    // Test explicit disable
-    qputenv("FJ_USE_DECL_SHELL", "0");
-    envValue = qgetenv("FJ_USE_DECL_SHELL");
-    useDeclarative = envValue.isEmpty() || envValue != "0";
-    assert(useDeclarative == false);
-    std::cout << "✅ Environment variable FJ_USE_DECL_SHELL=0 disables declarative mode" << std::endl;
-    
-    // Reset to default
-    qunsetenv("FJ_USE_DECL_SHELL");
-}
-
-// Test that single viewport assignment doesn't cause conflicts
+// Test that single viewport assignment doesn't cause conflicts in declarative mode
 void testSingleViewportAssignment() {
     std::cout << "Testing single viewport assignment..." << std::endl;
     
@@ -121,7 +97,7 @@ void testSingleViewportAssignment() {
     
     assert(router.switchToPage("test"));
     
-    // Simulate what should happen in declarative mode: only CurrentPageHost sets viewport
+    // Simulate what happens in declarative mode: only CurrentPageHost sets viewport
     QRect viewport1(0, 0, 1000, 700);
     host.setViewportRect(viewport1);
     
@@ -132,7 +108,7 @@ void testSingleViewportAssignment() {
     // Simulate additional layout update (should not cause double viewport setting in declarative mode)
     pagePtr->resetCallCount();
     
-    // In fixed declarative mode, MainOpenGlWindow should NOT call setViewportRect again
+    // In declarative mode, MainOpenGlWindow should NOT call setViewportRect again
     // This would be simulated by NOT calling pagePtr->setViewportRect() manually
     
     // Verify no additional calls
@@ -141,9 +117,8 @@ void testSingleViewportAssignment() {
 }
 
 int main() {
-    std::cout << "Testing declarative viewport management fix..." << std::endl;
+    std::cout << "Testing declarative viewport management..." << std::endl;
     
-    testDeclarativeMode();
     testCurrentPageHostViewportDelegation();
     testSingleViewportAssignment();
     
