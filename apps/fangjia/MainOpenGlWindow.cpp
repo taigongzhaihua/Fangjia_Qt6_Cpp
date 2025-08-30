@@ -69,17 +69,6 @@ MainOpenGlWindow::MainOpenGlWindow(
 	try {
 		qDebug() << "MainOpenGlWindow constructor start";
 
-		// 检查环境变量以确定是否使用声明式Shell
-		const QByteArray envValue = qgetenv("FJ_USE_DECL_SHELL");
-		if (!envValue.isEmpty() && envValue == "0") {
-			m_useDeclarativeShell = false;
-			qDebug() << "Declarative shell disabled via environment variable";
-		}
-		else {
-			m_useDeclarativeShell = true;
-			qDebug() << "Declarative shell enabled";
-		}
-
 		// 设置动画定时器
 		connect(&m_animTimer, &QTimer::timeout, this, &MainOpenGlWindow::onAnimationTick);
 		m_animTimer.setTimerType(Qt::PreciseTimer);
@@ -170,19 +159,8 @@ void MainOpenGlWindow::initializeGL()
 		qDebug() << "Initializing top bar...";
 		initializeTopBar();
 
-		if (m_useDeclarativeShell) {
-			qDebug() << "Initializing declarative shell...";
-			initializeDeclarativeShell();
-		}
-		else {
-			qDebug() << "Using imperative UI composition...";
-			// 添加UI组件到根容器（旧方式）
-			m_uiRoot.add(&m_nav);
-			m_uiRoot.add(&m_topBar);
-			if (auto* currentPage = m_pageRouter.currentPage()) {
-				m_uiRoot.add(currentPage);
-			}
-		}
+		qDebug() << "Initializing declarative shell...";
+		initializeDeclarativeShell();
 
 		// 在所有组件添加后，应用初始主题
 		const bool isDark = (m_theme == Theme::Dark);
@@ -421,12 +399,6 @@ void MainOpenGlWindow::initializePages()
 		if (m_navVm.selectedIndex() >= 0 && m_navVm.selectedIndex() < items.size()) {
 			m_pageRouter.switchToPage(items[m_navVm.selectedIndex()].id);
 		}
-
-		// 在声明式模式下，确保页面宿主知道当前页面
-		if (m_useDeclarativeShell && m_pageHost) {
-			// CurrentPageHost会在setViewportRect时自动委托给当前页面
-			// 这里不需要额外操作
-		}
 	}
 	catch (const std::exception& e) {
 		qCritical() << "Exception in initializePages:" << e.what();
@@ -475,20 +447,9 @@ void MainOpenGlWindow::setupThemeListeners()
 void MainOpenGlWindow::updateLayout()
 {
 	const QSize winSize = size();
-	const int navWidth = m_nav.currentWidth();
 
-	if (m_useDeclarativeShell) {
-		// 声明式模式：让AppShell/CurrentPageHost处理页面视口，无需手动设置
-	}
-	else {
-		// 命令式模式：手动设置页面视口
-		const QRect pageViewport(navWidth, 0, std::max(0, winSize.width() - navWidth), winSize.height());
-		if (auto* currentPage = m_pageRouter.currentPage()) {
-			currentPage->setViewportRect(pageViewport);
-		}
-	}
-
-	// 更新所有组件布局（对两种模式都适用）
+	// 声明式模式：让AppShell/CurrentPageHost处理页面视口，无需手动设置
+	// 更新所有组件布局
 	m_uiRoot.updateLayout(winSize);
 	m_uiRoot.updateResourceContext(m_iconCache, this, static_cast<float>(devicePixelRatio()));
 
@@ -549,35 +510,13 @@ void MainOpenGlWindow::onNavSelectionChanged(const int index)
 	if (index >= 0 && index < items.size()) {
 		const QString pageId = items[index].id;
 
-		if (m_useDeclarativeShell) {
-			// 声明式模式：仅切换页面，AppShell会通过重建自动更新UI
-			// CurrentPageHost负责处理视口设置，UiRoot负责主题传播和资源上下文更新
-			m_pageRouter.switchToPage(pageId);
-		}
-		else {
-			// 命令式模式：手动管理UiRoot中的页面
-			// 从UiRoot中移除旧页面
-			if (auto* oldPage = m_pageRouter.currentPage()) {
-				m_uiRoot.remove(oldPage);
-			}
+		// 声明式模式：仅切换页面，AppShell会通过重建自动更新UI
+		// CurrentPageHost负责处理视口设置，UiRoot负责主题传播和资源上下文更新
+		m_pageRouter.switchToPage(pageId);
 
-			// 切换到新页面（自动调用生命周期钩子）
-			if (m_pageRouter.switchToPage(pageId)) {
-				if (auto* newPage = m_pageRouter.currentPage()) {
-					// 设置页面视口
-					const int navWidth = m_nav.currentWidth();
-					const QSize winSize = size();
-					const QRect pageViewport(navWidth, 0, std::max(0, winSize.width() - navWidth), winSize.height());
-					newPage->setViewportRect(pageViewport);
-
-					// 添加到UiRoot
-					m_uiRoot.add(newPage);
-
-					m_uiRoot.propagateThemeChange(m_theme == Theme::Dark);
-					// 更新资源上下文
-					newPage->updateResourceContext(m_iconCache, this, static_cast<float>(devicePixelRatio()));
-				}
-			}
+		// 可选：请求重建以确保UI更新
+		if (m_shellRebuildHost) {
+			m_shellRebuildHost->requestRebuild();
 		}
 
 		update();
@@ -606,8 +545,8 @@ void MainOpenGlWindow::onAnimationTick()
 	if (m_nav.hasActiveAnimation()) {
 		updateLayout();
 
-		// 如果使用声明式Shell且导航栏有动画，请求重建以保持列宽同步
-		if (m_useDeclarativeShell && m_shellRebuildHost) {
+		// 如果导航栏有动画，请求重建以保持列宽同步
+		if (m_shellRebuildHost) {
 			m_shellRebuildHost->requestRebuild();
 		}
 	}

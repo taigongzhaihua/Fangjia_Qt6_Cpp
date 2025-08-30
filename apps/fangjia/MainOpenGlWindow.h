@@ -131,7 +131,6 @@ private:
 	UiRoot m_uiRoot;
 
 	// 声明式Shell支持
-	bool m_useDeclarativeShell{ true };
 	std::unique_ptr<CurrentPageHost> m_pageHost;
 	std::shared_ptr<UI::BindingHost> m_shellHost;  // 包装整个Shell的BindingHost
 	UI::RebuildHost* m_shellRebuildHost{ nullptr };  // 内部RebuildHost的引用，用于动画期间重建
