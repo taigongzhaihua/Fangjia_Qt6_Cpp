@@ -128,6 +128,11 @@ namespace UI {
 		}
 
 		QRect bounds() const override {
+			// Prefer the assigned viewport if available and valid
+			if (m_hasViewport && m_viewport.isValid()) {
+				return m_viewport;
+			}
+			// Fall back to child bounds or invalid viewport
 			return m_child ? m_child->bounds() : m_viewport;
 		}
 

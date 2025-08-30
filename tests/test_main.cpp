@@ -32,6 +32,7 @@
 // Framework tests
 #include "presentation/ui/containers/UiScrollView.h"
 #include "presentation/ui/containers/UiPage.h"
+#include "presentation/ui/containers/UiRoot.h"
 #include "presentation/ui/widgets/UiTreeList.h"
 #include "presentation/ui/base/ILayoutable.hpp"
 
@@ -579,6 +580,130 @@ public slots:
         
         qDebug() << "AppShell tests PASSED ✅";
     }
+
+    void runUiRootLayoutTests()
+    {
+        qDebug() << "=== Testing UiRoot viewport and layout fixes ===";
+        
+        // Mock component that implements both IUiContent and ILayoutable
+        class MockLayoutableComponent : public IUiComponent, public IUiContent, public ILayoutable {
+        public:
+            QRect m_viewport;
+            QRect m_arrangeRect;
+            bool m_viewportSet = false;
+            bool m_arrangeWasCalled = false;
+            
+            void updateLayout(const QSize&) override {}
+            void updateResourceContext(IconCache&, QOpenGLFunctions*, float) override {}
+            void append(Render::FrameData&) const override {}
+            bool onMousePress(const QPoint&) override { return false; }
+            bool onMouseMove(const QPoint&) override { return false; }
+            bool onMouseRelease(const QPoint&) override { return false; }
+            bool onWheel(const QPoint&, const QPoint&) override { return false; }
+            bool tick() override { return false; }
+            QRect bounds() const override { 
+                // Before viewport set, return small bounds that would cause the clipping issue
+                if (!m_viewportSet) {
+                    return QRect(0, 0, 1, 1); // Tiny bounds that would cause clipping
+                }
+                return m_viewport; // After viewport set, return proper bounds
+            }
+            void onThemeChanged(bool) override {}
+            
+            // IUiContent
+            void setViewportRect(const QRect& r) override { 
+                m_viewport = r; 
+                m_viewportSet = true;
+            }
+            
+            // ILayoutable  
+            QSize measure(const SizeConstraints& cs) override {
+                return QSize(std::clamp(100, cs.minW, cs.maxW), 
+                           std::clamp(50, cs.minH, cs.maxH));
+            }
+            void arrange(const QRect& finalRect) override { 
+                m_arrangeRect = finalRect; 
+                m_arrangeWasCalled = true;
+            }
+        };
+        
+        // Test UiRoot behavior with top-level declarative component
+        UiRoot root;
+        MockLayoutableComponent mockComponent;
+        
+        // Before fix: component would have tiny bounds
+        QRect initialBounds = mockComponent.bounds();
+        QCOMPARE(initialBounds, QRect(0, 0, 1, 1));
+        
+        // Add component to root
+        root.add(&mockComponent);
+        
+        // Call updateLayout - this should now set viewport and arrange
+        QSize windowSize(800, 600);
+        root.updateLayout(windowSize);
+        
+        // Verify that setViewportRect was called with full window rect
+        QVERIFY(mockComponent.m_viewportSet);
+        QCOMPARE(mockComponent.m_viewport, QRect(0, 0, 800, 600));
+        
+        // Verify that arrange was called with full window rect
+        QVERIFY(mockComponent.m_arrangeWasCalled);
+        QCOMPARE(mockComponent.m_arrangeRect, QRect(0, 0, 800, 600));
+        
+        // After fix: component should now return proper viewport bounds
+        QRect boundsAfterLayout = mockComponent.bounds();
+        QCOMPARE(boundsAfterLayout, QRect(0, 0, 800, 600));
+        
+        qDebug() << "UiRoot layout fixes PASSED ✅";
+    }
+
+    void runRebuildHostBoundsTests()
+    {
+        qDebug() << "=== Testing RebuildHost bounds() fix ===";
+        
+        // Component with small bounds that would cause clipping issue
+        class ComponentWithSmallBounds : public IUiComponent {
+        public:
+            void updateLayout(const QSize&) override {}
+            void updateResourceContext(IconCache&, QOpenGLFunctions*, float) override {}
+            void append(Render::FrameData&) const override {}
+            bool onMousePress(const QPoint&) override { return false; }
+            bool onMouseMove(const QPoint&) override { return false; }
+            bool onMouseRelease(const QPoint&) override { return false; }
+            bool onWheel(const QPoint&, const QPoint&) override { return false; }
+            bool tick() override { return false; }
+            QRect bounds() const override { return QRect(0, 0, 10, 5); } // Very small bounds
+            void onThemeChanged(bool) override {}
+        };
+        
+        UI::RebuildHost host;
+        
+        // Set builder to create component with small bounds
+        host.setBuilder([]() -> std::unique_ptr<IUiComponent> {
+            return std::make_unique<ComponentWithSmallBounds>();
+        });
+        
+        // Before viewport is set, bounds should come from child (small)
+        QRect boundsBeforeViewport = host.bounds();
+        QCOMPARE(boundsBeforeViewport, QRect(0, 0, 10, 5));
+        
+        // Set viewport (as UiRoot would do after fix)
+        QRect viewport(0, 0, 800, 600);
+        host.setViewportRect(viewport);
+        
+        // After viewport is set, bounds should prefer viewport (fix)
+        QRect boundsAfterViewport = host.bounds();
+        QCOMPARE(boundsAfterViewport, QRect(0, 0, 800, 600));
+        
+        // Test arrange also sets viewport correctly
+        QRect arrangeRect(10, 10, 1024, 768);
+        host.arrange(arrangeRect);
+        
+        QRect boundsAfterArrange = host.bounds();
+        QCOMPARE(boundsAfterArrange, QRect(10, 10, 1024, 768));
+        
+        qDebug() << "RebuildHost bounds() fix PASSED ✅";
+    }
 };
 
 int main(int argc, char *argv[])
@@ -606,6 +731,8 @@ int main(int argc, char *argv[])
         runner.runUiTreeListWheelTests();
         runner.runDecoratedBoxTests();
         runner.runAppShellTests();
+        runner.runUiRootLayoutTests();
+        runner.runRebuildHostBoundsTests();
         
         // Run domain tests
         tests::runDomainTests();
