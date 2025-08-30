@@ -1,9 +1,9 @@
 #include <iostream>
 #include <cassert>
 #include <memory>
-#include <qsize.h>
-#include <qrect.h>
-#include <qstring.h>
+#include <QSize>
+#include <QRect>
+#include <QString>
 
 // Include necessary headers for testing
 #include "apps/fangjia/CurrentPageHost.h"
