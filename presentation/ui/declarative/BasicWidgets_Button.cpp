@@ -20,6 +20,9 @@ std::unique_ptr<IUiComponent> Button::build() const {
 		case Variant::Ghost:
 			pushButton->setVariant(UiPushButton::Variant::Ghost);
 			break;
+		case Variant::Destructive:
+			pushButton->setVariant(UiPushButton::Variant::Destructive);
+			break;
 	}
 	
 	// 配置尺寸（转换枚举）

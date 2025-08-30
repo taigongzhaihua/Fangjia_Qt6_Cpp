@@ -10,6 +10,8 @@
 #include "IconCache.h"
 #include "RenderData.hpp"
 #include "UiComponent.hpp"
+#include "IFocusable.hpp"
+#include "IKeyInput.hpp"
 
 #include <qopenglfunctions.h>
 #include <vector>
@@ -80,6 +82,20 @@ public:
 	/// 返回：是否有组件处理了该事件
 	bool onWheel(const QPoint& pos, const QPoint& angleDelta);
 
+	/// 功能：分发键盘按键按下事件
+	/// 参数：key — 按键码（Qt::Key枚举）
+	/// 参数：modifiers — 修饰键状态
+	/// 返回：是否有组件处理了该事件
+	/// 说明：仅分发给当前有焦点的组件
+	bool onKeyPress(int key, Qt::KeyboardModifiers modifiers);
+	
+	/// 功能：分发键盘按键释放事件
+	/// 参数：key — 按键码（Qt::Key枚举）
+	/// 参数：modifiers — 修饰键状态
+	/// 返回：是否有组件处理了该事件
+	/// 说明：仅分发给当前有焦点的组件
+	bool onKeyRelease(int key, Qt::KeyboardModifiers modifiers);
+
 	/// 功能：推进动画帧
 	/// 返回：是否有组件需要重绘
 	/// 说明：遍历所有组件调用tick()方法
@@ -90,9 +106,20 @@ public:
 	/// 说明：递归调用所有组件的onThemeChanged()方法
 	void propagateThemeChange(bool isDark) const;
 
+	/// 功能：设置焦点到指定组件
+	/// 参数：component — 要获得焦点的组件（须实现IFocusable）
+	/// 说明：清除其他组件的焦点，设置指定组件为焦点
+	void setFocus(IUiComponent* component);
+	
+	/// 功能：清除所有组件的焦点
+	void clearFocus();
+
 private:
 	std::vector<IUiComponent*> m_children; // 顶级组件列表（不拥有所有权）
 
 	// 指针捕获：按下命中的组件会捕获后续移动和释放事件，直到释放为止
 	IUiComponent* m_pointerCapture{ nullptr };
+	
+	// 焦点管理：当前拥有焦点的组件
+	IUiComponent* m_focusedComponent{ nullptr };
 };
