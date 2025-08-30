@@ -312,6 +312,41 @@ private slots:
         // but we can verify it doesn't crash and returns valid size
         QVERIFY(measured2.width() >= 0 && measured2.height() >= 0);
     }
+
+    void testBoundsPreferViewport()
+    {
+        UI::RebuildHost host;
+        
+        // Create a component with specific bounds
+        class ComponentWithBounds : public TestComponent {
+        public:
+            QRect bounds() const override { return QRect(5, 5, 50, 50); }
+        };
+        
+        // Set builder to create component with specific bounds
+        host.setBuilder([]() -> std::unique_ptr<IUiComponent> {
+            return std::make_unique<ComponentWithBounds>();
+        });
+        
+        // Before setting viewport, bounds should come from child
+        QRect childBounds = host.bounds();
+        QCOMPARE(childBounds, QRect(5, 5, 50, 50));
+        
+        // Set viewport via setViewportRect
+        QRect viewport(10, 10, 800, 600);
+        host.setViewportRect(viewport);
+        
+        // Now bounds should prefer the viewport
+        QRect boundsAfterViewport = host.bounds();
+        QCOMPARE(boundsAfterViewport, viewport);
+        
+        // Test arrange also sets viewport and is preferred
+        QRect arrangeRect(20, 20, 1024, 768);
+        host.arrange(arrangeRect);
+        
+        QRect boundsAfterArrange = host.bounds();
+        QCOMPARE(boundsAfterArrange, arrangeRect);
+    }
 };
 
 #include "TestRebuildHost.moc"
