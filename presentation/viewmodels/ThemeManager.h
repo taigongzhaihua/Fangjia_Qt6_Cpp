@@ -14,22 +14,21 @@
 #include <qobjectdefs.h>
 #include <qtmetamacros.h>
 
-// Forward declarations for domain use cases
-namespace domain {
-namespace usecases {
-class GetThemeModeUseCase;
-class SetThemeModeUseCase;
-}
+ // Forward declarations for domain use cases
+namespace domain::usecases
+{
+	class GetThemeModeUseCase;
+	class SetThemeModeUseCase;
 }
 
 // Qt 6.4.x兼容性处理：ColorScheme在Qt 6.5中引入
 #if QT_VERSION < QT_VERSION_CHECK(6, 5, 0)
 namespace Qt {
-    enum class ColorScheme {
-        Unknown,
-        Light,
-        Dark
-    };
+	enum class ColorScheme {
+		Unknown,
+		Light,
+		Dark
+	};
 }
 #endif
 
@@ -61,19 +60,19 @@ public:
 	};
 	Q_ENUM(ThemeMode)
 
-	explicit ThemeManager(QObject* parent = nullptr);
-	
+		explicit ThemeManager(QObject* parent = nullptr);
+
 	// Constructor with dependency injection for domain use cases
 	ThemeManager(std::shared_ptr<domain::usecases::GetThemeModeUseCase> getThemeUseCase,
-	             std::shared_ptr<domain::usecases::SetThemeModeUseCase> setThemeUseCase,
-	             QObject* parent = nullptr);
-	             
+		std::shared_ptr<domain::usecases::SetThemeModeUseCase> setThemeUseCase,
+		QObject* parent = nullptr);
+
 	~ThemeManager() override = default;
 
 	/// 功能：获取当前主题模式
 	/// 返回：用户设置的主题模式
 	[[nodiscard]] ThemeMode mode() const noexcept { return m_mode; }
-	
+
 	/// 功能：设置主题模式
 	/// 参数：mode — 新的主题模式
 	/// 说明：会自动更新生效配色方案并发射相应信号
@@ -86,7 +85,7 @@ public:
 	/// 功能：从设置加载主题设置
 	/// 说明：程序启动时调用，恢复用户的主题偏好
 	void load();
-	
+
 	/// 功能：保存主题设置
 	/// 说明：设置变化时调用，持久化用户偏好
 	void save() const;
@@ -98,23 +97,23 @@ public:
 signals:
 	/// 当前生效配色方案发生变化（受模式设置和系统主题影响）
 	void effectiveColorSchemeChanged(Qt::ColorScheme scheme);
-	
+
 	/// 用户主题模式设置发生变化
 	void modeChanged(ThemeMode mode);
 
 private:
 	/// 根据当前模式和系统状态重新计算生效配色方案
 	void updateEffectiveColorScheme();
-	
+
 	/// 连接系统主题变化监听器
 	void connectSystemWatcher();
-	
+
 	/// 断开系统主题变化监听器  
 	void disconnectSystemWatcher();
-	
+
 	/// Convert domain ThemeMode to ThemeManager ThemeMode
 	ThemeMode fromDomainThemeMode(int domainMode) const;
-	
+
 	/// Convert ThemeManager ThemeMode to domain ThemeMode  
 	int toDomainThemeMode(ThemeMode mode) const;
 
@@ -122,7 +121,7 @@ private:
 	ThemeMode m_mode{ ThemeMode::FollowSystem };           // 用户设置的主题模式
 	Qt::ColorScheme m_effective{ Qt::ColorScheme::Light }; // 当前生效的配色方案
 	QMetaObject::Connection m_sysConn;                     // 系统主题监听连接
-	
+
 	// Domain use cases for persistent storage (optional - fallback to QSettings if not provided)
 	std::shared_ptr<domain::usecases::GetThemeModeUseCase> m_getThemeUseCase;
 	std::shared_ptr<domain::usecases::SetThemeModeUseCase> m_setThemeUseCase;

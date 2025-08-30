@@ -1,18 +1,17 @@
 #include "GetRecentTabUseCase.h"
 
-namespace domain {
-namespace usecases {
-
-GetRecentTabUseCase::GetRecentTabUseCase(std::shared_ptr<repositories::ISettingsRepository> repository)
-    : m_repository(std::move(repository))
+namespace domain::usecases
 {
-}
 
-std::string GetRecentTabUseCase::execute() const
-{
-    const auto settings = m_repository->getSettings();
-    return settings.recentTab;
-}
+	GetRecentTabUseCase::GetRecentTabUseCase(std::shared_ptr<repositories::ISettingsRepository> repository)
+		: m_repository(std::move(repository))
+	{
+	}
 
-} // namespace usecases
-} // namespace domain
+	std::string GetRecentTabUseCase::execute() const
+	{
+		const auto settings = m_repository->getSettings();
+		return settings.recentTab;
+	}
+
+}

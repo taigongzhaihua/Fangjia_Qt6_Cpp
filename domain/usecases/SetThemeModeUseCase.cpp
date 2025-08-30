@@ -1,20 +1,19 @@
 #include "SetThemeModeUseCase.h"
 
-namespace domain {
-namespace usecases {
-
-SetThemeModeUseCase::SetThemeModeUseCase(std::shared_ptr<repositories::ISettingsRepository> repository)
-    : m_repository(std::move(repository))
+namespace domain::usecases
 {
-}
 
-void SetThemeModeUseCase::execute(entities::ThemeMode mode)
-{
-    auto settings = m_repository->getSettings();
-    settings.themeMode = entities::themeModeToString(mode);
-    m_repository->updateSettings(settings);
-    m_repository->save();
-}
+	SetThemeModeUseCase::SetThemeModeUseCase(std::shared_ptr<repositories::ISettingsRepository> repository)
+		: m_repository(std::move(repository))
+	{
+	}
 
-} // namespace usecases
-} // namespace domain
+	void SetThemeModeUseCase::execute(entities::ThemeMode mode)
+	{
+		auto settings = m_repository->getSettings();
+		settings.themeMode = entities::themeModeToString(mode);
+		m_repository->updateSettings(settings);
+		m_repository->save();
+	}
+
+}

@@ -1,17 +1,16 @@
 #include "GetSettingsUseCase.h"
 
-namespace domain {
-namespace usecases {
-
-GetSettingsUseCase::GetSettingsUseCase(std::shared_ptr<repositories::ISettingsRepository> repository)
-    : m_repository(std::move(repository))
+namespace domain::usecases
 {
-}
 
-entities::Settings GetSettingsUseCase::execute() const
-{
-    return m_repository->getSettings();
-}
+	GetSettingsUseCase::GetSettingsUseCase(std::shared_ptr<repositories::ISettingsRepository> repository)
+		: m_repository(std::move(repository))
+	{
+	}
 
-} // namespace usecases
-} // namespace domain
+	entities::Settings GetSettingsUseCase::execute() const
+	{
+		return m_repository->getSettings();
+	}
+
+}

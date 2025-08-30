@@ -1,9 +1,20 @@
 #include "UiGrid.h"
 
 #include <algorithm>
+#include <cmath>
+#include <ILayoutable.hpp>
+#include <limits>
 #include <numeric>
+#include <qopenglfunctions.h>
+#include <qpoint.h>
+#include <qrect.h>
+#include <qsize.h>
 #include <ranges>
+#include <RenderData.hpp>
 #include <RenderUtils.hpp>
+#include <UiComponent.hpp>
+#include <UiContent.hpp>
+#include <vector>
 
 void UiGrid::clearChildren() {
 	m_children.clear();
@@ -74,11 +85,11 @@ std::vector<int> UiGrid::computeColumnWidths(const int contentW) const {
 	const int n = static_cast<int>(m_cols.size());
 	if (n <= 0) return {};
 
-	std::vector width(n, 0);
-	std::vector starWeight(n, 0.0f);
-	std::vector starMin(n, 0);
+	std::vector<int> width(n, 0);         // Pixel/Auto 的当前最小值
+	std::vector<float> starWeight(n, 0.0f);
+	std::vector<int> starMin(n, 0);        // Star 的最小内容值
 
-	// 预填：像素列固定，Star 权重记录
+	// 初始化：固定像素列与 Star 权重
 	for (int i = 0; i < n; ++i) {
 		const auto& d = m_cols[i];
 		if (d.type == TrackDef::Type::Pixel) {
@@ -89,144 +100,131 @@ std::vector<int> UiGrid::computeColumnWidths(const int contentW) const {
 		}
 	}
 
-	// 第一轮：单列子项（colSpan==1）填充 Auto 与 Star 的最小内容宽
+	// Pass 1：单列项（colSpan==1）填充 Auto/Star 的最小内容宽度
 	for (const auto& ch : m_children) {
 		if (!ch.visible || !ch.component) continue;
 		if (ch.col < 0 || ch.col >= n) continue;
 		if (ch.colSpan != 1) continue;
 
-		const QSize nat = measureChildNatural(ch.component);
 		const int col = ch.col;
+		const QSize nat = measureChildNatural(ch.component);
 		const auto& def = m_cols[col];
+
 		if (def.type == TrackDef::Type::Auto) {
 			width[col] = std::max(width[col], nat.width());
 		}
 		else if (def.type == TrackDef::Type::Star) {
 			starMin[col] = std::max(starMin[col], nat.width());
 		}
+		// Pixel: 不增长（WPF 语义）
 	}
 
-	// 第二轮：跨列子项，拉升所跨列的 Auto/Star 最小需求
+	// Pass 2：跨列项 —— 将缺口分摊到 Star/Auto（不动 Pixel）
 	for (const auto& ch : m_children) {
 		if (!ch.visible || !ch.component) continue;
 		if (ch.col < 0 || ch.col >= n) continue;
+
 		const int c0 = ch.col;
-		const int c1 = std::min(n, c0 + ch.colSpan) - 1;
+		const int c1 = std::min(n, c0 + std::max(1, ch.colSpan)) - 1;
 		if (c1 < c0) continue;
 
 		const QSize nat = measureChildNatural(ch.component);
-		// 现有固定和最小总和
-		int sum = 0; float sumStarW = 0.0f; int autoCount = 0; int starCount = 0;
+
+		// 当前累计宽度（Pixel/Auto 用 width，Star 用 starMin）+ 间距
+		int sum = 0;
+		float sumStarW = 0.0f;
+		int autoCount = 0;
+
 		for (int c = c0; c <= c1; ++c) {
-			if (const auto& [type, value] = m_cols[c]; type == TrackDef::Type::Pixel) sum += width[c];
-			else if (type == TrackDef::Type::Auto) { sum += width[c]; autoCount++; }
-			else { sum += starMin[c]; sumStarW += starWeight[c]; starCount++; }
+			const auto& def = m_cols[c];
+			if (def.type == TrackDef::Type::Pixel) {
+				sum += width[c];
+			}
+			else if (def.type == TrackDef::Type::Auto) {
+				sum += width[c];
+				autoCount++;
+			}
+			else { // Star
+				sum += starMin[c];
+				sumStarW += starWeight[c];
+			}
 		}
-		// 加上列内间距
-		sum += std::max(0, ch.colSpan - 1) * m_colSpacing;
+		sum += std::max(0, (c1 - c0)) * m_colSpacing;
 
 		const int need = nat.width() - sum;
 		if (need <= 0) continue;
 
 		if (sumStarW > 0.0f) {
+			// 分摊到 Star 的最小值
+			int distributed = 0;
 			for (int c = c0; c <= c1; ++c) {
 				if (m_cols[c].type == TrackDef::Type::Star) {
 					const float w = (starWeight[c] <= 0.0f ? 1.0f : starWeight[c]);
 					const int add = static_cast<int>(std::floor(static_cast<float>(need) * (w / sumStarW)));
 					starMin[c] += add;
+					distributed += add;
 				}
 			}
-			// 余数补到最后一个 Star
-			int distributed = 0;
-			for (int c = c0; c <= c1; ++c)
-				if (m_cols[c].type == TrackDef::Type::Star)
-					distributed += static_cast<int>(std::floor(static_cast<float>(need) * ((starWeight[c] <= 0.0f ? 1.0f : starWeight[c]) / sumStarW)));
 			int rem = need - distributed;
-			for (int c = c1; c >= c0 && rem > 0; --c) if (m_cols[c].type == TrackDef::Type::Star) { starMin[c] += rem; rem = 0; }
+			for (int c = c1; c >= c0 && rem > 0; --c) {
+				if (m_cols[c].type == TrackDef::Type::Star) { starMin[c] += 1; --rem; }
+			}
 		}
 		else if (autoCount > 0) {
+			// 只分配给 Auto（WPF 语义），Pixel 不增长
 			const int each = need / autoCount;
-			for (int c = c0; c <= c1; ++c) if (m_cols[c].type == TrackDef::Type::Auto) width[c] += each;
 			int rem = need - each * autoCount;
-			for (int c = c1; c >= c0 && rem > 0; --c) if (m_cols[c].type == TrackDef::Type::Auto) { width[c] += 1; --rem; }
-		}
-		else {
-			// 只有 Pixel：均匀分配额外宽度而不是全部给最后一列
-			const int pixelCount = c1 - c0 + 1;
-			const int each = need / pixelCount;
-			const int remainder = need % pixelCount;
-			
 			for (int c = c0; c <= c1; ++c) {
-				width[c] += each;
-				// 余数分配给前几列
-				if (c - c0 < remainder) {
-					width[c] += 1;
+				if (m_cols[c].type == TrackDef::Type::Auto) {
+					width[c] += each + (rem > 0 ? 1 : 0);
+					if (rem > 0) --rem;
 				}
 			}
+		}
+		else {
+			// 仅 Pixel：不增长（WPF 语义）
 		}
 	}
 
-	// 汇总固定最小宽
+	// 汇总固定最小宽（含列间距）
 	int fixed = 0;
 	for (int i = 0; i < n; ++i) {
 		fixed += (m_cols[i].type == TrackDef::Type::Star ? starMin[i] : width[i]);
 	}
 	fixed += std::max(0, n - 1) * m_colSpacing;
 
-	// 分配 Star 剩余
+	// 将剩余空间分配给 Star
 	const int avail = std::max(0, contentW - fixed);
 	const float totalStar = std::accumulate(starWeight.begin(), starWeight.end(), 0.0f);
-	std::vector out(n, 0);
+
+	std::vector<int> out(n, 0);
 	for (int i = 0; i < n; ++i) {
 		if (m_cols[i].type == TrackDef::Type::Star) {
-			const int add = (totalStar > 0.0f) ? static_cast<int>(std::floor(avail * (starWeight[i] / totalStar))) : 0;
+			const int add = (totalStar > 0.0f)
+				? static_cast<int>(std::floor(avail * (starWeight[i] / totalStar)))
+				: 0;
 			out[i] = starMin[i] + add;
 		}
 		else {
 			out[i] = width[i];
 		}
 	}
-	// 处理分配误差：保证不变式 sum(out[i]) + totalSpacing == contentW
+
+	// 舍入补偿（仅正余数）：sum(out) + gaps == contentW
 	const int sumOut = std::accumulate(out.begin(), out.end(), 0);
 	const int remainder = contentW - (sumOut + std::max(0, n - 1) * m_colSpacing);
-	
-	// 余数补偿策略：只对正余数进行空间填充，避免负余数压缩列宽至最小值以下
-	// 当可用空间不足时，保持列的最小尺寸，防止内容被截断
 	if (remainder > 0) {
 		bool handled = false;
-		// 优先补给最后一个 Star 列（Star 列的设计目的是扩展以填满可用空间）
 		for (int i = n - 1; i >= 0 && !handled; --i) {
-			if (m_cols[i].type == TrackDef::Type::Star) { 
-				out[i] += remainder; 
-				handled = true; 
-			}
+			if (m_cols[i].type == TrackDef::Type::Star) { out[i] += remainder; handled = true; }
 		}
-		// 如果没有 Star 列，Auto/Pixel 列仅在必要时调整以避免内容截断
 		if (!handled) {
-			// 仅当余数较小时（可能是舍入误差）才调整内容驱动的列
-			// 这避免了大幅扭曲均匀分布
-			if (remainder <= 3) {
-				// 小的正余数：分布到最后几列以避免截断
-				for (int i = 0; i < remainder && i < n; ++i) {
-					out[n - 1 - i] += 1;
-				}
-			}
-			// 对于大余数，优先使用 Auto 列（如果存在）
-			else {
-				for (int i = n - 1; i >= 0 && !handled; --i) {
-					if (m_cols[i].type == TrackDef::Type::Auto) { 
-						out[i] += remainder; 
-						handled = true; 
-					}
-				}
-				// 如果仍未处理，分配给最后一列（保持兼容性）
-				if (!handled && n > 0) {
-					out[n - 1] += remainder;
-				}
+			for (int i = n - 1; i >= 0 && !handled; --i) {
+				if (m_cols[i].type == TrackDef::Type::Auto) { out[i] += remainder; handled = true; }
 			}
 		}
+		if (!handled && n > 0) out[n - 1] += remainder;
 	}
-
 	return out;
 }
 
@@ -235,153 +233,158 @@ std::vector<int> UiGrid::computeRowHeights(const int contentH, const std::vector
 	const int cN = static_cast<int>(m_cols.size());
 	if (rN <= 0 || cN <= 0) return {};
 
-	std::vector height(rN, 0);
-	std::vector starWeight(rN, 0.0f);
-	std::vector starMin(rN, 0);
+	std::vector<int> height(rN, 0);       // Pixel/Auto 的当前最小值
+	std::vector<float> starWeight(rN, 0.0f);
+	std::vector<int> starMin(rN, 0);      // Star 的最小内容值
 
+	// 初始化：像素行与 Star 权重
 	for (int r = 0; r < rN; ++r) {
 		const auto& d = m_rows[r];
-		if (d.type == TrackDef::Type::Pixel) height[r] = static_cast<int>(std::round(std::max(0.0f, d.value)));
-		else if (d.type == TrackDef::Type::Star) starWeight[r] = std::max(0.0f, d.value <= 0.0f ? 1.0f : d.value);
+		if (d.type == TrackDef::Type::Pixel) {
+			height[r] = static_cast<int>(std::round(std::max(0.0f, d.value)));
+		}
+		else if (d.type == TrackDef::Type::Star) {
+			starWeight[r] = std::max(0.0f, d.value <= 0.0f ? 1.0f : d.value);
+		}
 	}
 
+	// 跨列宽帮助函数（含列间距）
 	auto spanWidth = [&](const int col, const int colSpan) -> int {
 		if (col < 0 || col >= cN) return 0;
 		const int c1 = std::min(cN, col + std::max(1, colSpan)) - 1;
 		int w = 0;
-		for (int c = col; c <= c1; ++c) w += (c >= 0 && c < (int)colW.size() ? colW[c] : 0);
+		for (int c = col; c <= c1; ++c) {
+			w += (c >= 0 && c < static_cast<int>(colW.size()) ? colW[c] : 0);
+		}
 		w += std::max(0, c1 - col) * m_colSpacing;
 		return w;
 		};
 
-	// 单行子项：Auto/Star 记录最小高度（根据已知跨列宽测量）
+	// Pass 1：单行跨度（rowSpan==1）填充 Auto/Star 的最小高度（按列宽约束测量）
 	for (const auto& ch : m_children) {
 		if (!ch.visible || !ch.component) continue;
 		if (ch.row < 0 || ch.row >= rN) continue;
 		if (ch.rowSpan != 1) continue;
+
 		const int maxW = spanWidth(ch.col, ch.colSpan);
 		const QSize d = measureChildWidthBound(ch.component, maxW);
 
 		const auto& def = m_rows[ch.row];
-		if (def.type == TrackDef::Type::Auto) height[ch.row] = std::max(height[ch.row], d.height());
-		else if (def.type == TrackDef::Type::Star) starMin[ch.row] = std::max(starMin[ch.row], d.height());
+		if (def.type == TrackDef::Type::Auto) {
+			height[ch.row] = std::max(height[ch.row], d.height());
+		}
+		else if (def.type == TrackDef::Type::Star) {
+			starMin[ch.row] = std::max(starMin[ch.row], d.height());
+		}
+		// Pixel: 不增长
 	}
 
-	// 跨行子项：填充 Star/Auto 最小
+	// Pass 2：跨行项 —— 将缺口分摊到 Star/Auto（不动 Pixel）
 	for (const auto& ch : m_children) {
 		if (!ch.visible || !ch.component) continue;
 		if (ch.row < 0 || ch.row >= rN) continue;
+
 		const int r0 = ch.row;
-		const int r1 = std::min(rN, r0 + ch.rowSpan) - 1;
+		const int r1 = std::min(rN, r0 + std::max(1, ch.rowSpan)) - 1;
 		if (r1 < r0) continue;
 
 		const int maxW = spanWidth(ch.col, ch.colSpan);
 		const QSize d = measureChildWidthBound(ch.component, maxW);
 
-		int sum = 0; float sumStarW = 0.0f; int autoCount = 0;
+		// 当前累计高度 + 行间距
+		int sum = 0;
+		float sumStarW = 0.0f;
+		int autoCount = 0;
+
 		for (int r = r0; r <= r1; ++r) {
 			const auto& def = m_rows[r];
-			if (def.type == TrackDef::Type::Pixel) sum += height[r];
-			else if (def.type == TrackDef::Type::Auto) { sum += height[r]; autoCount++; }
-			else { sum += starMin[r]; sumStarW += starWeight[r]; }
+			if (def.type == TrackDef::Type::Pixel) {
+				sum += height[r];
+			}
+			else if (def.type == TrackDef::Type::Auto) {
+				sum += height[r];
+				autoCount++;
+			}
+			else { // Star
+				sum += starMin[r];
+				sumStarW += starWeight[r];
+			}
 		}
-		sum += std::max(0, ch.rowSpan - 1) * m_rowSpacing;
+		sum += std::max(0, (r1 - r0)) * m_rowSpacing;
 
 		const int need = d.height() - sum;
 		if (need <= 0) continue;
 
 		if (sumStarW > 0.0f) {
-			for (int r = r0; r <= r1; ++r) if (m_rows[r].type == TrackDef::Type::Star) {
-				const float w = (starWeight[r] <= 0.0f ? 1.0f : starWeight[r]);
-				const int add = static_cast<int>(std::floor(static_cast<float>(need) * (w / sumStarW)));
-				starMin[r] += add;
-			}
 			int distributed = 0;
-			for (int r = r0; r <= r1; ++r)
-				if (m_rows[r].type == TrackDef::Type::Star)
-					distributed += static_cast<int>(std::floor(static_cast<float>(need) * ((starWeight[r] <= 0.0f ? 1.0f : starWeight[r]) / sumStarW)));
+			for (int r = r0; r <= r1; ++r) {
+				if (m_rows[r].type == TrackDef::Type::Star) {
+					const float w = (starWeight[r] <= 0.0f ? 1.0f : starWeight[r]);
+					const int add = static_cast<int>(std::floor(static_cast<float>(need) * (w / sumStarW)));
+					starMin[r] += add;
+					distributed += add;
+				}
+			}
 			int rem = need - distributed;
-			for (int r = r1; r >= r0 && rem > 0; --r) if (m_rows[r].type == TrackDef::Type::Star) { starMin[r] += rem; rem = 0; }
+			for (int r = r1; r >= r0 && rem > 0; --r) {
+				if (m_rows[r].type == TrackDef::Type::Star) { starMin[r] += 1; --rem; }
+			}
 		}
 		else if (autoCount > 0) {
 			const int each = need / autoCount;
-			for (int r = r0; r <= r1; ++r) if (m_rows[r].type == TrackDef::Type::Auto) height[r] += each;
 			int rem = need - each * autoCount;
-			for (int r = r1; r >= r0 && rem > 0; --r) if (m_rows[r].type == TrackDef::Type::Auto) { height[r] += 1; --rem; }
-		}
-		else {
-			// 只有 Pixel：均匀分配额外高度而不是全部给最后一行
-			const int pixelCount = r1 - r0 + 1;
-			const int each = need / pixelCount;
-			const int remainder = need % pixelCount;
-			
 			for (int r = r0; r <= r1; ++r) {
-				height[r] += each;
-				// 余数分配给前几行
-				if (r - r0 < remainder) {
-					height[r] += 1;
+				if (m_rows[r].type == TrackDef::Type::Auto) {
+					height[r] += each + (rem > 0 ? 1 : 0);
+					if (rem > 0) --rem;
 				}
 			}
 		}
+		else {
+			// 仅 Pixel：不增长（WPF 语义）
+		}
 	}
 
+	// 汇总固定最小高（含行间距）
 	int fixed = 0;
-	for (int r = 0; r < rN; ++r) fixed += (m_rows[r].type == TrackDef::Type::Star ? starMin[r] : height[r]);
+	for (int r = 0; r < rN; ++r) {
+		fixed += (m_rows[r].type == TrackDef::Type::Star ? starMin[r] : height[r]);
+	}
 	fixed += std::max(0, rN - 1) * m_rowSpacing;
 
+	// 将剩余空间分配给 Star
 	const int avail = std::max(0, contentH - fixed);
 	const float totalStar = std::accumulate(starWeight.begin(), starWeight.end(), 0.0f);
 
-	std::vector out(rN, 0);
+	std::vector<int> out(rN, 0);
 	for (int r = 0; r < rN; ++r) {
 		if (m_rows[r].type == TrackDef::Type::Star) {
-			const int add = (totalStar > 0.0f) ? static_cast<int>(std::floor(avail * (starWeight[r] / totalStar))) : 0;
+			const int add = (totalStar > 0.0f)
+				? static_cast<int>(std::floor(avail * (starWeight[r] / totalStar)))
+				: 0;
 			out[r] = starMin[r] + add;
 		}
 		else {
 			out[r] = height[r];
 		}
 	}
-	// 处理分配误差：保证不变式 sum(out[r]) + totalSpacing == contentH
+
+	// 舍入补偿（仅正余数）
 	const int sumOut = std::accumulate(out.begin(), out.end(), 0);
 	const int remainder = contentH - (sumOut + std::max(0, rN - 1) * m_rowSpacing);
-	
-	// 余数补偿策略：只对正余数进行空间填充，避免负余数压缩行高至最小值以下
-	// 当可用空间不足时，保持行的最小尺寸，防止内容被截断
 	if (remainder > 0) {
 		bool handled = false;
-		// 优先补给最后一个 Star 行（Star 行的设计目的是扩展以填满可用空间）
 		for (int r = rN - 1; r >= 0 && !handled; --r) {
-			if (m_rows[r].type == TrackDef::Type::Star) { 
-				out[r] += remainder; 
-				handled = true; 
-			}
+			if (m_rows[r].type == TrackDef::Type::Star) { out[r] += remainder; handled = true; }
 		}
-		// 如果没有 Star 行，Auto/Pixel 行仅在必要时调整以避免内容截断
 		if (!handled) {
-			// 仅当余数较小时（可能是舍入误差）才调整内容驱动的行
-			// 这避免了大幅扭曲均匀分布
-			if (remainder <= 3) {
-				// 小的正余数：分布到最后几行以避免截断
-				for (int i = 0; i < remainder && i < rN; ++i) {
-					out[rN - 1 - i] += 1;
-				}
-			}
-			// 对于大余数，优先使用 Auto 行（如果存在）
-			else {
-				for (int r = rN - 1; r >= 0 && !handled; --r) {
-					if (m_rows[r].type == TrackDef::Type::Auto) { 
-						out[r] += remainder; 
-						handled = true; 
-					}
-				}
-				// 如果仍未处理，分配给最后一行（保持兼容性）
-				if (!handled && rN > 0) {
-					out[rN - 1] += remainder;
-				}
+			for (int r = rN - 1; r >= 0 && !handled; --r) {
+				if (m_rows[r].type == TrackDef::Type::Auto) { out[r] += remainder; handled = true; }
 			}
 		}
+		if (!handled && rN > 0) out[rN - 1] += remainder;
 	}
+
 	return out;
 }
 
@@ -600,7 +603,7 @@ QRect UiGrid::placeInCell(const QRect& cell, const QSize& desired, const Align h
 	switch (h) {
 	case Align::Start:   x = cell.left(); break;
 	case Align::Center:  x = cell.left() + (availW - w) / 2; break;
-	case Align::End:     x = cell.left() + (availW - w); break;
+	case Align::End:     x = cell.left() + (availW - w); break; // 避免使用 right() 的 off-by-one
 	case Align::Stretch: x = cell.left(); break;
 	}
 
@@ -608,7 +611,7 @@ QRect UiGrid::placeInCell(const QRect& cell, const QSize& desired, const Align h
 	switch (v) {
 	case Align::Start:   y = cell.top(); break;
 	case Align::Center:  y = cell.top() + (availH - hgt) / 2; break;
-	case Align::End:     y = cell.top() + (availH - hgt); break;
+	case Align::End:     y = cell.top() + (availH - hgt); break; // 同理，避免 bottom()
 	case Align::Stretch: y = cell.top(); break;
 	}
 	return QRect(x, y, std::max(0, w), std::max(0, hgt));

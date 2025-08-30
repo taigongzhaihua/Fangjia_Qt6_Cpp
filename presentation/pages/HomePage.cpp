@@ -68,19 +68,33 @@ public:
 			spacer(15),
 
 			// 功能卡片网格
-			grid()->columns({AUTO, AUTO})
-				  ->rows({AUTO, AUTO})
-				  ->colSpacing(32)
-				  ->rowSpacing(32)
-				  ->add(buildFeatureCard(":/icons/data_light.svg", ":/icons/data_dark.svg", "方剂数据", "查看和管理中医方剂"),
+			grid()->columns({1_fr, 1_fr})
+				  ->rows({1_fr, 1_fr})
+				  ->colSpacing(30)
+				  ->rowSpacing(35)
+				  ->add(buildFeatureCard(
+							":/icons/data_light.svg",
+							":/icons/data_dark.svg",
+							"方剂数据",
+							"查看和管理中医方剂"),
 						0, 0, 1, 1, Grid::Center, Grid::Center)
-				  ->add(buildFeatureCard(":/icons/explore_light.svg", ":/icons/explore_dark.svg", "探索发现",
-										 "发现新的方剂组合"),
+				  ->add(buildFeatureCard(
+							":/icons/explore_light.svg",
+							":/icons/explore_dark.svg",
+							"探索发现",
+							"发现新的方剂组合"),
 						0, 1, 1, 1, Grid::Center, Grid::Center)
-				  ->add(buildFeatureCard(":/icons/fav_light.svg", ":/icons/fav_dark.svg", "我的收藏", "管理收藏的方剂"),
+				  ->add(buildFeatureCard(
+							":/icons/fav_light.svg",
+							":/icons/fav_dark.svg",
+							"我的收藏",
+							"管理收藏的方剂"),
 						1, 0, 1, 1, Grid::Center, Grid::Center)
-				  ->add(buildFeatureCard(":/icons/settings_light.svg", ":/icons/settings_dark.svg", "系统设置",
-										 "自定义应用偏好"),
+				  ->add(buildFeatureCard(
+							":/icons/settings_light.svg",
+							":/icons/settings_dark.svg",
+							"系统设置",
+							"自定义应用偏好"),
 						1, 1, 1, 1, Grid::Center, Grid::Center),
 
 			// 留白
@@ -141,17 +155,17 @@ private:
 								->align(Qt::AlignHCenter)
 								->onTap([this] { counterVM->increment(); })
 								->padding(8, 4)
-								->background(QColor(100, 160, 220), 4.0f),
+								->background(QColor(100, 160, 220), 6.0f),
 								0, 0)
 						  ->add(text("递减")
 								->fontSize(14)
 								->align(Qt::AlignHCenter)
 								->onTap([this] { counterVM->decrement(); })
 								->padding(8, 4)
-								->background(QColor(220, 100, 100), 4.0f),
+								->background(QColor(220, 100, 100), 6.0f),
 								0, 1)
 						  ->colSpacing(10)
-						  ->size(120, 30),
+						  ->size(120, 28),
 
 					spacer(5),
 					text("点击按钮观察绑定效果 - UI会自动重建")

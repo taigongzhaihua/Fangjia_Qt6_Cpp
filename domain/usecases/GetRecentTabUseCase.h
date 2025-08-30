@@ -3,21 +3,20 @@
 #include <memory>
 #include <string>
 
-namespace domain {
-namespace usecases {
+namespace domain::usecases
+{
 
-/// Use case for retrieving the recent tab setting
-class GetRecentTabUseCase {
-public:
-    explicit GetRecentTabUseCase(std::shared_ptr<repositories::ISettingsRepository> repository);
-    
-    /// Get the recent tab ID from settings
-    /// @return Recent tab ID as string (empty if not set)
-    std::string execute() const;
+	/// Use case for retrieving the recent tab setting
+	class GetRecentTabUseCase {
+	public:
+		explicit GetRecentTabUseCase(std::shared_ptr<repositories::ISettingsRepository> repository);
 
-private:
-    std::shared_ptr<repositories::ISettingsRepository> m_repository;
-};
+		/// Get the recent tab ID from settings
+	/// @return Recent tab ID as string (empty if not set)
+		std::string execute() const;
 
-} // namespace usecases
-} // namespace domain
+	private:
+		std::shared_ptr<repositories::ISettingsRepository> m_repository;
+	};
+
+}

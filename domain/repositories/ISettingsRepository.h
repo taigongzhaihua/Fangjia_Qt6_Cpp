@@ -2,27 +2,26 @@
 #include "entities/Settings.h"
 #include <memory>
 
-namespace domain {
-namespace repositories {
+namespace domain::repositories
+{
 
-/// Abstract repository interface for application settings
+	/// Abstract repository interface for application settings
 /// Pure C++ interface - no Qt dependencies
-class ISettingsRepository {
-public:
-    virtual ~ISettingsRepository() = default;
-    
-    /// Load settings from persistent storage
-    virtual entities::Settings getSettings() const = 0;
-    
-    /// Save settings to persistent storage  
-    virtual void updateSettings(const entities::Settings& settings) = 0;
-    
-    /// Save current settings immediately (for critical changes)
-    virtual void save() = 0;
-    
-    /// Reset settings to defaults
-    virtual void reset() = 0;
-};
+	class ISettingsRepository {
+	public:
+		virtual ~ISettingsRepository() = default;
 
-} // namespace repositories  
-} // namespace domain
+		/// Load settings from persistent storage
+		virtual entities::Settings getSettings() const = 0;
+
+		/// Save settings to persistent storage  
+		virtual void updateSettings(const entities::Settings& settings) = 0;
+
+		/// Save current settings immediately (for critical changes)
+		virtual void save() = 0;
+
+		/// Reset settings to defaults
+		virtual void reset() = 0;
+	};
+
+}
