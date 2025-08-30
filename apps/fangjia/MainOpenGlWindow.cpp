@@ -478,11 +478,7 @@ void MainOpenGlWindow::updateLayout()
 	const int navWidth = m_nav.currentWidth();
 
 	if (m_useDeclarativeShell) {
-		// 声明式模式：让AppShell处理布局，但仍需为当前页面设置视口
-		if (auto* currentPage = m_pageRouter.currentPage()) {
-			const QRect pageViewport(navWidth, 0, std::max(0, winSize.width() - navWidth), winSize.height());
-			currentPage->setViewportRect(pageViewport);
-		}
+		// 声明式模式：让AppShell/CurrentPageHost处理页面视口，无需手动设置
 	}
 	else {
 		// 命令式模式：手动设置页面视口
@@ -555,18 +551,8 @@ void MainOpenGlWindow::onNavSelectionChanged(const int index)
 
 		if (m_useDeclarativeShell) {
 			// 声明式模式：仅切换页面，AppShell会通过重建自动更新UI
-			if (m_pageRouter.switchToPage(pageId)) {
-				// 确保新页面获得正确的主题
-				if (auto* newPage = m_pageRouter.currentPage()) {
-					newPage->onThemeChanged(m_theme == Theme::Dark);
-					// 设置页面视口（CurrentPageHost会处理这个）
-					const int navWidth = m_nav.currentWidth();
-					const QSize winSize = size();
-					const QRect pageViewport(navWidth, 0, std::max(0, winSize.width() - navWidth), winSize.height());
-					newPage->setViewportRect(pageViewport);
-					newPage->updateResourceContext(m_iconCache, this, static_cast<float>(devicePixelRatio()));
-				}
-			}
+			// CurrentPageHost负责处理视口设置，UiRoot负责主题传播和资源上下文更新
+			m_pageRouter.switchToPage(pageId);
 		}
 		else {
 			// 命令式模式：手动管理UiRoot中的页面

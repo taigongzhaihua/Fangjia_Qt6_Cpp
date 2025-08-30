@@ -365,3 +365,5 @@ build/
 
 # Test executables
 test_wheel_logic
+validate_fix.sh
+VIEWPORT_FIX_EXPLANATION.cpp
