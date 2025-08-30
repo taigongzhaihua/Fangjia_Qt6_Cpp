@@ -22,6 +22,8 @@
 #include "UiNav.h"
 #include "UiRoot.h"
 #include "UiTopBar.h"
+#include "CurrentPageHost.h"
+#include "UI.h"
 
 #ifdef Q_OS_WIN
 class WinWindowChrome;
@@ -94,6 +96,9 @@ private:
 	void initializeTopBar();
 	void setupThemeListeners();
 
+	// 声明式Shell初始化
+	void initializeDeclarativeShell();
+
 	// 布局和渲染
 	void updateLayout();
 	void applyTheme();
@@ -120,6 +125,11 @@ private:
 	Ui::NavRail m_nav;
 	UiTopBar m_topBar;
 	UiRoot m_uiRoot;
+
+	// 声明式Shell支持
+	bool m_useDeclarativeShell{ true };
+	std::unique_ptr<CurrentPageHost> m_pageHost;
+	std::shared_ptr<UI::AppShell> m_appShell;
 
 	// 页面路由管理
 	PageRouter m_pageRouter;

@@ -7,6 +7,7 @@
 #include "HomePage.h"
 #include "SettingsPage.h"
 #include "ThemeManager.h"
+#include "CurrentPageHost.h"
 
 #ifdef Q_OS_WIN
 #include "WinWindowChrome.h"
@@ -35,6 +36,7 @@
 #include <exception>
 #include <qlogging.h>
 #include <utility>
+#include <cstdlib>
 
 namespace {
 	MainOpenGlWindow::Theme schemeToTheme(const Qt::ColorScheme s) {
@@ -61,6 +63,16 @@ MainOpenGlWindow::MainOpenGlWindow(
 {
 	try {
 		qDebug() << "MainOpenGlWindow constructor start";
+
+		// 检查环境变量以确定是否使用声明式Shell
+		const QByteArray envValue = qgetenv("FJ_USE_DECL_SHELL");
+		if (!envValue.isEmpty() && envValue == "0") {
+			m_useDeclarativeShell = false;
+			qDebug() << "Declarative shell disabled via environment variable";
+		} else {
+			m_useDeclarativeShell = true;
+			qDebug() << "Declarative shell enabled";
+		}
 
 		// 设置动画定时器
 		connect(&m_animTimer, &QTimer::timeout, this, &MainOpenGlWindow::onAnimationTick);
@@ -152,11 +164,17 @@ void MainOpenGlWindow::initializeGL()
 		qDebug() << "Initializing top bar...";
 		initializeTopBar();
 
-		// 添加UI组件到根容器
-		m_uiRoot.add(&m_nav);
-		m_uiRoot.add(&m_topBar);
-		if (auto* currentPage = m_pageRouter.currentPage()) {
-			m_uiRoot.add(currentPage);
+		if (m_useDeclarativeShell) {
+			qDebug() << "Initializing declarative shell...";
+			initializeDeclarativeShell();
+		} else {
+			qDebug() << "Using imperative UI composition...";
+			// 添加UI组件到根容器（旧方式）
+			m_uiRoot.add(&m_nav);
+			m_uiRoot.add(&m_topBar);
+			if (auto* currentPage = m_pageRouter.currentPage()) {
+				m_uiRoot.add(currentPage);
+			}
 		}
 
 		// 在所有组件添加后，应用初始主题
@@ -357,6 +375,12 @@ void MainOpenGlWindow::initializePages()
 		if (m_navVm.selectedIndex() >= 0 && m_navVm.selectedIndex() < items.size()) {
 			m_pageRouter.switchToPage(items[m_navVm.selectedIndex()].id);
 		}
+
+		// 在声明式模式下，确保页面宿主知道当前页面
+		if (m_useDeclarativeShell && m_pageHost) {
+			// CurrentPageHost会在setViewportRect时自动委托给当前页面
+			// 这里不需要额外操作
+		}
 	}
 	catch (const std::exception& e) {
 		qCritical() << "Exception in initializePages:" << e.what();
@@ -407,14 +431,21 @@ void MainOpenGlWindow::updateLayout()
 	const QSize winSize = size();
 	const int navWidth = m_nav.currentWidth();
 
-	// 设置页面视口（避开导航栏）
-	const QRect pageViewport(navWidth, 0, std::max(0, winSize.width() - navWidth), winSize.height());
-
-	if (auto* currentPage = m_pageRouter.currentPage()) {
-		currentPage->setViewportRect(pageViewport);
+	if (m_useDeclarativeShell) {
+		// 声明式模式：让AppShell处理布局，但仍需为当前页面设置视口
+		if (auto* currentPage = m_pageRouter.currentPage()) {
+			const QRect pageViewport(navWidth, 0, std::max(0, winSize.width() - navWidth), winSize.height());
+			currentPage->setViewportRect(pageViewport);
+		}
+	} else {
+		// 命令式模式：手动设置页面视口
+		const QRect pageViewport(navWidth, 0, std::max(0, winSize.width() - navWidth), winSize.height());
+		if (auto* currentPage = m_pageRouter.currentPage()) {
+			currentPage->setViewportRect(pageViewport);
+		}
 	}
 
-	// 更新所有组件布局
+	// 更新所有组件布局（对两种模式都适用）
 	m_uiRoot.updateLayout(winSize);
 	m_uiRoot.updateResourceContext(m_iconCache, this, static_cast<float>(devicePixelRatio()));
 
@@ -475,27 +506,43 @@ void MainOpenGlWindow::onNavSelectionChanged(const int index)
 	if (index >= 0 && index < items.size()) {
 		const QString pageId = items[index].id;
 
-		// 从UiRoot中移除旧页面
-		if (auto* oldPage = m_pageRouter.currentPage()) {
-			m_uiRoot.remove(oldPage);
-		}
+		if (m_useDeclarativeShell) {
+			// 声明式模式：仅切换页面，AppShell会通过重建自动更新UI
+			if (m_pageRouter.switchToPage(pageId)) {
+				// 确保新页面获得正确的主题
+				if (auto* newPage = m_pageRouter.currentPage()) {
+					newPage->onThemeChanged(m_theme == Theme::Dark);
+					// 设置页面视口（CurrentPageHost会处理这个）
+					const int navWidth = m_nav.currentWidth();
+					const QSize winSize = size();
+					const QRect pageViewport(navWidth, 0, std::max(0, winSize.width() - navWidth), winSize.height());
+					newPage->setViewportRect(pageViewport);
+					newPage->updateResourceContext(m_iconCache, this, static_cast<float>(devicePixelRatio()));
+				}
+			}
+		} else {
+			// 命令式模式：手动管理UiRoot中的页面
+			// 从UiRoot中移除旧页面
+			if (auto* oldPage = m_pageRouter.currentPage()) {
+				m_uiRoot.remove(oldPage);
+			}
 
-		// 切换到新页面（自动调用生命周期钩子）
-		if (m_pageRouter.switchToPage(pageId)) {
-			if (auto* newPage = m_pageRouter.currentPage()) {
-				// 设置页面视口
-				const int navWidth = m_nav.currentWidth();
-				const QSize winSize = size();
-				const QRect pageViewport(navWidth, 0, std::max(0, winSize.width() - navWidth), winSize.height());
-				newPage->setViewportRect(pageViewport);
+			// 切换到新页面（自动调用生命周期钩子）
+			if (m_pageRouter.switchToPage(pageId)) {
+				if (auto* newPage = m_pageRouter.currentPage()) {
+					// 设置页面视口
+					const int navWidth = m_nav.currentWidth();
+					const QSize winSize = size();
+					const QRect pageViewport(navWidth, 0, std::max(0, winSize.width() - navWidth), winSize.height());
+					newPage->setViewportRect(pageViewport);
 
-				// 添加到UiRoot
-				m_uiRoot.add(newPage);
+					// 添加到UiRoot
+					m_uiRoot.add(newPage);
 
-				m_uiRoot.propagateThemeChange(m_theme == Theme::Dark);
-				// 更新资源上下文
-				newPage->updateResourceContext(m_iconCache, this, static_cast<float>(devicePixelRatio()));
-
+					m_uiRoot.propagateThemeChange(m_theme == Theme::Dark);
+					// 更新资源上下文
+					newPage->updateResourceContext(m_iconCache, this, static_cast<float>(devicePixelRatio()));
+				}
 			}
 		}
 
@@ -524,6 +571,12 @@ void MainOpenGlWindow::onAnimationTick()
 
 	if (m_nav.hasActiveAnimation()) {
 		updateLayout();
+		
+		// 如果使用声明式Shell且导航栏有动画，请求重建以保持列宽同步
+		if (m_useDeclarativeShell && m_appShell) {
+			// AppShell内部会通过BindingHost的RebuildHost来处理重建
+			// 动画期间导航栏宽度变化会触发布局重建
+		}
 	}
 
 	if (!hasAnimation) {
@@ -531,4 +584,45 @@ void MainOpenGlWindow::onAnimationTick()
 	}
 
 	update();
+}
+
+void MainOpenGlWindow::initializeDeclarativeShell()
+{
+	// 创建页面宿主适配器
+	m_pageHost = std::make_unique<CurrentPageHost>(m_pageRouter);
+
+	// 创建声明式AppShell并设置连接器
+	m_appShell = UI::appShell()
+		->nav(UI::wrap(&m_nav))
+		->topBar(UI::wrap(&m_topBar))
+		->content([this]() -> UI::WidgetPtr {
+			// 内容构建器：总是返回当前页面宿主
+			return UI::wrap(m_pageHost.get());
+		})
+		->navWidthProvider([this]() {
+			// 导航栏宽度提供器：反映运行时动画状态
+			return m_nav.currentWidth();
+		})
+		->topBarHeight(56)  // 固定顶栏高度
+		->connect([this](UI::RebuildHost* host) {
+			// 观察导航展开状态变化
+			UI::observe(&m_navVm, &NavViewModel::expandedChanged, [host](bool) {
+				host->requestRebuild();
+			});
+		})
+		->connect([this](UI::RebuildHost* host) {
+			// 观察导航选择变化
+			UI::observe(&m_navVm, &NavViewModel::selectedIndexChanged, [host](int) {
+				host->requestRebuild();
+			});
+		});
+
+	// 将AppShell作为Widget添加到UiRoot
+	auto shellComponent = m_appShell->build();
+	m_uiRoot.add(shellComponent.release());  // 转移所有权给UiRoot
+}
+
+void MainOpenGlWindow::setupShellConnectors()
+{
+	// 这个方法现在不需要了，连接器在initializeDeclarativeShell中直接设置
 }
