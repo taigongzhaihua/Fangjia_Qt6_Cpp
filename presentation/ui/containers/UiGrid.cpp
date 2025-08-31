@@ -116,9 +116,9 @@ std::vector<int> UiGrid::computeColumnWidths(const int contentW) const {
 			width[col] = std::max(width[col], nat.width());
 		}
 		else if (def.type == TrackDef::Type::Star) {
-			// 对于Star列，每次重新测量都重置最小值，不累积历史大小
-			// 这允许Star列根据当前内容和可用空间进行收缩
-			starMin[col] = nat.width();
+			// 对于Star列，使用max()聚合所有单跨度子项的最小内容宽度
+			// 确保starMin反映该Star轨道上所有子项的真实最小尺寸要求
+			starMin[col] = std::max(starMin[col], nat.width());
 		}
 		// Pixel: 不增长（WPF 语义）
 	}
@@ -305,9 +305,9 @@ std::vector<int> UiGrid::computeRowHeights(const int contentH, const std::vector
 			height[ch.row] = std::max(height[ch.row], d.height());
 		}
 		else if (def.type == TrackDef::Type::Star) {
-			// 对于Star行，每次重新测量都重置最小值，不累积历史大小
-			// 这允许Star行根据当前内容和可用空间进行收缩
-			starMin[ch.row] = d.height();
+			// 对于Star行，使用max()聚合所有单跨度子项的最小内容高度
+			// 确保starMin反映该Star轨道上所有子项的真实最小尺寸要求
+			starMin[ch.row] = std::max(starMin[ch.row], d.height());
 		}
 		// Pixel: 不增长
 	}
