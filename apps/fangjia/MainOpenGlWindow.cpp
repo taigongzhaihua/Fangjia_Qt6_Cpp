@@ -484,9 +484,8 @@ void MainOpenGlWindow::setupThemeListeners()
 						m_animClock.start();
 						m_animTimer.start();
 					}
-					// Defer clearing animation flag until next event loop tick to ensure 
-					// the rebuilt TopBar receives animate=true
-					QTimer::singleShot(0, [this]() {
+					// Clear the animation intent after a short delay to avoid racing the rebuild
+					QTimer::singleShot(300, [this]() {
 						m_animateFollowChange = false;
 					});
 				}
@@ -598,6 +597,16 @@ void MainOpenGlWindow::onFollowSystemToggle() const
 	const_cast<MainOpenGlWindow*>(this)->m_animateFollowChange = true;
 	
 	setFollowSystem(m_themeMgr->mode() != ThemeManager::ThemeMode::FollowSystem);
+
+	// Proactively rebuild and kick animation so the TopBar can start animating immediately
+	if (m_shellRebuildHost) {
+		m_shellRebuildHost->requestRebuild();
+	}
+	if (!m_animTimer.isActive()) {
+		const_cast<MainOpenGlWindow*>(this)->m_animClock.start();
+		const_cast<MainOpenGlWindow*>(this)->m_animTimer.start();
+	}
+	const_cast<MainOpenGlWindow*>(this)->update();
 }
 
 void MainOpenGlWindow::onAnimationTick()
@@ -631,6 +640,8 @@ void MainOpenGlWindow::initializeDeclarativeShell()
 	// 创建包装整个Shell的BindingHost，这样可以在动画期间重建整个布局
 	m_shellHost = bindingHost([this]() -> WidgetPtr
 		{
+			const bool animateNow = m_animateFollowChange;
+			
 			// 确定跟随系统状态
 			const bool followSystem = m_themeMgr && m_themeMgr->mode() == ThemeManager::ThemeMode::FollowSystem;
 			
@@ -638,7 +649,7 @@ void MainOpenGlWindow::initializeDeclarativeShell()
 			return appShell()
 				->nav(wrap(&m_nav))
 				->topBar(UI::topBar()
-					->followSystem(followSystem, m_animateFollowChange) // 使用动画标志
+					->followSystem(followSystem, animateNow) // 使用稳定的动画标志
 					->cornerRadius(8.0f)
 					->svgTheme(":/icons/sun.svg", ":/icons/moon.svg")
 					->svgFollow(":/icons/follow_on.svg", ":/icons/follow_off.svg")
