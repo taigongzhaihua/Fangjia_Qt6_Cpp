@@ -1,3 +1,5 @@
+**简体中文** | [English](../../../../doc.zh-cn/presentation/ui/topbar/declarative-topbar.md)
+
 # 声明式 TopBar 与 NavRail 组件
 
 本文档介绍新的声明式 UI 组件 NavRail 和 TopBar，它们提供一流的声明式 API，无需通过 `UI::wrap()` 包装运行时组件。

@@ -1,4 +1,4 @@
-[English](../../doc/presentation/components/nav-rail.md) | **简体中文**
+[English](../../../doc/presentation/components/nav-rail.md) | **简体中文**
 
 # NavRail 组件
 

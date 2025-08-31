@@ -1,3 +1,5 @@
+**简体中文** | [English](../../doc.zh-cn/presentation/binding.md)
+
 # Binding 与响应式重建
 
 本文档介绍 Fangjia Qt6 C++ 框架中的数据绑定机制，包括 binding/observe/requestRebuild 的使用模式与最佳实践。

@@ -1,4 +1,4 @@
-[English](../../doc/presentation/ui-framework/theme-and-rendering.md) | **简体中文**
+[English](../../../doc/presentation/ui-framework/theme-and-rendering.md) | **简体中文**
 
 # 主题与渲染
 

@@ -1,3 +1,5 @@
+**简体中文** | [English - N/A]
+
 # UI 基础部件与容器
 
 本文档介绍 Fangjia Qt6 C++ 框架中的核心 UI 组件，包括基础容器（UiPanel、UiBoxLayout、UiGrid）和滚动容器（UiScrollView），以及它们的配置选项与使用模式。

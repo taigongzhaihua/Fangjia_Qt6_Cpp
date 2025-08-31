@@ -1,4 +1,4 @@
-**简体中文** | [English](../../../../doc.zh-cn/presentation/ui/topbar/animation.md)
+[English](../../../../doc/presentation/ui/topbar/animation.md) | **简体中文**
 
 # TopBar 跟随系统动画实现
 
