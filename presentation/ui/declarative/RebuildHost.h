@@ -1,11 +1,13 @@
 #pragma once
+#include "IFocusContainer.hpp"
+#include "ILayoutable.hpp"
 #include "UiComponent.hpp"
 #include "UiContent.hpp"
-#include "ILayoutable.hpp"
-#include "IFocusContainer.hpp"
+#include <algorithm>
 #include <functional>
 #include <memory>
-#include <algorithm>
+
+#include "IFocusable.hpp"
 
 namespace UI {
 
@@ -80,7 +82,7 @@ namespace UI {
 		void arrange(const QRect& finalRect) override {
 			m_viewport = finalRect;
 			m_hasViewport = true;
-			
+
 			if (!m_child || !finalRect.isValid()) return;
 
 			// Propagate viewport to child
@@ -145,14 +147,14 @@ namespace UI {
 		// IFocusContainer
 		void enumerateFocusables(std::vector<IFocusable*>& out) const override {
 			if (!m_child) return;
-			
+
 			// 如果子组件本身可以获得焦点，添加它
 			if (auto* focusable = dynamic_cast<IFocusable*>(m_child.get())) {
 				if (focusable->canFocus()) {
 					out.push_back(focusable);
 				}
 			}
-			
+
 			// 如果子组件是容器，递归枚举其可焦点子组件
 			if (auto* container = dynamic_cast<IFocusContainer*>(m_child.get())) {
 				container->enumerateFocusables(out);
