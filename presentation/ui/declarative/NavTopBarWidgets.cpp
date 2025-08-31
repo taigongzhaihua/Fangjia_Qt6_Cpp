@@ -108,12 +108,14 @@ namespace UI {
 			std::function<void()> themeToggleCallback,
 			std::function<void()> onMinimize,
 			std::function<void()> onMaxRestore,
-			std::function<void()> onClose)
+			std::function<void()> onClose,
+			std::function<void()> onFollowToggle)
 			: m_topBar(std::make_unique<UiTopBar>())
 			, m_themeToggleCallback(std::move(themeToggleCallback))
 			, m_onMinimize(std::move(onMinimize))
 			, m_onMaxRestore(std::move(onMaxRestore))
 			, m_onClose(std::move(onClose))
+			, m_onFollowToggle(std::move(onFollowToggle))
 		{
 			// 配置跟随系统
 			m_topBar->setFollowSystem(followSystem, animateFollow);
@@ -173,6 +175,9 @@ namespace UI {
 				if (clickedTheme && m_themeToggleCallback) {
 					m_themeToggleCallback();
 				}
+				if (clickedFollow && m_onFollowToggle) {
+					m_onFollowToggle();
+				}
 			}
 
 			// 检查系统按钮事件
@@ -206,6 +211,7 @@ namespace UI {
 		std::function<void()> m_onMinimize;
 		std::function<void()> m_onMaxRestore;
 		std::function<void()> m_onClose;
+		std::function<void()> m_onFollowToggle;
 	};
 
 	// NavRail widget implementation
@@ -231,7 +237,7 @@ namespace UI {
 			m_svgMin, m_svgMax, m_svgClose,
 			m_palette, m_hasCustomPalette,
 			m_themeToggleCallback,
-			m_onMinimize, m_onMaxRestore, m_onClose
+			m_onMinimize, m_onMaxRestore, m_onClose, m_onFollowToggle
 		);
 
 		// 应用装饰器（支持Widget基类的padding、margin等）
