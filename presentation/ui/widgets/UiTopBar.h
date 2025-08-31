@@ -88,6 +88,7 @@ private:
 	enum class AnimPhase : uint8_t { Idle, HideTheme_FadeOut, MoveFollow_Right, MoveFollow_Left, ShowTheme_FadeIn };
 	static float easeInOut(float t);
 	static float lerp(const float a, const float b, const float t) { return a + (b - a) * t; }
+	static int scaleDuration(int durationMs);
 
 	void startAnimSequence(bool followOn);
 	void beginPhase(AnimPhase ph, int durationMs);

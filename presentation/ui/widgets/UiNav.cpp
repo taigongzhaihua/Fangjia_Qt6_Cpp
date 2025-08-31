@@ -152,7 +152,7 @@ namespace Ui {
 
 			m_dataProvider->setSelectedIndex(idx);
 			const QRectF targetR = itemRectF(idx);
-			startIndicatorAnim(static_cast<float>(targetR.center().y()), 240);
+			startIndicatorAnim(static_cast<float>(targetR.center().y()), scaleDuration(240));
 			m_selected = idx; // 视图高亮立即对齐
 			return;
 		}
@@ -173,7 +173,7 @@ namespace Ui {
 			m_animIndicator.active = false;
 		}
 		else {
-			startIndicatorAnim(targetY, 240);
+			startIndicatorAnim(targetY, scaleDuration(240));
 		}
 	}
 
@@ -182,11 +182,11 @@ namespace Ui {
 		if (m_dataProvider) {
 			const bool newExpanded = !m_dataProvider->expanded();
 			m_dataProvider->setExpanded(newExpanded);
-			startExpandAnim(newExpanded ? 1.0f : 0.0f, 220);
+			startExpandAnim(newExpanded ? 1.0f : 0.0f, scaleDuration(220));
 			return;
 		}
 		const float target = expanded() ? 0.0f : 1.0f;
-		startExpandAnim(target, 220);
+		startExpandAnim(target, scaleDuration(220));
 	}
 
 	bool NavRail::onMousePress(const QPoint& pos)
@@ -252,7 +252,7 @@ namespace Ui {
 			if (m_dataProvider) {
 				const bool newExpanded = !m_dataProvider->expanded();
 				m_dataProvider->setExpanded(newExpanded);
-				startExpandAnim(newExpanded ? 1.0f : 0.0f, 220);
+				startExpandAnim(newExpanded ? 1.0f : 0.0f, scaleDuration(220));
 			}
 			else {
 				toggleExpanded();
@@ -269,7 +269,7 @@ namespace Ui {
 			if (m_dataProvider) {
 				m_dataProvider->setSelectedIndex(iHit);
 				const QRectF targetR = itemRectF(iHit);
-				startIndicatorAnim(static_cast<float>(targetR.center().y()), 240);
+				startIndicatorAnim(static_cast<float>(targetR.center().y()), scaleDuration(240));
 				m_selected = iHit; // 视图高亮立即对齐
 				return true;
 			}
@@ -545,7 +545,7 @@ namespace Ui {
 				// 同步视图高亮并启动“整体高亮单元”动画/或清除
 				if (providerSel >= 0 && providerSel < dataProviderCount()) {
 					const QRectF targetR = itemRectF(providerSel);
-					startIndicatorAnim(static_cast<float>(targetR.center().y()), 240);
+					startIndicatorAnim(static_cast<float>(targetR.center().y()), scaleDuration(240));
 				}
 				else {
 					// 无选中：直接隐藏
@@ -558,7 +558,7 @@ namespace Ui {
 			const float targetT = m_dataProvider->expanded() ? 1.0f : 0.0f;
 			// 若没有处于动画，且当前值与目标值差异明显，则开启动画
 			if (!m_animExpand.active && std::abs(targetT - m_expandT) > 0.001f) {
-				startExpandAnim(targetT, 220);
+				startExpandAnim(targetT, scaleDuration(220));
 				any = true;
 			}
 		}
@@ -602,6 +602,11 @@ namespace Ui {
 	QByteArray NavRail::svgDataCached(const QString& path) const
 	{
 		return RenderUtils::loadSvgCached(path);
+	}
+
+	int NavRail::scaleDuration(int durationMs)
+	{
+		return static_cast<int>(std::lround(static_cast<double>(durationMs) * 2.0 / 3.0));
 	}
 
 	QString NavRail::iconCacheKey(const QString& baseKey, const int px, const bool dark) const

@@ -160,6 +160,7 @@ namespace Ui {
 		QString textCacheKey(const QString& baseKey, int px, const QColor& color) const;
 
 		static float easeInOut(float t) { t = std::clamp(t, 0.0f, 1.0f); return t * t * (3.0f - 2.0f * t); }
+		static int scaleDuration(int durationMs);
 
 		struct ScalarAnim {
 			bool active{ false };
