@@ -50,7 +50,8 @@ namespace UI {
 	inline WidgetPtr coloredBox(const QColor& color, WidgetPtr child = nullptr) {
 		DecoratedBox::Props props;
 		props.bg = color;
-		auto box = std::make_unique<DecoratedBox>(child ? child->build() : nullptr, props);
+		auto childComponent = child ? child->build() : nullptr;
+		auto box = std::make_unique<DecoratedBox>(std::move(childComponent), props);
 		return wrap(box.release());
 	}
 

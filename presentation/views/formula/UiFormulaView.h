@@ -1,7 +1,12 @@
 #pragma once
 
 #include "UiComponent.hpp"
+#include "IconCache.h"
 #include <memory>
+#include <qopenglfunctions.h>
+#include <qpoint.h>
+#include <qrect.h>
+#include <qsize.h>
 
 class FormulaViewModel;
 class UiTreeList;
@@ -10,6 +15,10 @@ namespace UI {
 	class RebuildHost; 
 	class Widget;
 	using WidgetPtr = std::shared_ptr<Widget>;
+}
+
+namespace Render {
+	struct FrameData;
 }
 
 // Simplified UiFormulaView as thin IUiComponent wrapper using declarative UI::Grid

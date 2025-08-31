@@ -4,16 +4,18 @@
 #include "UiTreeList.h"
 
 #include <RenderData.hpp>
+#include <IconCache.h>
+#include <ILayoutable.hpp>
+#include <UiComponent.hpp>
+#include <Widget.h>
 
 #include <RebuildHost.h>
 #include <UI.h>
 #include <Binding.h>
+#include <Layouts.h>
 
 #include <algorithm>
 #include <cmath>
-#include <IconCache.h>
-#include <ILayoutable.hpp>
-#include <Layouts.h>
 #include <memory>
 #include <qcolor.h>
 #include <qcontainerfwd.h>
@@ -26,9 +28,6 @@
 #include <qrect.h>
 #include <qsize.h>
 #include <qstring.h>
-#include <UiComponent.hpp>
-#include <UiContent.hpp>
-#include <Widget.h>
 
 using namespace UI;
 
