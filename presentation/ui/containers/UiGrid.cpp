@@ -204,23 +204,11 @@ std::vector<int> UiGrid::computeColumnWidths(const int contentW) const {
 	std::vector<int> out(n, 0);
 	for (int i = 0; i < n; ++i) {
 		if (m_cols[i].type == TrackDef::Type::Star) {
-			if (avail >= 0) {
-				// 正常情况：有额外空间分配给Star列
-				const int add = (totalStar > 0.0f)
-					? static_cast<int>(std::floor(avail * (starWeight[i] / totalStar)))
-					: 0;
-				out[i] = starMin[i] + add;
-			} else {
-				// 收缩情况：需要压缩Star列低于其最小尺寸
-				const int totalStarMin = std::accumulate(starMin.begin(), starMin.end(), 0);
-				if (totalStarMin > 0 && totalStar > 0.0f) {
-					// 按比例收缩Star列
-					const float shrinkFactor = std::max(0.1f, static_cast<float>(contentW - (fixed - totalStarMin)) / static_cast<float>(totalStarMin));
-					out[i] = std::max(10, static_cast<int>(starMin[i] * shrinkFactor)); // 最小10px防止完全消失
-				} else {
-					out[i] = std::max(10, starMin[i]); // 保底最小宽度
-				}
-			}
+			// For avail < 0, keep Star track sizes at starMin (previous behavior), avoiding over-aggressive compression
+			const int add = (avail >= 0 && totalStar > 0.0f)
+				? static_cast<int>(std::floor(avail * (starWeight[i] / totalStar)))
+				: 0;
+			out[i] = starMin[i] + add;
 		}
 		else {
 			out[i] = width[i];
@@ -378,23 +366,11 @@ std::vector<int> UiGrid::computeRowHeights(const int contentH, const std::vector
 	std::vector<int> out(rN, 0);
 	for (int r = 0; r < rN; ++r) {
 		if (m_rows[r].type == TrackDef::Type::Star) {
-			if (avail >= 0) {
-				// 正常情况：有额外空间分配给Star行
-				const int add = (totalStar > 0.0f)
-					? static_cast<int>(std::floor(avail * (starWeight[r] / totalStar)))
-					: 0;
-				out[r] = starMin[r] + add;
-			} else {
-				// 收缩情况：需要压缩Star行低于其最小尺寸
-				const int totalStarMin = std::accumulate(starMin.begin(), starMin.end(), 0);
-				if (totalStarMin > 0 && totalStar > 0.0f) {
-					// 按比例收缩Star行
-					const float shrinkFactor = std::max(0.1f, static_cast<float>(contentH - (fixed - totalStarMin)) / static_cast<float>(totalStarMin));
-					out[r] = std::max(10, static_cast<int>(starMin[r] * shrinkFactor)); // 最小10px防止完全消失
-				} else {
-					out[r] = std::max(10, starMin[r]); // 保底最小高度
-				}
-			}
+			// For avail < 0, keep Star track sizes at starMin (previous behavior), avoiding over-aggressive compression
+			const int add = (avail >= 0 && totalStar > 0.0f)
+				? static_cast<int>(std::floor(avail * (starWeight[r] / totalStar)))
+				: 0;
+			out[r] = starMin[r] + add;
 		}
 		else {
 			out[r] = height[r];

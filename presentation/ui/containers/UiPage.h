@@ -9,8 +9,10 @@
 #pragma once
 #include "IconCache.h"
 #include "IFocusContainer.hpp"
+#include "ILayoutable.hpp"
 #include "RenderData.hpp"
 #include "UiComponent.hpp"
+#include "UiContent.hpp"
 
 #include <qcolor.h>
 #include <qmargins.h>
@@ -38,7 +40,7 @@
  /// │ 内容组件            │
  /// │                     │
  /// └─────────────────────┘
-class UiPage : public IUiComponent, public IFocusContainer
+class UiPage : public IUiComponent, public IUiContent, public ILayoutable, public IFocusContainer
 {
 public:
 	/// 页面色彩方案配置
@@ -69,7 +71,7 @@ public:
 
 	/// 功能：设置页面视口矩形
 	/// 参数：r — 视口矩形（逻辑像素坐标）
-	void setViewportRect(const QRect& r) { m_viewport = r; }
+	void setViewportRect(const QRect& r) override { m_viewport = r; }
 
 	/// 功能：设置页面内容组件
 	/// 参数：content — 内容组件指针（不转移所有权）
@@ -79,6 +81,10 @@ public:
 	/// 功能：获取当前内容组件
 	/// 返回：内容组件指针
 	IUiComponent* content() const { return m_content; }
+
+	// ILayoutable interface implementation
+	QSize measure(const SizeConstraints& cs) override;
+	void arrange(const QRect& finalRect) override;
 
 	// IUiComponent接口实现
 	void updateLayout(const QSize& windowSize) override;

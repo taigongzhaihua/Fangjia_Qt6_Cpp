@@ -3,6 +3,7 @@
 #include "UiPage.h"
 #include "IFocusable.hpp"
 #include "IFocusContainer.hpp"
+#include "ILayoutable.hpp"
 
 #include <algorithm>
 #include <cmath>
@@ -36,14 +37,80 @@ QRectF UiPage::contentRectF() const
 	return card.adjusted(m_padding.left(), m_padding.top() + kTitleAreaH, -m_padding.right(), -m_padding.bottom());
 }
 
+QSize UiPage::measure(const SizeConstraints& cs)
+{
+	// Page measurement considers margins + padding + title area (kTitleAreaH), and uses child.measure(widthBounded) when the child supports ILayoutable
+	const int marginW = m_margins.left() + m_margins.right();
+	const int marginH = m_margins.top() + m_margins.bottom();
+	const int paddingW = m_padding.left() + m_padding.right();
+	const int paddingH = m_padding.top() + m_padding.bottom();
+	
+	const int frameW = marginW + paddingW;
+	const int frameH = marginH + paddingH + kTitleAreaH;
+	
+	// Available space for content
+	const int availableW = std::max(0, cs.maxW - frameW);
+	const int availableH = std::max(0, cs.maxH - frameH);
+	
+	QSize contentSize(0, 0);
+	if (m_content) {
+		if (auto* l = dynamic_cast<ILayoutable*>(m_content)) {
+			// Use child's measure with width bounded constraints
+			SizeConstraints childCs = SizeConstraints::widthBounded(availableW, availableH);
+			contentSize = l->measure(childCs);
+		} else {
+			// Fallback to bounds size
+			contentSize = m_content->bounds().size();
+			contentSize.setWidth(std::min(contentSize.width(), availableW));
+			contentSize.setHeight(std::min(contentSize.height(), availableH));
+		}
+	}
+	
+	// Total size is content + frame
+	const int totalW = std::clamp(contentSize.width() + frameW, cs.minW, cs.maxW);
+	const int totalH = std::clamp(contentSize.height() + frameH, cs.minH, cs.maxH);
+	
+	return QSize(totalW, totalH);
+}
+
+void UiPage::arrange(const QRect& finalRect)
+{
+	// Store the final rect as our viewport
+	m_viewport = finalRect;
+	
+	// Recompute content rect (card -> title area -> content area) and forward to child content
+	if (m_content) {
+		const QRect contentRect = contentRectF().toRect();
+		
+		// Set viewport on child if it implements IUiContent
+		if (auto* c = dynamic_cast<IUiContent*>(m_content)) {
+			c->setViewportRect(contentRect);
+		}
+		
+		// Arrange child if it implements ILayoutable
+		if (auto* l = dynamic_cast<ILayoutable*>(m_content)) {
+			l->arrange(contentRect);
+		}
+	}
+}
+
 void UiPage::updateLayout(const QSize& /*windowSize*/)
 {
-	// 将 contentRect 下发给内容组件（若实现了 IUiContent）
+	// Forward viewport and arrange to child if applicable
 	if (m_content) {
+		const QRect contentRect = contentRectF().toRect();
+		
+		// Set viewport on child if it implements IUiContent
 		if (auto* c = dynamic_cast<IUiContent*>(m_content)) {
-			c->setViewportRect(contentRectF().toRect());
+			c->setViewportRect(contentRect);
 		}
-		// 让内容组件也有机会进行它自己的内部布局（传入窗口 size 对它用处不大，但保持调用流程一致）
+		
+		// Arrange child if it implements ILayoutable  
+		if (auto* l = dynamic_cast<ILayoutable*>(m_content)) {
+			l->arrange(contentRect);
+		}
+		
+		// Let content component also have opportunity to perform its own internal layout
 		m_content->updateLayout(m_viewport.size());
 	}
 }
