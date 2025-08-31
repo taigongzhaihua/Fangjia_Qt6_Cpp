@@ -7,6 +7,7 @@
 
 #include <RebuildHost.h>
 #include <UI.h>
+#include <Binding.h>
 
 #include <algorithm>
 #include <cmath>
@@ -188,9 +189,8 @@ UiFormulaView::UiFormulaView()
 	m_adapter = std::make_unique<VmTreeAdapter>(m_vm.get());
 	m_tree->setModel(m_adapter.get());
 
-	// 2) 右侧详情：RebuildHost（将通过声明式 ScrollView 包装）
-	m_detailHost = std::make_unique<RebuildHost>();
-	m_detailHost->setBuilder([this]() -> std::unique_ptr<IUiComponent>
+	// 2) 右侧详情：声明式 BindingHost（替代手动 RebuildHost 管理）
+	m_detailBindingHost = bindingHost([this]() -> WidgetPtr
 		{
 			const auto* detail = m_vm->selectedFormula();
 
@@ -250,23 +250,21 @@ UiFormulaView::UiFormulaView()
 				->background(cardBg, 0.0f);
 
 			// 使用声明式 ScrollView 包装内容
-			return scrollView(root)->build();
-		}); // 注意：RebuildHost::setBuilder 现已默认执行一次首次构建
-
-	// 3) 监听 VM 变化 => 刷新树/重建详情
-	QObject::connect(m_vm.get(), &FormulaViewModel::selectedChanged, [this](int)
-		{
-			if (m_tree) m_tree->reloadData();
-			if (m_detailHost) m_detailHost->requestRebuild();
-		});
-	QObject::connect(m_vm.get(), &FormulaViewModel::dataChanged, [this]
-		{
-			if (m_tree) m_tree->reloadData();
-			if (m_detailHost) m_detailHost->requestRebuild();
-		});
-	QObject::connect(m_vm.get(), &FormulaViewModel::nodeExpandChanged, [this](int, bool)
-		{
-			if (m_tree) m_tree->reloadData();
+			return scrollView(root);
+		})
+		->connect([this](UI::RebuildHost* host) {
+			// 使用声明式绑定替代手动信号连接
+			observe(m_vm.get(), &FormulaViewModel::selectedChanged, [this, host](int) {
+				if (m_tree) m_tree->reloadData();
+				host->requestRebuild();
+			});
+			observe(m_vm.get(), &FormulaViewModel::dataChanged, [this, host]() {
+				if (m_tree) m_tree->reloadData();
+				host->requestRebuild();
+			});
+			observe(m_vm.get(), &FormulaViewModel::nodeExpandChanged, [this](int, bool) {
+				if (m_tree) m_tree->reloadData();
+			});
 		});
 
 	// 4) 加载示例数据
@@ -293,7 +291,10 @@ void UiFormulaView::buildChildren()
 
 	// 创建宽度提示包装器（默认左侧 320px，右侧先置 400px，实际会在 setViewportRect 中根据比例更新）
 	m_treeWrap = std::make_unique<WidthHint>(m_tree.get(), 320);
-	m_detailWrap = std::make_unique<WidthHint>(m_detailHost.get(), 400);
+	
+	// 构建声明式绑定宿主组件
+	m_detailComponent = m_detailBindingHost ? m_detailBindingHost->build() : nullptr;
+	m_detailWrap = std::make_unique<WidthHint>(m_detailComponent.get(), 400);
 
 	// 添加子项：左树（Stretch 交叉轴拉伸）、分割条（1px）、右详情（Stretch）
 	addChild(m_treeWrap.get(), CrossAlign::Stretch);
@@ -306,7 +307,8 @@ void UiFormulaView::setDarkTheme(const bool dark)
 	if (m_isDark == dark) return;
 	m_isDark = dark;
 	applyPalettes();
-	if (m_detailHost) m_detailHost->requestRebuild();
+	// 重建子项以应用新主题（BindingHost 会自动处理详情重建）
+	buildChildren();
 	UiPanel::onThemeChanged(m_isDark);
 }
 
@@ -347,7 +349,8 @@ void UiFormulaView::onThemeChanged(const bool isDark)
 {
 	m_isDark = isDark;
 	applyPalettes();
-	if (m_detailHost) m_detailHost->requestRebuild();
+	// 重建子项以应用新主题（BindingHost 会自动处理详情重建）
+	buildChildren();
 
 	// 交给 UiPanel 继续把主题往子项传
 	UiPanel::onThemeChanged(isDark);

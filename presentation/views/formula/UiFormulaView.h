@@ -6,7 +6,11 @@
 class FormulaViewModel;
 class UiTreeList;
 
-namespace UI { class RebuildHost; }
+namespace UI { 
+	class RebuildHost; 
+	class Widget;
+	using WidgetPtr = std::shared_ptr<Widget>;
+}
 
 // 使用 UiPanel 作为“水平顺序容器”，按子项实际尺寸依次排布
 class UiFormulaView final : public UiPanel {
@@ -39,8 +43,9 @@ private:
 	class VmTreeAdapter;
 	std::unique_ptr<VmTreeAdapter>    m_adapter;
 
-	// 右侧详情（可重建宿主）
-	std::unique_ptr<UI::RebuildHost>  m_detailHost;
+	// 右侧详情（声明式绑定宿主）
+	UI::WidgetPtr m_detailBindingHost;
+	std::unique_ptr<IUiComponent> m_detailComponent;
 
 	// 中间分割条
 	class VSplitter;
