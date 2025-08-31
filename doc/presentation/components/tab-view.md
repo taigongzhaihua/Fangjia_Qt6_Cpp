@@ -1,3 +1,5 @@
+**English** | [简体中文](../../../doc.zh-cn/presentation/components/tab-view.md)
+
 # TabView Component
 
 ## Overview

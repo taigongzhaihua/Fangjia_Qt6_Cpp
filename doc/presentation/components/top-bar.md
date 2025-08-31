@@ -1,3 +1,5 @@
+**English** | [简体中文](../../../doc.zh-cn/presentation/components/top-bar.md)
+
 # TopBar Component
 
 ## Overview
