@@ -1,45 +1,74 @@
-# Fangjia Qt6 C++ 技术文档总目录
+# Fangjia Qt6 C++ Documentation
 
-本文档按系统分组组织，为开发者提供完整的技术参考和开发指南。
+This documentation is organized by system to provide developers with comprehensive technical reference and development guides.
 
-## 表现层系统 (Presentation)
+## Architecture & Design
 
-### 架构设计
-- **[表现层架构概览](presentation/architecture.md)** - BindingHost、RebuildHost、UiRoot 核心机制与声明式体系设计理念
+### System Overview
+- **[Architecture Overview](architecture/overview.md)** - System design, component lifecycle, data binding, and threading model
 
-### UI 组件与容器
-- **[UI 基础部件与容器](presentation/ui/components.md)** - UiPanel、UiBoxLayout、UiGrid、UiScrollView 等核心容器的使用与配置
-- **[声明式 TopBar 组件](presentation/ui/topbar/declarative-topbar.md)** - TopBar 与 NavRail 声明式 API、配置选项与集成模式
-- **[TopBar 动画实现](presentation/ui/topbar/animation.md)** - 跟随系统主题动画的实现细节与交互逻辑
+## Build & Development
 
-### 数据绑定系统  
-- **[Binding 与响应式重建](presentation/binding.md)** - binding/observe/requestRebuild 使用模式与最佳实践
+### Platform-Specific Build Guides
+- **[Windows Build Guide](build/windows.md)** - Visual Studio setup, Qt installation, and build configuration for Windows
+- **[Linux Build Guide](build/linux.md)** - Package installation, compilation, and development setup for Linux distributions  
+- **[macOS Build Guide](build/macos.md)** - Xcode setup, Qt installation, and universal binary builds for macOS
 
-## 基础设施系统 (Infrastructure)
+## Infrastructure Systems
 
-### 图形渲染
-- **[渲染与图形系统](infrastructure/gfx.md)** - RenderData、IconCache、RenderUtils 渲染管线与资源管理
+### Graphics & Platform
+- **[Graphics & Rendering System](infrastructure/gfx.md)** - RenderData, IconCache, coordinate systems, and OpenGL rendering pipeline
+- **[Windows Platform Integration](infrastructure/platform-windows.md)** - Native window chrome, hit testing, DPI awareness, and Windows-specific features
 
-## 平台支持 (Platform)
+## Data Management
 
-### Windows 平台
-- **[Windows 平台集成](platform/windows.md)** - WinWindowChrome 窗口装饰与 HitTest 区域处理
+### Data Layer Architecture
+- **[Data Management Overview](data/overview.md)** - ThemeManager, AppConfig, ViewModel patterns, and reactive data binding
 
-## 应用层系统 (Application)
+## Presentation Layer
 
-### 应用架构
-- **[App Shell 与应用组装](application/app-shell.md)** - AppShell、导航、TopBar、内容区的拼装与交互协调
+### UI Framework
+- **[UI Framework Overview](presentation/ui-framework/overview.md)** - Component architecture, lifecycle, containers, and widget systems
+- **[Layout System](presentation/ui-framework/layouts.md)** - UiPanel, UiGrid, UiContainer, size policies, and responsive design
+- **[Theme & Rendering](presentation/ui-framework/theme-and-rendering.md)** - Theme management, color palettes, transitions, and styling customization
 
----
+### UI Components
+- **[TopBar Component](presentation/components/top-bar.md)** - Window controls, theme switching, system integration, and declarative API
+- **[TopBar Animation System](presentation/components/top-bar-animation.md)** - Two-phase animation behavior, state machine, and performance optimization
+- **[NavRail Component](presentation/components/nav-rail.md)** - Navigation rail with DataProvider integration, animations, and responsive behavior
+- **[TabView Component](presentation/components/tab-view.md)** - Tabbed interface with overflow handling, keyboard navigation, and content management
+- **[ScrollView Component](presentation/components/scroll-view.md)** - Smooth scrolling, custom scroll bars, momentum scrolling, and viewport culling
 
-## 文档导航说明
+### Data Binding
+- **[Binding & Reactive Rebuilding](presentation/binding.md)** - binding/observe/requestRebuild patterns and best practices
 
-- **快速入门**: 建议从 [表现层架构概览](presentation/architecture.md) 开始了解整体设计
-- **组件开发**: 参考 [UI 基础部件与容器](presentation/ui/components.md) 了解可用组件
-- **高级特性**: 深入 [Binding 与响应式重建](presentation/binding.md) 掌握数据绑定机制
-- **渲染优化**: 通过 [渲染与图形系统](infrastructure/gfx.md) 理解底层渲染实现
-- **平台特性**: 查看 [Windows 平台集成](platform/windows.md) 了解平台特定功能
+## Application Layer
 
-## 贡献与反馈
+### Application Architecture
+- **[App Shell & Assembly](application/app-shell.md)** - AppShell integration, navigation coordination, and TopBar/content area interaction
 
-文档内容基于当前代码库实现编写，如发现不一致或需要补充的内容，请参与贡献或提供反馈。
+## Platform Support
+
+### Windows Platform
+- **[Windows Platform Integration](platform/windows.md)** - WinWindowChrome window decoration and HitTest region handling
+
+## Navigation Guide
+
+- **Quick Start**: Begin with [Architecture Overview](architecture/overview.md) to understand the overall system design
+- **Component Development**: Refer to [UI Framework Overview](presentation/ui-framework/overview.md) to learn about available components
+- **Advanced Features**: Dive into [Data Binding System](presentation/binding.md) to master reactive data binding
+- **Rendering Optimization**: Explore [Graphics & Rendering System](infrastructure/gfx.md) to understand low-level rendering
+- **Platform Features**: Check [Windows Platform Integration](infrastructure/platform-windows.md) for platform-specific functionality
+
+## Contributing & Feedback
+
+Contributions are welcome! Please refer to the project's contribution guidelines and ensure that:
+
+- Documentation changes align with actual code implementation
+- Examples are tested and functional
+- Cross-references between documents are accurate
+- New components follow established documentation patterns
+
+**Documentation Version**: Based on current codebase state  
+**Last Updated**: 2024 (according to codebase status)  
+**Maintainers**: Fangjia Qt6 C++ Development Team
