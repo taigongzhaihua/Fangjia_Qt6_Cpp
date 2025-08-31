@@ -15,7 +15,6 @@
 #include <qtimer.h>
 
 #include "IconCache.h"
-#include "NavViewModel.h"
 #include "PageRouter.h"
 #include "Renderer.h"
 #include "ThemeManager.h"
@@ -33,6 +32,10 @@ class WinWindowChrome;
 
 // 前向声明
 class AppConfig;
+
+namespace fj::presentation::binding {
+	class INavDataProvider;
+}
 
 /// 主窗口：基于OpenGL的自绘UI应用程序窗口
 /// 
@@ -70,6 +73,11 @@ public:
 
 	void setFollowSystem(bool on) const;
 	bool followSystem() const noexcept;
+
+	/// Navigation data provider injection
+	/// Sets the navigation data provider for the window to read/observe state from
+	/// This should be called before showing the window to ensure proper navigation setup
+	void setNavDataProvider(fj::presentation::binding::INavDataProvider* provider);
 
 	/// Windows平台窗口Chrome命中测试辅助
 	/// 返回：UI组件的边界矩形，用于自定义标题栏区域判定
@@ -131,8 +139,8 @@ private:
 	std::shared_ptr<ThemeManager> m_themeMgr;
 	std::shared_ptr<AppConfig> m_config;
 
-	// 数据模型
-	NavViewModel m_navVm;
+	// Navigation data provider (injected)
+	fj::presentation::binding::INavDataProvider* m_navProvider{ nullptr };
 
 	// UI组件层次结构
 	Ui::NavRail m_nav;
