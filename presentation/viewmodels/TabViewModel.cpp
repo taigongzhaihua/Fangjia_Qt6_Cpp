@@ -2,11 +2,11 @@
 #include <utility>
 
 TabViewModel::TabViewModel(QObject* parent)
-	: QObject(parent)
+	: ITabDataProvider(parent)
 {
 }
 
-void TabViewModel::setItems(QVector<TabItem> items)
+void TabViewModel::setItems(QVector<fj::presentation::binding::TabItem> items)
 {
 	m_items = std::move(items);
 	emit itemsChanged();
@@ -34,6 +34,21 @@ int TabViewModel::findById(const QString& id) const
 		if (m_items[i].id == id) return i;
 	}
 	return -1;
+}
+
+QVector<fj::presentation::binding::TabItem> TabViewModel::items() const
+{
+	return m_items;
+}
+
+int TabViewModel::count() const
+{
+	return m_items.size();
+}
+
+int TabViewModel::selectedIndex() const
+{
+	return m_selected;
 }
 
 QString TabViewModel::selectedId() const

@@ -1,6 +1,7 @@
 #include <QtTest>
 #include <QSignalSpy>
 #include "../../src/models/TabViewModel.h"
+#include "presentation/binding/tab_interface.h"
 
 class TestTabViewModel : public QObject
 {
@@ -18,7 +19,7 @@ private slots:
     void testTabManagement() {
         TabViewModel vm;
         
-        QVector<TabViewModel::TabItem> tabs = {
+        QVector<fj::presentation::binding::TabItem> tabs = {
             {.id = "tab1", .label = "Tab 1", .tooltip = "First tab"},
             {.id = "tab2", .label = "Tab 2", .tooltip = "Second tab"},
             {.id = "tab3", .label = "Tab 3", .tooltip = "Third tab"}

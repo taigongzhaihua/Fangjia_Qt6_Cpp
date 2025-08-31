@@ -1,6 +1,7 @@
 #include <QtTest>
 #include <QSignalSpy>
 #include "models/TabViewModel.h"
+#include "presentation/binding/tab_interface.h"
 
 class TestTabViewModel : public QObject
 {
@@ -24,7 +25,7 @@ private slots:
         QSignalSpy spy(&tabVm, &TabViewModel::itemsChanged);
         
         // Create test items
-        QVector<TabViewModel::TabItem> items{
+        QVector<fj::presentation::binding::TabItem> items{
             {.id = "tab1", .label = "Tab 1", .tooltip = "First tab"},
             {.id = "tab2", .label = "Tab 2", .tooltip = "Second tab"},
             {.id = "tab3", .label = "Tab 3", .tooltip = "Third tab"}
@@ -49,7 +50,7 @@ private slots:
         QCOMPARE(tabVm.selectedIndex(), 0);
         
         // Add items
-        QVector<TabViewModel::TabItem> items{
+        QVector<fj::presentation::binding::TabItem> items{
             {.id = "tab1", .label = "Tab 1", .tooltip = "First tab"},
             {.id = "tab2", .label = "Tab 2", .tooltip = "Second tab"},
             {.id = "tab3", .label = "Tab 3", .tooltip = "Third tab"}
@@ -84,7 +85,7 @@ private slots:
     void testSelectedIndexRange()
     {
         TabViewModel tabVm;
-        QVector<TabViewModel::TabItem> items{
+        QVector<fj::presentation::binding::TabItem> items{
             {.id = "tab1", .label = "Tab 1", .tooltip = "First tab"},
             {.id = "tab2", .label = "Tab 2", .tooltip = "Second tab"}
         };
@@ -107,7 +108,7 @@ private slots:
     void testFindById()
     {
         TabViewModel tabVm;
-        QVector<TabViewModel::TabItem> items{
+        QVector<fj::presentation::binding::TabItem> items{
             {.id = "tab1", .label = "Tab 1", .tooltip = "First tab"},
             {.id = "tab2", .label = "Tab 2", .tooltip = "Second tab"},
             {.id = "tab3", .label = "Tab 3", .tooltip = "Third tab"}
@@ -144,7 +145,7 @@ private slots:
     void testSelectedIdConsistency()
     {
         TabViewModel tabVm;
-        QVector<TabViewModel::TabItem> items{
+        QVector<fj::presentation::binding::TabItem> items{
             {.id = "first", .label = "First", .tooltip = ""},
             {.id = "second", .label = "Second", .tooltip = ""},
             {.id = "third", .label = "Third", .tooltip = ""}

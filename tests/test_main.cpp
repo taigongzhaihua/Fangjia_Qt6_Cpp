@@ -11,6 +11,7 @@
 
 // Core test for TabViewModel
 #include "presentation/viewmodels/TabViewModel.h"
+#include "presentation/binding/tab_interface.h"
 
 // Core test for FormulaViewModel
 #include "presentation/viewmodels/FormulaViewModel.h"
@@ -98,7 +99,7 @@ public slots:
         QCOMPARE(tabVm.count(), 0);
         
         // Add items
-        QVector<TabViewModel::TabItem> items{
+        QVector<fj::presentation::binding::TabItem> items{
             {.id = "tab1", .label = "Tab 1", .tooltip = "First tab"},
             {.id = "tab2", .label = "Tab 2", .tooltip = "Second tab"}
         };
