@@ -37,13 +37,31 @@ void UiTreeList::updateResourceContext(IconCache& cache, QOpenGLFunctions* gl, c
 void UiTreeList::updateVisibleNodes()
 {
 	m_visibleNodes.clear();
-	if (!m_model) return;
+	
+	// Support both traditional Model* and functional ModelFns
+	auto getRoots = [&]() -> QVector<int> {
+		if (m_model) return m_model->rootIndices();
+		if (m_modelFns.rootIndices) return m_modelFns.rootIndices();
+		return {};
+	};
+	
+	auto getChildren = [&](int nodeId) -> QVector<int> {
+		if (m_model) return m_model->childIndices(nodeId);
+		if (m_modelFns.childIndices) return m_modelFns.childIndices(nodeId);
+		return {};
+	};
+	
+	auto getNodeInfo = [&](int nodeId) -> NodeInfo {
+		if (m_model) return m_model->nodeInfo(nodeId);
+		if (m_modelFns.nodeInfo) return m_modelFns.nodeInfo(nodeId);
+		return {};
+	};
 
-	const auto roots = m_model->rootIndices();
+	const auto roots = getRoots();
 
 	std::function<void(int, int)> addVisibleChildren = [&](const int nodeId, const int depth) {
-		for (const auto children = m_model->childIndices(nodeId); const int childId : children) {
-			const auto info = m_model->nodeInfo(childId);
+		for (const auto children = getChildren(nodeId); const int childId : children) {
+			const auto info = getNodeInfo(childId);
 
 			// 添加节点
 			VisibleNode vn;
@@ -68,7 +86,7 @@ void UiTreeList::updateVisibleNodes()
 
 	// 根层
 	for (const int rootId : roots) {
-		const auto info = m_model->nodeInfo(rootId);
+		const auto info = getNodeInfo(rootId);
 
 		VisibleNode vn;
 		vn.index = rootId;
@@ -112,6 +130,25 @@ QRect UiTreeList::expandIconRect(const QRect& nodeRect, int /*depth*/) const
 void UiTreeList::append(Render::FrameData& fd) const
 {
 	if (!m_cache || !m_gl) return;
+	
+	// Helper functions for both Model* and ModelFns
+	auto getSelectedId = [&]() -> int {
+		if (m_model) return m_model->selectedId();
+		if (m_modelFns.selectedId) return m_modelFns.selectedId();
+		return -1;
+	};
+	
+	auto getChildren = [&](int nodeId) -> QVector<int> {
+		if (m_model) return m_model->childIndices(nodeId);
+		if (m_modelFns.childIndices) return m_modelFns.childIndices(nodeId);
+		return {};
+	};
+	
+	auto getNodeInfo = [&](int nodeId) -> NodeInfo {
+		if (m_model) return m_model->nodeInfo(nodeId);
+		if (m_modelFns.nodeInfo) return m_modelFns.nodeInfo(nodeId);
+		return {};
+	};
 
 	// 背景
 	if (m_pal.bg.alpha() > 0 && m_viewport.isValid()) {
@@ -123,15 +160,15 @@ void UiTreeList::append(Render::FrameData& fd) const
 			});
 	}
 
-	if (!m_model) return;
+	if (!m_model && !m_modelFns.nodeInfo) return;
 
-	const int selectedId = m_model->selectedId();
+	const int selectedId = getSelectedId();
 
 	for (size_t i = 0; i < m_visibleNodes.size(); ++i) {
 		const auto& vn = m_visibleNodes[i];
 		if (!vn.rect.intersects(m_viewport)) continue;
 
-		const auto info = m_model->nodeInfo(vn.index);
+		const auto info = getNodeInfo(vn.index);
 
 		// 统一的圆角矩形背景（选中/悬停/按下）——与 Nav 胶囊风格一致
 		const QRectF inner = QRectF(vn.rect).adjusted(5, 3, -5, -3);
@@ -171,7 +208,7 @@ void UiTreeList::append(Render::FrameData& fd) const
 		}
 
 		// 展开/折叠图标（右侧）：有子节点才绘制
-		if (!m_model->childIndices(vn.index).isEmpty()) {
+		if (!getChildren(vn.index).isEmpty()) {
 			const QRect iconRect = expandIconRect(vn.rect, vn.depth);
 			const int logical = 16;
 			const int px = std::lround(static_cast<float>(logical) * m_dpr);
@@ -270,25 +307,48 @@ bool UiTreeList::onMouseRelease(const QPoint& pos)
 	const int wasPressed = m_pressed;
 	m_pressed = -1;
 
-	if (!m_viewport.contains(pos) || !m_model) {
+	if (!m_viewport.contains(pos) || (!m_model && !m_modelFns.nodeInfo)) {
 		return (wasPressed >= 0);
 	}
+	
+	// Helper functions for both Model* and ModelFns
+	auto getChildren = [&](int nodeId) -> QVector<int> {
+		if (m_model) return m_model->childIndices(nodeId);
+		if (m_modelFns.childIndices) return m_modelFns.childIndices(nodeId);
+		return {};
+	};
+	
+	auto getNodeInfo = [&](int nodeId) -> NodeInfo {
+		if (m_model) return m_model->nodeInfo(nodeId);
+		if (m_modelFns.nodeInfo) return m_modelFns.nodeInfo(nodeId);
+		return {};
+	};
+	
+	auto setExpanded = [&](int nodeId, bool expanded) {
+		if (m_model) m_model->setExpanded(nodeId, expanded);
+		else if (m_modelFns.setExpanded) m_modelFns.setExpanded(nodeId, expanded);
+	};
+	
+	auto setSelectedId = [&](int nodeId) {
+		if (m_model) m_model->setSelectedId(nodeId);
+		else if (m_modelFns.setSelectedId) m_modelFns.setSelectedId(nodeId);
+	};
 
 	if (wasPressed >= 0 && wasPressed < static_cast<int>(m_visibleNodes.size())) {
 		const auto& vn = m_visibleNodes[wasPressed];
 		if (vn.rect.contains(pos)) {
 			// 检查是否点击展开/折叠
-			if (!m_model->childIndices(vn.index).isEmpty()) {
+			if (!getChildren(vn.index).isEmpty()) {
 				const QRect iconRect = expandIconRect(vn.rect, vn.depth);
 				if (iconRect.adjusted(-4, -4, 4, 4).contains(pos)) {
-					const bool isExpanded = m_model->nodeInfo(vn.index).expanded;
-					m_model->setExpanded(vn.index, !isExpanded);
+					const bool isExpanded = getNodeInfo(vn.index).expanded;
+					setExpanded(vn.index, !isExpanded);
 					reloadData();
 					return true;
 				}
 			}
 			// 设置选中
-			m_model->setSelectedId(vn.index);
+			setSelectedId(vn.index);
 			return true;
 		}
 	}

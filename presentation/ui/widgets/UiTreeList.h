@@ -5,6 +5,7 @@
 #include "UiContent.hpp"
 
 #include <algorithm>
+#include <functional>
 #include <qcolor.h>
 #include <qelapsedtimer.h>
 #include <qopenglfunctions.h>
@@ -40,6 +41,16 @@ public:
 		virtual void setExpanded(int nodeId, bool on) = 0;
 	};
 
+	// 函数式模型接口：避免适配器类，直接绑定VM函数
+	struct ModelFns {
+		std::function<QVector<int>()> rootIndices;
+		std::function<QVector<int>(int)> childIndices;
+		std::function<NodeInfo(int)> nodeInfo;
+		std::function<int()> selectedId;
+		std::function<void(int)> setSelectedId;
+		std::function<void(int, bool)> setExpanded;
+	};
+
 	struct Palette {
 		QColor bg;              // 背景色
 		QColor itemHover;       // 悬停背景
@@ -57,6 +68,9 @@ public:
 
 	// 注入通用模型
 	void setModel(Model* m) { m_model = m; reloadData(); }
+	
+	// 注入函数式模型（避免适配器类）
+	void setModelFns(const ModelFns& fns) { m_modelFns = fns; m_model = nullptr; reloadData(); }
 
 	// 外观配置
 	void setPalette(const Palette& p) { m_pal = p; }
@@ -97,6 +111,7 @@ private:
 
 private:
 	Model* m_model{ nullptr };
+	ModelFns m_modelFns; // 函数式模型
 	QRect m_viewport;
 	Palette m_pal{
 		.bg = QColor(255,255,255,245),

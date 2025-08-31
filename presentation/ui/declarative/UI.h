@@ -2,6 +2,7 @@
 #include "AdvancedWidgets.h"
 #include "BasicWidgets.h"
 #include "ComponentWrapper.h"
+#include "Decorators.h"
 #include "Layouts.h"
 #include "TabView.h"
 #include "ScrollView.h"
@@ -43,6 +44,14 @@ namespace UI {
 	// 条件渲染
 	inline auto when(bool condition, WidgetPtr ifTrue, WidgetPtr ifFalse = nullptr) {
 		return make_widget<Conditional>(condition, ifTrue, ifFalse);
+	}
+	
+	// Simple colored box using DecoratedBox (useful for separators)
+	inline WidgetPtr coloredBox(const QColor& color, WidgetPtr child = nullptr) {
+		DecoratedBox::Props props;
+		props.bg = color;
+		auto box = std::make_unique<DecoratedBox>(child ? child->build() : nullptr, props);
+		return wrap(box.release());
 	}
 
 

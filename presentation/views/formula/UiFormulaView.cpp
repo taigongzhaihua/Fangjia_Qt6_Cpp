@@ -28,168 +28,55 @@
 #include <qstring.h>
 #include <UiComponent.hpp>
 #include <UiContent.hpp>
-#include <UiPanel.h>
 #include <Widget.h>
 
 using namespace UI;
 
-// ====== VM -> UiTreeList::Model 适配器 ======
-class UiFormulaView::VmTreeAdapter : public UiTreeList::Model
-{
-public:
-	explicit VmTreeAdapter(FormulaViewModel* vm) : m_vm(vm)
-	{
-	}
-
-	QVector<int> rootIndices() const override
-	{
-		QVector<int> roots;
-		if (!m_vm) return roots;
-		const auto& nodes = m_vm->nodes();
-		for (int i = 0; i < nodes.size(); ++i)
-		{
-			if (nodes[i].parentIndex == -1) roots.push_back(i);
-		}
-		return roots;
-	}
-
-	QVector<int> childIndices(const int nodeId) const override
-	{
-		return m_vm ? m_vm->childIndices(nodeId) : QVector<int>{};
-	}
-
-	UiTreeList::NodeInfo nodeInfo(const int nodeId) const override
-	{
-		UiTreeList::NodeInfo info;
-		if (!m_vm) return info;
-		const auto& nodes = m_vm->nodes();
-		if (nodeId < 0 || nodeId >= nodes.size()) return info;
-		info.label = nodes[nodeId].label;
-		info.level = nodes[nodeId].level;
-		info.expanded = nodes[nodeId].expanded;
-		return info;
-	}
-
-	int selectedId() const override { return m_vm ? m_vm->selectedIndex() : -1; }
-	void setSelectedId(const int nodeId) override { if (m_vm) m_vm->setSelectedIndex(nodeId); }
-	void setExpanded(const int nodeId, const bool on) override { if (m_vm) m_vm->setExpanded(nodeId, on); }
-
-private:
-	FormulaViewModel* m_vm{ nullptr };
-};
-
-// ====== 中间分割条（固定宽度 1px） ======
-class UiFormulaView::VSplitter : public IUiComponent, public IUiContent
-{
-public:
-	explicit VSplitter(const QColor color, const int logicalW = 1) : m_color(color), m_w(std::max(1, logicalW))
-	{
-	}
-
-	void setViewportRect(const QRect& r) override { m_viewport = r; }
-
-	void updateLayout(const QSize&) override
-	{
-	}
-
-	void updateResourceContext(IconCache&, QOpenGLFunctions*, float) override
-	{
-	}
-
-	void append(Render::FrameData& fd) const override
-	{
-		if (!m_viewport.isValid()) return;
-		fd.roundedRects.push_back(Render::RoundedRectCmd{
-			.rect = QRectF(m_viewport), .radiusPx = 0.0f, .color = m_color, .clipRect = QRectF(m_viewport)
-			});
-	}
-
-	bool onMousePress(const QPoint&) override { return false; }
-	bool onMouseMove(const QPoint&) override { return false; }
-	bool onMouseRelease(const QPoint&) override { return false; }
-	bool tick() override { return false; }
-	QRect bounds() const override { return { 0, 0, m_w, 0 }; }
-
-	void onThemeChanged(bool) override
-	{
-	}
-
-private:
-	QColor m_color;
-	int m_w{ 1 };
-	QRect m_viewport;
-};
-
-// ====== 宽度提示包装器：为 Panel 提供主轴方向“期望宽度” ======
-class UiFormulaView::WidthHint : public IUiComponent, public IUiContent, public ILayoutable
-{
-public:
-	explicit WidthHint(IUiComponent* wrapped, const int preferredW = 0) : m_child(wrapped),
-		m_prefW(std::max(0, preferredW))
-	{
-	}
-
-	void setPreferredWidth(const int w) { m_prefW = std::max(0, w); }
-
-	void setViewportRect(const QRect& r) override
-	{
-		m_viewport = r;
-		if (auto* c = dynamic_cast<IUiContent*>(m_child)) c->setViewportRect(r);
-	}
-
-	QSize measure(const SizeConstraints& cs) override
-	{
-		const int w = std::clamp(m_prefW, cs.minW, cs.maxW);
-		const int h = std::clamp(0, cs.minH, cs.maxH);
-		return { w, h };
-	}
-
-	void arrange(const QRect& finalRect) override
-	{
-		setViewportRect(finalRect);
-		if (auto* l = dynamic_cast<ILayoutable*>(m_child)) l->arrange(finalRect);
-	}
-
-	void updateLayout(const QSize& windowSize) override { if (m_child) m_child->updateLayout(windowSize); }
-
-	void updateResourceContext(IconCache& cache, QOpenGLFunctions* gl, const float dpr) override
-	{
-		if (m_child) m_child->updateResourceContext(cache, gl, dpr);
-	}
-
-	void append(Render::FrameData& fd) const override { if (m_child) m_child->append(fd); }
-	bool onMousePress(const QPoint& pos) override { return m_child ? m_child->onMousePress(pos) : false; }
-	bool onMouseMove(const QPoint& pos) override { return m_child ? m_child->onMouseMove(pos) : false; }
-	bool onMouseRelease(const QPoint& pos) override { return m_child ? m_child->onMouseRelease(pos) : false; }
-
-	bool onWheel(const QPoint& pos, const QPoint& angleDelta) override
-	{
-		return m_child ? m_child->onWheel(pos, angleDelta) : false;
-	}
-
-	bool tick() override { return m_child ? m_child->tick() : false; }
-	QRect bounds() const override { return { 0, 0, std::max(0, m_prefW), 0 }; }
-	void onThemeChanged(const bool isDark) override { if (m_child) m_child->onThemeChanged(isDark); }
-
-private:
-	IUiComponent* m_child{ nullptr }; // 非拥有
-	int m_prefW{ 0 };
-	QRect m_viewport;
-};
-
-// ====== UiFormulaView 实现（UiPanel-based） ======
+// ====== UiFormulaView 实现（简化版本使用声明式Grid） ======
 UiFormulaView::UiFormulaView()
-	: UiPanel(Orientation::Horizontal)
 {
-	qDebug() << "[UiFormulaView] ctor (UiPanel-based)";
+	qDebug() << "[UiFormulaView] ctor (declarative Grid-based)";
 
 	// 1) VM + 左树
 	m_vm = std::make_unique<FormulaViewModel>();
 	m_tree = std::make_unique<UiTreeList>();
-	m_adapter = std::make_unique<VmTreeAdapter>(m_vm.get());
-	m_tree->setModel(m_adapter.get());
+	
+	// 2) 使用函数式绑定替代适配器类
+	m_tree->setModelFns({
+		.rootIndices = [this]() -> QVector<int> {
+			QVector<int> roots;
+			if (!m_vm) return roots;
+			const auto& nodes = m_vm->nodes();
+			for (int i = 0; i < nodes.size(); ++i) {
+				if (nodes[i].parentIndex == -1) roots.push_back(i);
+			}
+			return roots;
+		},
+		.childIndices = [this](int nodeId) -> QVector<int> {
+			return m_vm ? m_vm->childIndices(nodeId) : QVector<int>{};
+		},
+		.nodeInfo = [this](int nodeId) -> UiTreeList::NodeInfo {
+			UiTreeList::NodeInfo info;
+			if (!m_vm) return info;
+			const auto& nodes = m_vm->nodes();
+			if (nodeId < 0 || nodeId >= nodes.size()) return info;
+			info.label = nodes[nodeId].label;
+			info.level = nodes[nodeId].level;
+			info.expanded = nodes[nodeId].expanded;
+			return info;
+		},
+		.selectedId = [this]() -> int {
+			return m_vm ? m_vm->selectedIndex() : -1;
+		},
+		.setSelectedId = [this](int nodeId) {
+			if (m_vm) m_vm->setSelectedIndex(nodeId);
+		},
+		.setExpanded = [this](int nodeId, bool on) {
+			if (m_vm) m_vm->setExpanded(nodeId, on);
+		}
+	});
 
-	// 2) 右侧详情：声明式 BindingHost（替代手动 RebuildHost 管理）
+	// 3) 右侧详情：声明式 BindingHost（保持原有逻辑）
 	m_detailBindingHost = bindingHost([this]() -> WidgetPtr
 		{
 			const auto* detail = m_vm->selectedFormula();
@@ -270,36 +157,33 @@ UiFormulaView::UiFormulaView()
 	// 4) 加载示例数据
 	m_vm->loadSampleData();
 
-	// 5) 初始调色 + 构建布局子项
+	// 5) 初始调色 + 构建布局
 	applyPalettes();
-	buildChildren();
+	buildUI();
 }
 
 UiFormulaView::~UiFormulaView() = default;
 
-void UiFormulaView::buildChildren()
+void UiFormulaView::buildUI()
 {
-	// 清空旧子项
-	clearChildren();
-
-	// Panel 属性
-	setSpacing(0);
-
 	// 分割条颜色随主题
 	const QColor splitClr = m_isDark ? QColor(255, 255, 255, 30) : QColor(0, 0, 0, 25);
-	m_splitter = std::make_unique<VSplitter>(splitClr, 1);
-
-	// 创建宽度提示包装器（默认左侧 320px，右侧先置 400px，实际会在 setViewportRect 中根据比例更新）
-	m_treeWrap = std::make_unique<WidthHint>(m_tree.get(), 320);
 	
-	// 构建声明式绑定宿主组件
-	m_detailComponent = m_detailBindingHost ? m_detailBindingHost->build() : nullptr;
-	m_detailWrap = std::make_unique<WidthHint>(m_detailComponent.get(), 400);
+	// 使用声明式Grid布局：35% tree, 1px splitter, 65% detail
+	auto gridWidget = grid()
+		->columns({
+			Grid::Track::Star(0.35f),  // 35% for tree
+			Grid::Track::Px(1),        // 1px for splitter
+			Grid::Track::Star(0.65f)   // 65% for detail
+		})
+		->rows({ Grid::Track::Star(1.0f) })  // Single row stretches
+		->colSpacing(0)
+		->rowSpacing(0)
+		->add(wrap(m_tree.get()), 0, 0, 1, 1, Grid::CellAlign::Stretch, Grid::CellAlign::Stretch)
+		->add(coloredBox(splitClr), 0, 1, 1, 1, Grid::CellAlign::Stretch, Grid::CellAlign::Stretch)
+		->add(m_detailBindingHost, 0, 2, 1, 1, Grid::CellAlign::Stretch, Grid::CellAlign::Stretch);
 
-	// 添加子项：左树（Stretch 交叉轴拉伸）、分割条（1px）、右详情（Stretch）
-	addChild(m_treeWrap.get(), CrossAlign::Stretch);
-	addChild(m_splitter.get(), CrossAlign::Stretch);
-	addChild(m_detailWrap.get(), CrossAlign::Stretch);
+	m_mainUI = gridWidget->build();
 }
 
 void UiFormulaView::setDarkTheme(const bool dark)
@@ -307,9 +191,9 @@ void UiFormulaView::setDarkTheme(const bool dark)
 	if (m_isDark == dark) return;
 	m_isDark = dark;
 	applyPalettes();
-	// 重建子项以应用新主题（BindingHost 会自动处理详情重建）
-	buildChildren();
-	UiPanel::onThemeChanged(m_isDark);
+	// 重建UI以应用新主题（BindingHost 会自动处理详情重建）
+	buildUI();
+	onThemeChanged(m_isDark);
 }
 
 void UiFormulaView::applyPalettes() const
@@ -349,29 +233,55 @@ void UiFormulaView::onThemeChanged(const bool isDark)
 {
 	m_isDark = isDark;
 	applyPalettes();
-	// 重建子项以应用新主题（BindingHost 会自动处理详情重建）
-	buildChildren();
+	// 重建UI以应用新主题（BindingHost 会自动处理详情重建）
+	buildUI();
 
-	// 交给 UiPanel 继续把主题往子项传
-	UiPanel::onThemeChanged(isDark);
+	// 传递主题变化给主UI组件
+	if (m_mainUI) m_mainUI->onThemeChanged(isDark);
 }
 
-// 在获取到页面 viewport 时，按比例计算左右两侧的“期望宽度”，下发给包装器
-void UiFormulaView::setViewportRect(const QRect& r)
+// IUiComponent interface implementation - delegate to main UI
+void UiFormulaView::updateLayout(const QSize& windowSize)
 {
-	UiPanel::setViewportRect(r);
+	if (m_mainUI) m_mainUI->updateLayout(windowSize);
+}
 
-	const int totalW = std::max(0, r.width());
-	constexpr int splitterW = 1;
-	// 可设置一个左侧最小/最大宽度，避免过窄或过宽
-	constexpr int minLeft = 220;
-	const int maxLeft = std::max(minLeft, totalW - 300);
+void UiFormulaView::updateResourceContext(IconCache& cache, QOpenGLFunctions* gl, float devicePixelRatio)
+{
+	if (m_mainUI) m_mainUI->updateResourceContext(cache, gl, devicePixelRatio);
+}
 
-	int leftW = static_cast<int>(std::round(static_cast<double>(totalW) * m_leftRatio));
-	leftW = std::clamp(leftW, minLeft, maxLeft);
+void UiFormulaView::append(Render::FrameData& fd) const
+{
+	if (m_mainUI) m_mainUI->append(fd);
+}
 
-	const int rightW = std::max(0, totalW - splitterW - leftW);
+bool UiFormulaView::onMousePress(const QPoint& pos)
+{
+	return m_mainUI ? m_mainUI->onMousePress(pos) : false;
+}
 
-	if (m_treeWrap) m_treeWrap->setPreferredWidth(leftW);
-	if (m_detailWrap) m_detailWrap->setPreferredWidth(rightW);
+bool UiFormulaView::onMouseMove(const QPoint& pos)
+{
+	return m_mainUI ? m_mainUI->onMouseMove(pos) : false;
+}
+
+bool UiFormulaView::onMouseRelease(const QPoint& pos)
+{
+	return m_mainUI ? m_mainUI->onMouseRelease(pos) : false;
+}
+
+bool UiFormulaView::onWheel(const QPoint& pos, const QPoint& angleDelta)
+{
+	return m_mainUI ? m_mainUI->onWheel(pos, angleDelta) : false;
+}
+
+bool UiFormulaView::tick()
+{
+	return m_mainUI ? m_mainUI->tick() : false;
+}
+
+QRect UiFormulaView::bounds() const
+{
+	return m_mainUI ? m_mainUI->bounds() : QRect();
 }
