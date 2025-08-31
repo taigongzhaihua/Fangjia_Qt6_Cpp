@@ -33,7 +33,6 @@ void UiTopBar::setDarkTheme(const bool dark)
 
 void UiTopBar::setFollowSystem(const bool on, const bool animate)
 {
-	if (m_followSystem == on && animate) return;
 	if (!animate) {
 		m_followSystem = on;
 		m_animPhase = AnimPhase::Idle;
@@ -45,10 +44,10 @@ void UiTopBar::setFollowSystem(const bool on, const bool animate)
 		m_btnTheme.setEnabled(themeInteractive());
 		return;
 	}
-	if (m_followSystem != on) {
-		m_followSystem = on;
-		startAnimSequence(on);
-	}
+	// For animate==true: always set state and start animation sequence
+	// This allows animation to restart even if the logical state didn't change
+	m_followSystem = on;
+	startAnimSequence(on);
 }
 
 void UiTopBar::setPalette(const Palette& p)

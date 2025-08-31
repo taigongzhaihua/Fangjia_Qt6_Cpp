@@ -76,7 +76,6 @@ private:
         MockUiTopBar(MockClock* clock) : m_clock(clock) {}
 
         void setFollowSystem(bool on, bool animate) {
-            if (m_followSystem == on && animate) return;
             if (!animate) {
                 m_followSystem = on;
                 m_animPhase = AnimPhase::Idle;
@@ -84,10 +83,10 @@ private:
                 m_followSlide = on ? 1.0f : 0.0f;
                 return;
             }
-            if (m_followSystem != on) {
-                m_followSystem = on;
-                startAnimSequence(on);
-            }
+            // For animate==true: always set state and start animation sequence
+            // This allows animation to restart even if the logical state didn't change
+            m_followSystem = on;
+            startAnimSequence(on);
         }
 
         void setCornerRadius(float r) { m_cornerRadius = r; }
@@ -375,11 +374,50 @@ public:
     }
 
 public:
+    void testAnimationRestartWithSameState() {
+        std::cout << "Testing animation restart with same state..." << std::endl;
+        
+        MockClock clock;
+        MockTopBarComponent component(false, false, &clock);
+        
+        // Start with follow system OFF
+        assert(component.topBar()->followSystem() == false);
+        
+        // Enable follow system with animation
+        component.topBar()->setFollowSystem(true, true);
+        assert(component.topBar()->animPhase() == AnimPhase::HideTheme_FadeOut);
+        
+        // Advance partway through animation
+        clock.advance(80);  // Half way through fade out
+        component.tick();
+        assert(component.topBar()->animPhase() == AnimPhase::HideTheme_FadeOut);
+        
+        // Key test: Try to enable again with same state but with animation
+        // With the fix, this should restart the animation sequence
+        component.topBar()->setFollowSystem(true, true);
+        
+        // Animation should restart from beginning
+        assert(component.topBar()->animPhase() == AnimPhase::HideTheme_FadeOut);
+        
+        // Complete the restarted animation
+        clock.advance(160);  // Complete fade out
+        component.tick();
+        assert(component.topBar()->animPhase() == AnimPhase::MoveFollow_Right);
+        
+        clock.advance(200);  // Complete slide
+        component.tick();
+        assert(component.topBar()->animPhase() == AnimPhase::Idle);
+        assert(component.topBar()->followSystem() == true);
+        
+        std::cout << "✓ Animation restart with same state test passed" << std::endl;
+    }
+
     void runAllTests() {
         testEnablingFollowSystemAnimation();
         testDisablingFollowSystemAnimation();
         testThemeInteractivity();
         testCallbackIntegration();
+        testAnimationRestartWithSameState();
     }
 };
 

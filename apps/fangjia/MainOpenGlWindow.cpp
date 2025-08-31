@@ -479,6 +479,11 @@ void MainOpenGlWindow::setupThemeListeners()
 				if (m_shellRebuildHost)
 				{
 					m_shellRebuildHost->requestRebuild();
+					// Ensure animation timer is running if a follow animation is expected
+					if (m_animateFollowChange && !m_animTimer.isActive()) {
+						m_animClock.start();
+						m_animTimer.start();
+					}
 					// Defer clearing animation flag until next event loop tick to ensure 
 					// the rebuilt TopBar receives animate=true
 					QTimer::singleShot(0, [this]() {
