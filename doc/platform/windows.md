@@ -1,3 +1,5 @@
+**简体中文** | [English](../../doc.zh-cn/platform/windows.md)
+
 # Windows 平台集成
 
 本文档介绍 Fangjia Qt6 C++ 框架在 Windows 平台上的特定集成功能，包括 WinWindowChrome 窗口装饰和 HitTest 区域处理。

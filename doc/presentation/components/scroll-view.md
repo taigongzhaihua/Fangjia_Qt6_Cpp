@@ -1,3 +1,5 @@
+**English** | [简体中文](../../../doc.zh-cn/presentation/components/scroll-view.md)
+
 # ScrollView Component
 
 ## Overview

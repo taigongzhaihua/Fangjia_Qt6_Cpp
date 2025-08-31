@@ -1,3 +1,5 @@
+**English** | [简体中文](doc.zh-cn/README.md)
+
 # Fangjia Qt6 C++
 
 ## Project Overview
@@ -62,21 +64,24 @@ The application demonstrates declarative UI components, theme switching, navigat
 
 ## Documentation
 
-Comprehensive technical documentation is available in the **[doc/](doc/index.md)** directory:
+Comprehensive technical documentation is available in both languages:
+
+- **English**: **[doc/](doc/index.md)** - Full technical documentation and development guides
+- **简体中文**: **[doc.zh-cn/](doc.zh-cn/index.md)** - 完整的技术文档和开发指南
 
 ### Getting Started
-- **[Architecture Overview](doc/architecture/overview.md)** - Understand the system design and component relationships
+- **[Architecture Overview](doc/architecture/overview.md)** ([中文](doc.zh-cn/architecture/overview.md)) - Understand the system design and component relationships
 - **[Build Guides](doc/build/)** - Platform-specific setup and compilation instructions  
-- **[UI Framework Overview](doc/presentation/ui-framework/overview.md)** - Learn about the component system and declarative APIs
+- **[UI Framework Overview](doc/presentation/ui-framework/overview.md)** ([中文](doc.zh-cn/presentation/ui-framework/overview.md)) - Learn about the component system and declarative APIs
 
 ### Key Features Documentation
-- **[Graphics & Rendering](doc/infrastructure/gfx.md)** - High-performance OpenGL rendering pipeline
-- **[Theme System](doc/presentation/ui-framework/theme-and-rendering.md)** - Light/dark theme support with system following
-- **[Layout System](doc/presentation/ui-framework/layouts.md)** - Flexible container and positioning system
-- **[Component Library](doc/presentation/components/)** - TopBar, NavRail, TabView, ScrollView components
+- **[Graphics & Rendering](doc/infrastructure/gfx.md)** ([中文](doc.zh-cn/infrastructure/gfx.md)) - High-performance OpenGL rendering pipeline
+- **[Theme System](doc/presentation/ui-framework/theme-and-rendering.md)** ([中文](doc.zh-cn/presentation/ui-framework/theme-and-rendering.md)) - Light/dark theme support with system following
+- **[Layout System](doc/presentation/ui-framework/layouts.md)** ([中文](doc.zh-cn/presentation/ui-framework/layouts.md)) - Flexible container and positioning system
+- **[Component Library](doc/presentation/components/)** ([中文](doc.zh-cn/presentation/components/)) - TopBar, NavRail, TabView, ScrollView components
 
 ### Advanced Topics
-- **[Data Binding](doc/presentation/binding.md)** - Reactive data binding and UI updates
-- **[Platform Integration](doc/infrastructure/platform-windows.md)** - Native Windows features and optimizations
+- **[Data Binding](doc/presentation/binding.md)** ([中文](doc.zh-cn/presentation/binding.md)) - Reactive data binding and UI updates
+- **[Platform Integration](doc/infrastructure/platform-windows.md)** ([中文](doc.zh-cn/infrastructure/platform-windows.md)) - Native Windows features and optimizations
 
-For a complete table of contents, see **[doc/index.md](doc/index.md)**.
+For a complete table of contents, see **[doc/index.md](doc/index.md)** (English) or **[doc.zh-cn/index.md](doc.zh-cn/index.md)** (简体中文).

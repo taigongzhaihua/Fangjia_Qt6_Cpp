@@ -1,3 +1,5 @@
+**English** | [简体中文](../../doc.zh-cn/architecture/overview.md)
+
 # Architecture Overview
 
 ## System Design

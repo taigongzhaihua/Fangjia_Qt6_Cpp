@@ -1,3 +1,5 @@
+**简体中文** | [English](../../doc.zh-cn/application/app-shell.md)
+
 # App Shell 与应用组装
 
 本文档介绍 Fangjia Qt6 C++ 框架中的 AppShell 应用外壳组件，以及导航、TopBar、内容区的拼装与交互协调机制。

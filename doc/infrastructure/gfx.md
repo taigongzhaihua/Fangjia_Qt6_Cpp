@@ -1,3 +1,5 @@
+**简体中文** | [English](../../doc.zh-cn/infrastructure/gfx.md)
+
 # 渲染与图形系统
 
 本文档介绍 Fangjia Qt6 C++ 框架中的渲染管线，包括 RenderData、IconCache、RenderUtils 的职责与使用方法，以及 OpenGL 渲染优化策略。

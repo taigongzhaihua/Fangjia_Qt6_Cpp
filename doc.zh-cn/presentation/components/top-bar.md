@@ -1,4 +1,4 @@
-[English](../../doc/presentation/components/top-bar.md) | **简体中文**
+[English](../../../doc/presentation/components/top-bar.md) | **简体中文**
 
 # TopBar 组件
 

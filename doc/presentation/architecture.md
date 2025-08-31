@@ -1,3 +1,5 @@
+**简体中文** | [English - N/A]
+
 # 表现层架构与声明式体系概览
 
 本文档介绍 Fangjia Qt6 C++ 项目的表现层架构核心机制，包括 BindingHost、RebuildHost、UiRoot 的职责与协作，以及声明式 UI 体系的设计理念。

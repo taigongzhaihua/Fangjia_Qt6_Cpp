@@ -1,4 +1,4 @@
-[English](../../doc/presentation/ui/components.md) | **简体中文**
+[English](../../../doc/presentation/ui/components.md) | **简体中文**
 
 # UI 基础部件与容器
 

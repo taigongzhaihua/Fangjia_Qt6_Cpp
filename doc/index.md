@@ -1,3 +1,5 @@
+**English** | [简体中文](../doc.zh-cn/index.md)
+
 # Fangjia Qt6 C++ Documentation
 
 This documentation is organized by system to provide developers with comprehensive technical reference and development guides.

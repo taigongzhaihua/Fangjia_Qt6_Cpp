@@ -1,3 +1,5 @@
+**English** | [简体中文](../../../doc.zh-cn/presentation/ui-framework/theme-and-rendering.md)
+
 # Theme & Rendering
 
 ## Overview
