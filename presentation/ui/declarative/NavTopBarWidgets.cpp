@@ -15,6 +15,7 @@
 #include <cmath>
 #include <qelapsedtimer.h>
 #include <qopenglfunctions.h>
+#include <qglobal.h>
 
 namespace UI {
 
