@@ -14,21 +14,25 @@
 #include <qopenglwindow.h>
 #include <qtimer.h>
 
+#include "CurrentPageHost.h"
 #include "IconCache.h"
+#include "NavViewModel.h"
 #include "PageRouter.h"
 #include "Renderer.h"
 #include "ThemeManager.h"
 #include "UiNav.h"
 #include "UiRoot.h"
 #include "UiTopBar.h"
-#include "CurrentPageHost.h"
-#include "UI.h"
 
 #ifdef Q_OS_WIN
 class WinWindowChrome;
 #endif
 #include <qsystemdetection.h>
 #include <qrect.h>
+#include <algorithm>
+#include <qevent.h>
+#include <Binding.h>
+#include <RebuildHost.h>
 
 // 前向声明
 class AppConfig;
@@ -74,15 +78,12 @@ public:
 	void setFollowSystem(bool on) const;
 	bool followSystem() const noexcept;
 
-	/// Navigation data provider injection
-	/// Sets the navigation data provider for the window to read/observe state from
-	/// This should be called before showing the window to ensure proper navigation setup
-	void setNavDataProvider(fj::presentation::binding::INavDataProvider* provider);
+
 
 	/// Windows平台窗口Chrome命中测试辅助
 	/// 返回：UI组件的边界矩形，用于自定义标题栏区域判定
 	QRect navBounds() const { return m_nav.bounds(); }
-	QRect topBarBounds() const { 
+	QRect topBarBounds() const {
 		// 计算TopBar区域：右上角，从NavRail右侧到窗口右边，高度为固定的52像素
 		const int navWidth = m_nav.currentWidth();
 		const int topBarHeight = 52; // 与initializeDeclarativeShell中的topBarHeight一致
@@ -139,8 +140,8 @@ private:
 	std::shared_ptr<ThemeManager> m_themeMgr;
 	std::shared_ptr<AppConfig> m_config;
 
-	// Navigation data provider (injected)
-	fj::presentation::binding::INavDataProvider* m_navProvider{ nullptr };
+	// 数据模型
+	NavViewModel m_navVm;
 
 	// UI组件层次结构
 	Ui::NavRail m_nav;

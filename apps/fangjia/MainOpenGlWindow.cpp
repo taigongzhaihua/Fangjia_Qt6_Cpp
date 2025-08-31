@@ -19,7 +19,6 @@
 #include <RenderData.hpp>
 #include <UiNav.h>
 #include <UiTopBar.h>
-#include <nav_interface.h>
 #include <GL/gl.h>
 #include <memory>
 #include <qcontainerfwd.h>
@@ -39,6 +38,8 @@
 #include <RebuildHost.h>
 #include <UI.h>
 #include <Widget.h>
+#include <qpoint.h>
+#include <NavViewModel.h>
 
 namespace
 {
@@ -93,6 +94,8 @@ MainOpenGlWindow::~MainOpenGlWindow()
 		if (m_config)
 		{
 			m_config->setWindowGeometry(saveWindowGeometry(this));
+			m_config->setNavSelectedIndex(m_navVm.selectedIndex());
+			m_config->setNavExpanded(m_navVm.expanded());
 			m_config->save();
 		}
 
@@ -279,9 +282,7 @@ void MainOpenGlWindow::mouseDoubleClickEvent(QMouseEvent* e)
 	{
 		if (m_nav.bounds().contains(e->pos()))
 		{
-			if (m_navProvider) {
-				m_navProvider->setExpanded(!m_navProvider->expanded());
-			}
+			m_navVm.toggleExpanded();
 			updateLayout();
 			if (!m_animTimer.isActive())
 			{
@@ -361,18 +362,46 @@ void MainOpenGlWindow::keyReleaseEvent(QKeyEvent* e)
 void MainOpenGlWindow::initializeNavigation()
 {
 	// 设置导航视图（仅配置UI视觉属性）
+	if (m_config)
+	{
+		if (const int savedIndex = m_config->navSelectedIndex(); savedIndex >= 0 && savedIndex < m_navVm.count())
+		{
+			m_navVm.setSelectedIndex(savedIndex);
+		}
+		else
+		{
+			m_navVm.setSelectedIndex(0);
+		}
+		m_navVm.setExpanded(m_config->navExpanded());
+	}
+
+	// 设置导航视图
+	m_nav.setDataProvider(&m_navVm);
 	m_nav.setIconLogicalSize(22);
 	m_nav.setItemHeight(48);
 	m_nav.setLabelFontPx(13);
 	m_nav.setWidths(48, 200);
 
 	// 如果已有数据提供者，则配置连接
-	if (m_navProvider) {
-		m_nav.setDataProvider(m_navProvider);
-		
-		// 连接导航选择变化到页面路由
-		connect(m_navProvider, &fj::presentation::binding::INavDataProvider::selectedIndexChanged,
-			this, &MainOpenGlWindow::onNavSelectionChanged);
+
+
+		// 连接导航选择变化
+	connect(&m_navVm, &NavViewModel::selectedIndexChanged, this, &MainOpenGlWindow::onNavSelectionChanged);
+
+	// 连接导航状态变化到配置保存
+	if (m_config)
+	{
+		connect(&m_navVm, &NavViewModel::expandedChanged, m_config.get(), [this](const bool expanded)
+			{
+				m_config->setNavExpanded(expanded);
+				m_config->save();
+			});
+
+		connect(&m_navVm, &NavViewModel::selectedIndexChanged, m_config.get(), [this](const int index)
+			{
+				m_config->setNavSelectedIndex(index);
+				m_config->save();
+			});
 	}
 }
 
@@ -388,12 +417,10 @@ void MainOpenGlWindow::initializePages()
 		m_pageRouter.registerPage("settings", [] { return std::make_unique<SettingsPage>(); });
 
 		// 切换到初始页面（基于注入的导航数据提供者）
-		if (m_navProvider) {
-			const auto items = m_navProvider->items();
-			const int selectedIdx = m_navProvider->selectedIndex();
-			if (selectedIdx >= 0 && selectedIdx < items.size()) {
-				m_pageRouter.switchToPage(items[selectedIdx].id);
-			}
+		const auto& items = m_navVm.itemsInternal();
+		if (m_navVm.selectedIndex() >= 0 && m_navVm.selectedIndex() < items.size())
+		{
+			m_pageRouter.switchToPage(items[m_navVm.selectedIndex()].id);
 		}
 	}
 	catch (const std::exception& e)
@@ -451,11 +478,11 @@ void MainOpenGlWindow::setupThemeListeners()
 						// Clear the animation intent after a short delay to avoid racing the rebuild
 						QTimer::singleShot(300, [this]() {
 							m_animateFollowChange = false;
-						});
+							});
 					}
 					updateLayout();
 					update();
-				});
+					});
 			});
 	}
 }
@@ -526,22 +553,22 @@ void MainOpenGlWindow::setFollowSystem(const bool on) const
 
 void MainOpenGlWindow::onNavSelectionChanged(const int index)
 {
-	if (m_navProvider) {
-		const auto items = m_navProvider->items();
-		if (index >= 0 && index < items.size()) {
-			const QString pageId = items[index].id;
+	const auto& items = m_navVm.itemsInternal();
+	if (index >= 0 && index < items.size())
+	{
+		const QString pageId = items[index].id;
 
-			// 声明式模式：仅切换页面，AppShell会通过重建自动更新UI
-			// CurrentPageHost负责处理视口设置，UiRoot负责主题传播和资源上下文更新
-			m_pageRouter.switchToPage(pageId);
+		// 声明式模式：仅切换页面，AppShell会通过重建自动更新UI
+		// CurrentPageHost负责处理视口设置，UiRoot负责主题传播和资源上下文更新
+		m_pageRouter.switchToPage(pageId);
 
-			// 可选：请求重建以确保UI更新
-			if (m_shellRebuildHost) {
-				m_shellRebuildHost->requestRebuild();
-			}
-
-			update();
+		// 可选：请求重建以确保UI更新
+		if (m_shellRebuildHost)
+		{
+			m_shellRebuildHost->requestRebuild();
 		}
+
+		update();
 	}
 }
 
@@ -557,10 +584,10 @@ void MainOpenGlWindow::onThemeToggle() const
 void MainOpenGlWindow::onFollowSystemToggle() const
 {
 	if (!m_themeMgr) return;
-	
+
 	// Set animation flag before changing theme mode so the next rebuild knows to animate
 	const_cast<MainOpenGlWindow*>(this)->m_animateFollowChange = true;
-	
+
 	setFollowSystem(m_themeMgr->mode() != ThemeManager::ThemeMode::FollowSystem);
 
 	// Defer rebuild and animation to the next event loop turn to avoid re-entrant destruction
@@ -575,7 +602,7 @@ void MainOpenGlWindow::onFollowSystemToggle() const
 			self->m_animTimer.start();
 		}
 		self->update();
-	});
+		});
 }
 
 void MainOpenGlWindow::onAnimationTick()
@@ -610,10 +637,10 @@ void MainOpenGlWindow::initializeDeclarativeShell()
 	m_shellHost = bindingHost([this]() -> WidgetPtr
 		{
 			const bool animateNow = m_animateFollowChange;
-			
+
 			// 确定跟随系统状态
 			const bool followSystem = m_themeMgr && m_themeMgr->mode() == ThemeManager::ThemeMode::FollowSystem;
-			
+
 			// Shell构建器：每次重建时都创建新的AppShell布局
 			return appShell()
 				->nav(wrap(&m_nav))
@@ -626,10 +653,10 @@ void MainOpenGlWindow::initializeDeclarativeShell()
 					->onThemeToggle([this]() { onThemeToggle(); })
 					->onFollowToggle([this]() { onFollowSystemToggle(); })
 					->onMinimize([this]() { showMinimized(); })
-					->onMaxRestore([this]() { 
+					->onMaxRestore([this]() {
 						if (visibility() == Maximized) showNormal();
 						else showMaximized();
-					})
+						})
 					->onClose([this]() { close(); })
 				)
 				->content([this]() -> WidgetPtr
@@ -646,12 +673,10 @@ void MainOpenGlWindow::initializeDeclarativeShell()
 				->connect([this](RebuildHost* host)
 					{
 						// 观察导航选择变化（展开/收缩由动画tick处理）
-						if (m_navProvider) {
-							observe(m_navProvider, &fj::presentation::binding::INavDataProvider::selectedIndexChanged, [host](int)
-								{
-									host->requestRebuild();
-								});
-						}
+						observe(&m_navVm, &NavViewModel::selectedIndexChanged, [host](int)
+							{
+								host->requestRebuild();
+							});
 					});
 		})
 		// 添加观察导航展开状态变化的连接器（用于非动画的立即变化）
@@ -660,12 +685,10 @@ void MainOpenGlWindow::initializeDeclarativeShell()
 				// 保存RebuildHost引用以便在动画期间使用
 				m_shellRebuildHost = host;
 
-				if (m_navProvider) {
-					observe(m_navProvider, &fj::presentation::binding::INavDataProvider::expandedChanged, [host](bool)
-						{
-							host->requestRebuild();
-						});
-				}
+				observe(&m_navVm, &NavViewModel::expandedChanged, [host](bool)
+					{
+						host->requestRebuild();
+					});
 			});
 
 	// 将Shell BindingHost添加到UiRoot
@@ -688,30 +711,3 @@ QRect MainOpenGlWindow::topBarSystemButtonsRect() const {
 	return QRect(x, y, clusterW, h);
 }
 
-void MainOpenGlWindow::setNavDataProvider(fj::presentation::binding::INavDataProvider* provider)
-{
-	if (m_navProvider == provider) return;
-	
-	// 断开旧的连接
-	if (m_navProvider) {
-		disconnect(m_navProvider, nullptr, this, nullptr);
-	}
-	
-	m_navProvider = provider;
-	
-	// 设置UI数据提供者
-	m_nav.setDataProvider(m_navProvider);
-	
-	// 如果提供者存在，连接信号
-	if (m_navProvider) {
-		connect(m_navProvider, &fj::presentation::binding::INavDataProvider::selectedIndexChanged,
-			this, &MainOpenGlWindow::onNavSelectionChanged);
-	}
-	
-	// 如果已经初始化完成，请求重建和布局更新
-	if (m_shellRebuildHost) {
-		m_shellRebuildHost->requestRebuild();
-	}
-	updateLayout();
-	update();
-}

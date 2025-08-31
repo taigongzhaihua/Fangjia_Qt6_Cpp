@@ -1,10 +1,10 @@
 #include "UiGrid.h"
 
+#include "IFocusable.hpp"
+#include "IFocusContainer.hpp"
 #include <algorithm>
 #include <cmath>
 #include <ILayoutable.hpp>
-#include "IFocusable.hpp"
-#include "IFocusContainer.hpp"
 #include <limits>
 #include <numeric>
 #include <qopenglfunctions.h>
@@ -228,14 +228,16 @@ std::vector<int> UiGrid::computeColumnWidths(const int contentW) const {
 			if (m_cols[i].type == TrackDef::Type::Star) out[i] = std::max(0, starMin[i] - dec[i]);
 			else out[i] = width[i];
 		}
-	} else {
+	}
+	else {
 		for (int i = 0; i < n; ++i) {
 			if (m_cols[i].type == TrackDef::Type::Star) {
 				const int add = (avail >= 0 && totalStar > 0.0f)
 					? static_cast<int>(std::floor(avail * (starWeight[i] / totalStar)))
 					: 0;
 				out[i] = starMin[i] + add;
-			} else {
+			}
+			else {
 				out[i] = width[i];
 			}
 		}
@@ -415,14 +417,16 @@ std::vector<int> UiGrid::computeRowHeights(const int contentH, const std::vector
 			if (m_rows[r].type == TrackDef::Type::Star) out[r] = std::max(0, starMin[r] - dec[r]);
 			else out[r] = height[r];
 		}
-	} else {
+	}
+	else {
 		for (int r = 0; r < rN; ++r) {
 			if (m_rows[r].type == TrackDef::Type::Star) {
 				const int add = (avail >= 0 && totalStar > 0.0f)
 					? static_cast<int>(std::floor(avail * (starWeight[r] / totalStar)))
 					: 0;
 				out[r] = starMin[r] + add;
-			} else {
+			}
+			else {
 				out[r] = height[r];
 			}
 		}
@@ -476,7 +480,7 @@ std::vector<int> UiGrid::computeRowHeightsIntrinsic(const std::vector<int>& colW
 		}
 		w += std::max(0, c1 - c0 - 1) * m_colSpacing;
 		return w;
-	};
+		};
 
 	// Pass 1：单行跨度（rowSpan==1）填充 Auto/Star 的最小高度（按列宽约束测量）
 	for (const auto& ch : m_children) {
@@ -571,7 +575,8 @@ std::vector<int> UiGrid::computeRowHeightsIntrinsic(const std::vector<int>& colW
 	for (int r = 0; r < rN; ++r) {
 		if (m_rows[r].type == TrackDef::Type::Star) {
 			out[r] = starMin[r];
-		} else {
+		}
+		else {
 			out[r] = height[r];
 		}
 	}
@@ -591,7 +596,7 @@ QSize UiGrid::measure(const SizeConstraints& cs) {
 			else others++;
 		}
 		maxW = m_margins.left() + m_margins.right() + m_padding.left() + m_padding.right()
-			+ pxSum + others * 120 + std::max(0, (int)m_cols.size() - 1) * m_colSpacing;
+			+ pxSum + others * 120 + std::max(0, static_cast<int>(m_cols.size()) - 1) * m_colSpacing;
 	}
 	if (maxH >= std::numeric_limits<int>::max() / 4) {
 		int pxSum = 0, others = 0;
@@ -600,7 +605,7 @@ QSize UiGrid::measure(const SizeConstraints& cs) {
 			else others++;
 		}
 		maxH = m_margins.top() + m_margins.bottom() + m_padding.top() + m_padding.bottom()
-			+ pxSum + others * 40 + std::max(0, (int)m_rows.size() - 1) * m_rowSpacing;
+			+ pxSum + others * 40 + std::max(0, static_cast<int>(m_rows.size()) - 1) * m_rowSpacing;
 	}
 
 	// 确保行列足够覆盖子项
@@ -619,19 +624,20 @@ QSize UiGrid::measure(const SizeConstraints& cs) {
 
 	// 行高基于列宽再测一轮
 	const bool unboundedH = (cs.maxH >= std::numeric_limits<int>::max() / 4);
-	
-	int totalW = padW + std::accumulate(colW.begin(), colW.end(), 0) + std::max(0, (int)colW.size() - 1) * m_colSpacing;
+
+	int totalW = padW + std::accumulate(colW.begin(), colW.end(), 0) + std::max(0, static_cast<int>(colW.size()) - 1) * m_colSpacing;
 	int outW = std::clamp(totalW, cs.minW, cs.maxW);
 	int outH = 0;
 
 	if (unboundedH) {
 		const std::vector<int> rowH = computeRowHeightsIntrinsic(colW);
-		const int totalH = padH + std::accumulate(rowH.begin(), rowH.end(), 0) + std::max(0, (int)rowH.size() - 1) * m_rowSpacing;
+		const int totalH = padH + std::accumulate(rowH.begin(), rowH.end(), 0) + std::max(0, static_cast<int>(rowH.size()) - 1) * m_rowSpacing;
 		outH = std::clamp(totalH, cs.minH, cs.maxH);
-	} else {
+	}
+	else {
 		const int contentH = std::max(0, maxH - padH);
 		const std::vector<int> rowH = computeRowHeights(contentH, colW);
-		const int totalH = padH + std::accumulate(rowH.begin(), rowH.end(), 0) + std::max(0, (int)rowH.size() - 1) * m_rowSpacing;
+		const int totalH = padH + std::accumulate(rowH.begin(), rowH.end(), 0) + std::max(0, static_cast<int>(rowH.size()) - 1) * m_rowSpacing;
 		outH = std::clamp(totalH, cs.minH, cs.maxH);
 	}
 	return { outW, outH };
@@ -681,7 +687,7 @@ void UiGrid::updateLayout(const QSize& windowSize) {
 	}
 
 	auto spanSize = [&](const int start, const int span, const std::vector<int>& arr, const int gap) {
-		if (start < 0 || start >= (int)arr.size() || span <= 0) return 0;
+		if (start < 0 || start >= static_cast<int>(arr.size()) || span <= 0) return 0;
 		const int end = std::min(static_cast<int>(arr.size()), start + span) - 1;
 		int s = 0;
 		for (int i = start; i <= end; ++i) s += arr[i];
@@ -793,14 +799,14 @@ void UiGrid::enumerateFocusables(std::vector<IFocusable*>& out) const
 	// UiGrid children are sorted by row-column order which makes sense for Tab navigation
 	for (const auto& child : m_children) {
 		if (!child.visible || !child.component) continue;
-		
+
 		// 如果子组件本身可以获得焦点，添加它
 		if (auto* focusable = dynamic_cast<IFocusable*>(child.component)) {
 			if (focusable->canFocus()) {
 				out.push_back(focusable);
 			}
 		}
-		
+
 		// 如果子组件是容器，递归枚举其可焦点子组件
 		if (auto* container = dynamic_cast<IFocusContainer*>(child.component)) {
 			container->enumerateFocusables(out);

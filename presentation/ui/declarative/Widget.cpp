@@ -38,7 +38,7 @@ namespace UI {
 			(m_decorations.fixedSize.width() > 0 || m_decorations.fixedSize.height() > 0) ||
 			(m_decorations.opacity < 0.999f) ||
 			(!m_decorations.isVisible) ||
-			(bool)m_decorations.onTap || (bool)m_decorations.onHover ||
+			static_cast<bool>(m_decorations.onTap) || static_cast<bool>(m_decorations.onHover) ||
 			(m_decorations.borderColor.alpha() > 0);
 		if (!need) return inner;
 

@@ -17,6 +17,9 @@
 #include <RebuildHost.h>
 #include <UiComponent.hpp>
 #include <Widget.h>
+
+#include "BasicWidgets_Button.h"
+#include <qmargins.h>
 using namespace UI;
 
 // CounterViewModel 实现
@@ -157,12 +160,10 @@ private:
 								->padding(8, 4)
 								->background(QColor(100, 160, 220), 6.0f),
 								0, 0)
-						  ->add(text("递减")
-								->fontSize(14)
-								->align(Qt::AlignHCenter)
+						  ->add(button("递减")
 								->onTap([this] { counterVM->decrement(); })
-								->padding(8, 4)
-								->background(QColor(220, 100, 100), 6.0f),
+							  ->destructive()
+								->padding(QMargins(8,4,8,4)),
 								0, 1)
 						  ->colSpacing(10)
 						  ->size(120, 28),

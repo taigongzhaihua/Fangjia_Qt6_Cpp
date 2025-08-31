@@ -1,9 +1,9 @@
 #pragma once
+#include "../binding/nav_interface.h"
 #include <qcontainerfwd.h>
 #include <qobject.h>
 #include <qstring.h>
 #include <qtmetamacros.h>
-#include "../binding/nav_interface.h"
 
 // 轻量导航 ViewModel：承载业务真值（items / selected / expanded）与变更信号
 class NavViewModel final : public fj::presentation::binding::INavDataProvider
@@ -16,6 +16,7 @@ public:
 		QString svgDark;
 		QString label;
 	};
+
 
 	explicit NavViewModel(QObject* parent = nullptr);
 
@@ -42,6 +43,7 @@ signals:
 	void expandedChanged(bool expanded);
 
 private:
+	void initItems();
 	QVector<Item> m_items;
 	int  m_selected{ -1 };
 	bool m_expanded{ false };
