@@ -17,7 +17,6 @@
 #include <qcolor.h>
 #include <qopenglwindow.h>
 #include <RenderData.hpp>
-#include <UiPage.h>
 #include <UiNav.h>
 #include <UiTopBar.h>
 #include <NavViewModel.h>
@@ -27,7 +26,6 @@
 #include <qsize.h>
 #include <qstring.h>
 
-#include <algorithm>
 #include <qbytearray.h>
 #include <qevent.h>
 #include <qnamespace.h>
@@ -36,19 +34,21 @@
 #include <exception>
 #include <qlogging.h>
 #include <utility>
-#include <QProcessEnvironment>
 #include <Binding.h>
 #include <ComponentWrapper.h>
 #include <RebuildHost.h>
 #include <UI.h>
 #include <Widget.h>
 
-namespace {
-	MainOpenGlWindow::Theme schemeToTheme(const Qt::ColorScheme s) {
+namespace
+{
+	MainOpenGlWindow::Theme schemeToTheme(const Qt::ColorScheme s)
+	{
 		return s == Qt::ColorScheme::Dark ? MainOpenGlWindow::Theme::Dark : MainOpenGlWindow::Theme::Light;
 	}
 
-	QByteArray saveWindowGeometry(const QWindow* window) {
+	QByteArray saveWindowGeometry(const QWindow* window)
+	{
 		QByteArray data;
 		data.resize(sizeof(int) * 4);
 		const auto ptr = reinterpret_cast<int*>(data.data());
@@ -66,7 +66,8 @@ MainOpenGlWindow::MainOpenGlWindow(
 	const UpdateBehavior updateBehavior)
 	: QOpenGLWindow(updateBehavior), m_themeMgr(std::move(themeManager)), m_config(std::move(config))
 {
-	try {
+	try
+	{
 		qDebug() << "MainOpenGlWindow constructor start";
 
 		// 设置动画定时器
@@ -77,7 +78,8 @@ MainOpenGlWindow::MainOpenGlWindow(
 
 		qDebug() << "MainOpenGlWindow constructor end";
 	}
-	catch (const std::exception& e) {
+	catch (const std::exception& e)
+	{
 		qCritical() << "Exception in MainOpenGlWindow constructor:" << e.what();
 		throw;
 	}
@@ -85,9 +87,11 @@ MainOpenGlWindow::MainOpenGlWindow(
 
 MainOpenGlWindow::~MainOpenGlWindow()
 {
-	try {
+	try
+	{
 		// 保存窗口状态
-		if (m_config) {
+		if (m_config)
+		{
 			m_config->setWindowGeometry(saveWindowGeometry(this));
 			m_config->setNavSelectedIndex(m_navVm.selectedIndex());
 			m_config->setNavExpanded(m_navVm.expanded());
@@ -95,7 +99,8 @@ MainOpenGlWindow::~MainOpenGlWindow()
 		}
 
 #ifdef Q_OS_WIN
-		if (m_winChrome) {
+		if (m_winChrome)
+		{
 			m_winChrome->detach();
 			m_winChrome = nullptr;
 		}
@@ -106,14 +111,16 @@ MainOpenGlWindow::~MainOpenGlWindow()
 		m_renderer.releaseGL();
 		doneCurrent();
 	}
-	catch (const std::exception& e) {
+	catch (const std::exception& e)
+	{
 		qCritical() << "Exception in MainOpenGlWindow destructor:" << e.what();
 	}
 }
 
 void MainOpenGlWindow::initializeGL()
 {
-	try {
+	try
+	{
 		qDebug() << "MainOpenGlWindow::initializeGL start";
 
 		initializeOpenGLFunctions();
@@ -123,30 +130,36 @@ void MainOpenGlWindow::initializeGL()
 		m_renderer.initializeGL(this);
 
 #ifdef Q_OS_WIN
-		if (!m_winChrome) {
+		if (!m_winChrome)
+		{
 			qDebug() << "Attaching WinWindowChrome...";
-			m_winChrome = WinWindowChrome::attach(this, 56, [this]() {
-				QVector<QRect> excludeRects;
-				excludeRects.push_back(navBounds());
-				excludeRects.push_back(topBarBounds());
-				return excludeRects;
+			m_winChrome = WinWindowChrome::attach(this, 56, [this]
+				{
+					QVector<QRect> excludeRects;
+					excludeRects.push_back(navBounds());
+					excludeRects.push_back(topBarBounds());
+					return excludeRects;
 				});
 		}
 #endif
 
 		// 先确定初始主题
-		if (m_themeMgr) {
+		if (m_themeMgr)
+		{
 			m_theme = schemeToTheme(m_themeMgr->effectiveColorScheme());
 		}
-		else {
-			m_theme = Theme::Light;  // 默认浅色
+		else
+		{
+			m_theme = Theme::Light; // 默认浅色
 		}
 
 		// 设置清屏颜色
-		if (m_theme == Theme::Dark) {
+		if (m_theme == Theme::Dark)
+		{
 			m_clearColor = QColor::fromRgbF(0.05f, 0.10f, 0.15f);
 		}
-		else {
+		else
+		{
 			m_clearColor = QColor::fromRgbF(0.91f, 0.92f, 0.94f);
 		}
 
@@ -173,7 +186,8 @@ void MainOpenGlWindow::initializeGL()
 
 		qDebug() << "MainOpenGlWindow::initializeGL end";
 	}
-	catch (const std::exception& e) {
+	catch (const std::exception& e)
+	{
 		qCritical() << "Exception in initializeGL:" << e.what();
 		throw;
 	}
@@ -204,8 +218,10 @@ void MainOpenGlWindow::paintGL()
 
 void MainOpenGlWindow::mousePressEvent(QMouseEvent* e)
 {
-	if (e->button() == Qt::LeftButton) {
-		if (m_uiRoot.onMousePress(e->pos())) {
+	if (e->button() == Qt::LeftButton)
+	{
+		if (m_uiRoot.onMousePress(e->pos()))
+		{
 			update();
 			e->accept();
 			return;
@@ -224,29 +240,35 @@ void MainOpenGlWindow::mouseMoveEvent(QMouseEvent* e)
 
 void MainOpenGlWindow::mouseReleaseEvent(QMouseEvent* e)
 {
-	if (e->button() == Qt::LeftButton) {
+	if (e->button() == Qt::LeftButton)
+	{
 		const bool handled = m_uiRoot.onMouseRelease(e->pos());
 		bool actionsTaken = false;
 
-		if (handled) {
+		if (handled)
+		{
 			// 处理顶栏按钮点击
-			if (bool theme = false, follow = false; m_topBar.takeActions(theme, follow)) {
+			if (bool theme = false, follow = false; m_topBar.takeActions(theme, follow))
+			{
 				if (theme) onThemeToggle();
 				if (follow) onFollowSystemToggle();
 				actionsTaken = true;
 			}
 
-			if (bool min = false, max = false, close = false; m_topBar.takeSystemActions(min, max, close)) {
+			if (bool min = false, max = false, close = false; m_topBar.takeSystemActions(min, max, close))
+			{
 				if (close) this->close();
 				if (min) showMinimized();
-				if (max) {
+				if (max)
+				{
 					if (visibility() == Maximized) showNormal();
 					else showMaximized();
 				}
 				actionsTaken = true;
 			}
 
-			if (!m_animTimer.isActive()) {
+			if (!m_animTimer.isActive())
+			{
 				m_animClock.start();
 				m_animTimer.start();
 			}
@@ -255,7 +277,8 @@ void MainOpenGlWindow::mouseReleaseEvent(QMouseEvent* e)
 		// Always schedule a redraw on left-button release to ensure VM-driven rebuilds are rendered
 		update();
 
-		if (handled || actionsTaken) {
+		if (handled || actionsTaken)
+		{
 			e->accept();
 			return;
 		}
@@ -265,11 +288,14 @@ void MainOpenGlWindow::mouseReleaseEvent(QMouseEvent* e)
 
 void MainOpenGlWindow::mouseDoubleClickEvent(QMouseEvent* e)
 {
-	if (e->button() == Qt::LeftButton) {
-		if (m_nav.bounds().contains(e->pos())) {
+	if (e->button() == Qt::LeftButton)
+	{
+		if (m_nav.bounds().contains(e->pos()))
+		{
 			m_navVm.toggleExpanded();
 			updateLayout();
-			if (!m_animTimer.isActive()) {
+			if (!m_animTimer.isActive())
+			{
 				m_animClock.start();
 				m_animTimer.start();
 			}
@@ -285,16 +311,19 @@ void MainOpenGlWindow::wheelEvent(QWheelEvent* e)
 	// 将 QWheelEvent 的位置与 angleDelta 传给 UiRoot
 	const bool handled = m_uiRoot.onWheel(e->position().toPoint(), e->angleDelta());
 
-	if (handled) {
+	if (handled)
+	{
 		// 如有消费则启动动画计时器并重绘
-		if (!m_animTimer.isActive()) {
+		if (!m_animTimer.isActive())
+		{
 			m_animClock.start();
 			m_animTimer.start();
 		}
 		update();
 		e->accept();
 	}
-	else {
+	else
+	{
 		QOpenGLWindow::wheelEvent(e);
 	}
 }
@@ -304,16 +333,19 @@ void MainOpenGlWindow::keyPressEvent(QKeyEvent* e)
 	// 将键盘按下事件转发到UI组件层次结构
 	const bool handled = m_uiRoot.onKeyPress(e->key(), e->modifiers());
 
-	if (handled) {
+	if (handled)
+	{
 		// 如有消费则启动动画计时器并重绘
-		if (!m_animTimer.isActive()) {
+		if (!m_animTimer.isActive())
+		{
 			m_animClock.start();
 			m_animTimer.start();
 		}
 		update();
 		e->accept();
 	}
-	else {
+	else
+	{
 		QOpenGLWindow::keyPressEvent(e);
 	}
 }
@@ -323,16 +355,19 @@ void MainOpenGlWindow::keyReleaseEvent(QKeyEvent* e)
 	// 将键盘释放事件转发到UI组件层次结构
 	const bool handled = m_uiRoot.onKeyRelease(e->key(), e->modifiers());
 
-	if (handled) {
+	if (handled)
+	{
 		// 如有消费则启动动画计时器并重绘
-		if (!m_animTimer.isActive()) {
+		if (!m_animTimer.isActive())
+		{
 			m_animClock.start();
 			m_animTimer.start();
 		}
 		update();
 		e->accept();
 	}
-	else {
+	else
+	{
 		QOpenGLWindow::keyReleaseEvent(e);
 	}
 }
@@ -343,17 +378,26 @@ void MainOpenGlWindow::initializeNavigation()
 	m_navVm.setItems(QVector<NavViewModel::Item>{
 		{.id = "home", .svgLight = ":/icons/home_light.svg", .svgDark = ":/icons/home_dark.svg", .label = "首页"},
 		{ .id = "data", .svgLight = ":/icons/data_light.svg", .svgDark = ":/icons/data_dark.svg", .label = "数据" },
-		{ .id = "explore", .svgLight = ":/icons/explore_light.svg", .svgDark = ":/icons/explore_dark.svg", .label = "探索" },
+		{
+			.id = "explore", .svgLight = ":/icons/explore_light.svg", .svgDark = ":/icons/explore_dark.svg",
+			.label = "探索"
+		},
 		{ .id = "favorites", .svgLight = ":/icons/fav_light.svg", .svgDark = ":/icons/fav_dark.svg", .label = "收藏" },
-		{ .id = "settings", .svgLight = ":/icons/settings_light.svg", .svgDark = ":/icons/settings_dark.svg", .label = "设置" }
+		{
+			.id = "settings", .svgLight = ":/icons/settings_light.svg", .svgDark = ":/icons/settings_dark.svg",
+			.label = "设置"
+		}
 	});
 
 	// 从配置恢复状态
-	if (m_config) {
-		if (const int savedIndex = m_config->navSelectedIndex(); savedIndex >= 0 && savedIndex < m_navVm.count()) {
+	if (m_config)
+	{
+		if (const int savedIndex = m_config->navSelectedIndex(); savedIndex >= 0 && savedIndex < m_navVm.count())
+		{
 			m_navVm.setSelectedIndex(savedIndex);
 		}
-		else {
+		else
+		{
 			m_navVm.setSelectedIndex(0);
 		}
 		m_navVm.setExpanded(m_config->navExpanded());
@@ -370,15 +414,18 @@ void MainOpenGlWindow::initializeNavigation()
 	connect(&m_navVm, &NavViewModel::selectedIndexChanged, this, &MainOpenGlWindow::onNavSelectionChanged);
 
 	// 连接导航状态变化到配置保存
-	if (m_config) {
-		connect(&m_navVm, &NavViewModel::expandedChanged, m_config.get(), [this](const bool expanded) {
-			m_config->setNavExpanded(expanded);
-			m_config->save();
+	if (m_config)
+	{
+		connect(&m_navVm, &NavViewModel::expandedChanged, m_config.get(), [this](const bool expanded)
+			{
+				m_config->setNavExpanded(expanded);
+				m_config->save();
 			});
 
-		connect(&m_navVm, &NavViewModel::selectedIndexChanged, m_config.get(), [this](const int index) {
-			m_config->setNavSelectedIndex(index);
-			m_config->save();
+		connect(&m_navVm, &NavViewModel::selectedIndexChanged, m_config.get(), [this](const int index)
+			{
+				m_config->setNavSelectedIndex(index);
+				m_config->save();
 			});
 	}
 }
@@ -388,24 +435,26 @@ void MainOpenGlWindow::initializePages()
 	try
 	{
 		// 注册页面工厂（支持懒加载）
-		m_pageRouter.registerPage("home", []() { return std::make_unique<HomePage>(); });
-		m_pageRouter.registerPage("data", [this]() { return std::make_unique<DataPage>(m_config.get()); });
-		m_pageRouter.registerPage("explore", []() { return std::make_unique<ExplorePage>(); });
-		m_pageRouter.registerPage("favorites", []() { return std::make_unique<FavoritesPage>(); });
-		m_pageRouter.registerPage("settings", []() { return std::make_unique<SettingsPage>(); });
+		m_pageRouter.registerPage("home", [] { return std::make_unique<HomePage>(); });
+		m_pageRouter.registerPage("data", [this] { return std::make_unique<DataPage>(m_config.get()); });
+		m_pageRouter.registerPage("explore", [] { return std::make_unique<ExplorePage>(); });
+		m_pageRouter.registerPage("favorites", [] { return std::make_unique<FavoritesPage>(); });
+		m_pageRouter.registerPage("settings", [] { return std::make_unique<SettingsPage>(); });
 
 		// 切换到初始页面
 		const auto& items = m_navVm.itemsInternal();
-		if (m_navVm.selectedIndex() >= 0 && m_navVm.selectedIndex() < items.size()) {
+		if (m_navVm.selectedIndex() >= 0 && m_navVm.selectedIndex() < items.size())
+		{
 			m_pageRouter.switchToPage(items[m_navVm.selectedIndex()].id);
 		}
 	}
-	catch (const std::exception& e) {
+	catch (const std::exception& e)
+	{
 		qCritical() << "Exception in initializePages:" << e.what();
 		throw;
 	}
-
 }
+
 void MainOpenGlWindow::initializeTopBar()
 {
 	// 设置顶栏
@@ -422,20 +471,23 @@ void MainOpenGlWindow::initializeTopBar()
 
 	// 设置跟随系统状态
 	const bool followSystem = m_themeMgr && m_themeMgr->mode() == ThemeManager::ThemeMode::FollowSystem;
-	m_topBar.setFollowSystem(followSystem, false);  // false = 无动画
+	m_topBar.setFollowSystem(followSystem, false); // false = 无动画
 }
 
 void MainOpenGlWindow::setupThemeListeners()
 {
 	// 监听主题变化
-	if (m_themeMgr) {
+	if (m_themeMgr)
+	{
 		connect(m_themeMgr.get(), &ThemeManager::effectiveColorSchemeChanged, this,
-			[this](const Qt::ColorScheme s) {
+			[this](const Qt::ColorScheme s)
+			{
 				setTheme(schemeToTheme(s));
 			});
 
 		connect(m_themeMgr.get(), &ThemeManager::modeChanged, this,
-			[this](const ThemeManager::ThemeMode mode) {
+			[this](const ThemeManager::ThemeMode mode)
+			{
 				const bool follow = (mode == ThemeManager::ThemeMode::FollowSystem);
 				m_topBar.setFollowSystem(follow, true);
 				updateLayout();
@@ -470,10 +522,12 @@ void MainOpenGlWindow::applyTheme()
 	const bool isDark = (m_theme == Theme::Dark);
 
 	// 设置清屏颜色
-	if (isDark) {
+	if (isDark)
+	{
 		m_clearColor = QColor::fromRgbF(0.05f, 0.10f, 0.15f);
 	}
-	else {
+	else
+	{
 		m_clearColor = QColor::fromRgbF(0.91f, 0.92f, 0.94f);
 	}
 
@@ -495,10 +549,12 @@ void MainOpenGlWindow::setFollowSystem(const bool on) const
 {
 	if (!m_themeMgr) return;
 
-	if (on) {
+	if (on)
+	{
 		m_themeMgr->setMode(ThemeManager::ThemeMode::FollowSystem);
 	}
-	else {
+	else
+	{
 		const Theme cur = schemeToTheme(m_themeMgr->effectiveColorScheme());
 		m_themeMgr->setMode(cur == Theme::Dark ? ThemeManager::ThemeMode::Dark : ThemeManager::ThemeMode::Light);
 	}
@@ -507,7 +563,8 @@ void MainOpenGlWindow::setFollowSystem(const bool on) const
 void MainOpenGlWindow::onNavSelectionChanged(const int index)
 {
 	const auto& items = m_navVm.itemsInternal();
-	if (index >= 0 && index < items.size()) {
+	if (index >= 0 && index < items.size())
+	{
 		const QString pageId = items[index].id;
 
 		// 声明式模式：仅切换页面，AppShell会通过重建自动更新UI
@@ -515,7 +572,8 @@ void MainOpenGlWindow::onNavSelectionChanged(const int index)
 		m_pageRouter.switchToPage(pageId);
 
 		// 可选：请求重建以确保UI更新
-		if (m_shellRebuildHost) {
+		if (m_shellRebuildHost)
+		{
 			m_shellRebuildHost->requestRebuild();
 		}
 
@@ -542,16 +600,19 @@ void MainOpenGlWindow::onAnimationTick()
 {
 	const bool hasAnimation = m_uiRoot.tick();
 
-	if (m_nav.hasActiveAnimation()) {
+	if (m_nav.hasActiveAnimation())
+	{
 		updateLayout();
 
 		// 如果导航栏有动画，请求重建以保持列宽同步
-		if (m_shellRebuildHost) {
+		if (m_shellRebuildHost)
+		{
 			m_shellRebuildHost->requestRebuild();
 		}
 	}
 
-	if (!hasAnimation) {
+	if (!hasAnimation)
+	{
 		m_animTimer.stop();
 	}
 
@@ -564,40 +625,45 @@ void MainOpenGlWindow::initializeDeclarativeShell()
 	m_pageHost = std::make_unique<CurrentPageHost>(m_pageRouter);
 
 	// 创建包装整个Shell的BindingHost，这样可以在动画期间重建整个布局
-	m_shellHost = UI::bindingHost([this]() -> UI::WidgetPtr {
-		// Shell构建器：每次重建时都创建新的AppShell布局
-		return UI::appShell()
-			->nav(UI::wrap(&m_nav))
-			->topBar(UI::wrap(&m_topBar))
-			->content([this]() -> UI::WidgetPtr {
-			// 内容构建器：总是返回当前页面宿主
-			return UI::wrap(m_pageHost.get());
-				})
-			->navWidthProvider([this]() {
-			// 导航栏宽度提供器：反映运行时动画状态
-			return m_nav.currentWidth();
-				})
-			->topBarHeight(48)  // 固定顶栏高度
-			->connect([this](UI::RebuildHost* host) {
-			// 观察导航选择变化（展开/收缩由动画tick处理）
-			UI::observe(&m_navVm, &NavViewModel::selectedIndexChanged, [host](int) {
-				host->requestRebuild();
-				});
-				});
-		});
+	m_shellHost = bindingHost([this]() -> WidgetPtr
+		{
+			// Shell构建器：每次重建时都创建新的AppShell布局
+			return appShell()
+				->nav(wrap(&m_nav))
+				->topBar(wrap(&m_topBar))
+				->content([this]() -> WidgetPtr
+					{
+						// 内容构建器：总是返回当前页面宿主
+						return wrap(m_pageHost.get());
+					})
+				->navWidthProvider([this]
+					{
+						// 导航栏宽度提供器：反映运行时动画状态
+						return m_nav.currentWidth();
+					})
+				->topBarHeight(52) // 固定顶栏高度
+				->connect([this](RebuildHost* host)
+					{
+						// 观察导航选择变化（展开/收缩由动画tick处理）
+						observe(&m_navVm, &NavViewModel::selectedIndexChanged, [host](int)
+							{
+								host->requestRebuild();
+							});
+					});
+		})
+		// 添加观察导航展开状态变化的连接器（用于非动画的立即变化）
+		->connect([this](RebuildHost* host)
+			{
+				// 保存RebuildHost引用以便在动画期间使用
+				m_shellRebuildHost = host;
 
-	// 添加观察导航展开状态变化的连接器（用于非动画的立即变化）
-	m_shellHost->connect([this](UI::RebuildHost* host) {
-		// 保存RebuildHost引用以便在动画期间使用
-		m_shellRebuildHost = host;
-
-		UI::observe(&m_navVm, &NavViewModel::expandedChanged, [host](bool) {
-			host->requestRebuild();
+				observe(&m_navVm, &NavViewModel::expandedChanged, [host](bool)
+					{
+						host->requestRebuild();
+					});
 			});
-		});
 
 	// 将Shell BindingHost添加到UiRoot
 	auto shellComponent = m_shellHost->build();
-	m_uiRoot.add(shellComponent.release());  // 转移所有权给UiRoot
+	m_uiRoot.add(shellComponent.release()); // 转移所有权给UiRoot
 }
-
