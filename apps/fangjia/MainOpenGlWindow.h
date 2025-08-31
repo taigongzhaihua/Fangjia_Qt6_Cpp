@@ -125,6 +125,7 @@ private:
 	// 主题状态
 	Theme m_theme{ Theme::Dark };
 	QColor m_clearColor;
+	bool m_animateFollowChange{ false };
 
 	// 依赖服务（注入）
 	std::shared_ptr<ThemeManager> m_themeMgr;
