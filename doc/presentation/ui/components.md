@@ -1,238 +1,471 @@
-**简体中文** | [English - N/A]
+**English** | [简体中文](../../../doc.zh-cn/presentation/ui/components.md)
 
-# UI 基础部件与容器
+# UI Components & Containers
 
-本文档介绍 Fangjia Qt6 C++ 框架中的核心 UI 组件，包括基础容器（UiPanel、UiBoxLayout、UiGrid）和滚动容器（UiScrollView），以及它们的配置选项与使用模式。
+This document introduces the core UI components in the Fangjia Qt6 C++ framework, including basic containers (UiPanel, UiBoxLayout, UiGrid) and scroll containers (UiScrollView), along with their configuration options and usage patterns.
 
-## 容器组件概览
+## Container Components Overview
 
-### UiPanel - 基础面板容器
+### UiPanel - Basic Panel Container
 
-`UiPanel` 是最基础的容器组件，提供简单的子组件堆叠功能。
+`UiPanel` is the most basic container component, providing simple child component stacking functionality.
 
 ```cpp
 auto panel = UI::panel()
     ->children({
-        UI::button()->text("按钮1"),
-        UI::button()->text("按钮2"),
-        UI::label()->text("标签文本")
+        UI::label()->text("Header"),
+        UI::button()->text("Action"),
+        UI::label()->text("Footer")
     })
-    ->padding(16)                    // 内边距
-    ->background(QColor(250, 250, 250)); // 背景色
+    ->padding(16)
+    ->spacing(8);
 ```
 
-**特点**：
-- **简单布局**: 子组件按添加顺序堆叠
-- **装饰器支持**: 支持 padding、margin、background、border 等装饰器
-- **轻量级**: 最小的布局开销，适合简单场景
+#### Key Features
+- **Simple Layout**: Children are stacked vertically by default
+- **Padding Control**: Configurable internal spacing
+- **Background Support**: Optional background color and border radius
+- **Flexible Sizing**: Adapts to content or explicit size constraints
 
-### UiBoxLayout - 线性布局容器
-
-`UiBoxLayout` 提供水平或垂直的线性布局功能。
+#### Configuration Options
 
 ```cpp
-// 水平布局
-auto hbox = UI::boxLayout(UI::BoxLayout::Horizontal)
-    ->children({
-        UI::button()->text("左"),
-        UI::spacer(),                    // 弹性空间
-        UI::button()->text("右")
-    })
-    ->spacing(8);                        // 子组件间距
-
-// 垂直布局
-auto vbox = UI::boxLayout(UI::BoxLayout::Vertical)
-    ->children({
-        UI::label()->text("标题"),
-        UI::panel()->fixedHeight(200),   // 固定高度面板
-        UI::button()->text("确定")
-    })
-    ->spacing(12);
+class UiPanel : public Widget {
+public:
+    // Content management
+    UiPanel* children(const std::vector<WidgetPtr>& children);
+    UiPanel* addChild(WidgetPtr child);
+    UiPanel* removeChild(WidgetPtr child);
+    
+    // Layout configuration
+    UiPanel* padding(int padding);                    // All sides
+    UiPanel* padding(int horizontal, int vertical);   // Horizontal/vertical
+    UiPanel* padding(int top, int right, int bottom, int left);  // Individual sides
+    UiPanel* spacing(int spacing);                    // Between children
+    
+    // Visual styling
+    UiPanel* backgroundColor(const QColor& color);
+    UiPanel* borderRadius(float radius);
+    UiPanel* borderWidth(float width);
+    UiPanel* borderColor(const QColor& color);
+    
+    // Size constraints
+    UiPanel* minSize(const QSize& size);
+    UiPanel* maxSize(const QSize& size);
+    UiPanel* fixedSize(const QSize& size);
+};
 ```
 
-**配置选项**：
-- **方向**: `Horizontal` 或 `Vertical`
-- **间距**: `spacing()` 设置子组件间距
-- **对齐**: 支持多种对齐方式（start、center、end、stretch）
-- **权重分配**: 子组件可设置拉伸权重
+### UiGrid - Grid Layout Container
 
-### UiGrid - 网格布局容器
-
-`UiGrid` 提供强大的网格布局功能，支持复杂的行列配置。
+`UiGrid` provides flexible grid-based layout with configurable columns and rows.
 
 ```cpp
 auto grid = UI::grid()
-    ->rows({
-        UI::GridTrack::fixed(40),        // 固定 40px 行
-        UI::GridTrack::flex(1),          // 弹性行，权重 1
-        UI::GridTrack::auto_()           // 自动调整行
-    })
     ->columns({
-        UI::GridTrack::fixed(120),       // 固定 120px 列
-        UI::GridTrack::flex(2),          // 弹性列，权重 2
-        UI::GridTrack::flex(1)           // 弹性列，权重 1
+        UI::GridTrack::fixed(100),    // Fixed 100px column
+        UI::GridTrack::flex(1),       // Flexible column (takes remaining space)
+        UI::GridTrack::auto()         // Auto-sized column (content-based)
     })
     ->children({
-        UI::label()->text("标题")->gridArea(0, 0, 1, 3),  // 跨 3 列
-        UI::button()->text("按钮1")->gridArea(1, 0),
-        UI::panel()->background(QColor(240, 240, 240))->gridArea(1, 1, 2, 1)  // 跨 2 行
+        UI::label()->text("Label 1"),     // (0,0)
+        UI::textField()->placeholder("Input 1"),  // (0,1)
+        UI::button()->text("Action 1"),   // (0,2)
+        
+        UI::label()->text("Label 2"),     // (1,0)
+        UI::textField()->placeholder("Input 2"),  // (1,1)
+        UI::button()->text("Action 2")    // (1,2)
     })
-    ->gap(8, 12);                        // 行间距 8px，列间距 12px
+    ->gap(8);
 ```
 
-**轨道类型**：
-- **`GridTrack::fixed(px)`**: 固定像素大小
-- **`GridTrack::flex(weight)`**: 按权重分配剩余空间
-- **`GridTrack::auto_()`**: 根据内容自动调整大小
-- **`GridTrack::minMax(min, max)`**: 指定最小/最大尺寸范围
+#### Grid Track Types
 
-**网格区域配置**：
 ```cpp
-// gridArea(row, col, rowSpan, colSpan)
-widget->gridArea(1, 2, 2, 1);  // 从第 1 行第 2 列开始，跨 2 行 1 列
+namespace UI {
+    class GridTrack {
+    public:
+        static GridTrack fixed(int pixels);              // Fixed pixel size
+        static GridTrack flex(float factor);             // Proportional size
+        static GridTrack auto();                         // Content-based size
+        static GridTrack minMax(int minPx, int maxPx);   // Size with constraints
+        static GridTrack fractional(float fraction);     // Fraction of available space
+    };
+}
 ```
 
-## 滚动容器
+#### Advanced Grid Configuration
 
-### UiScrollView - 滚动视图容器
+```cpp
+auto advancedGrid = UI::grid()
+    ->columns({
+        UI::GridTrack::fixed(80),      // Icon column
+        UI::GridTrack::flex(2),        // Main content (2/3 of flexible space)
+        UI::GridTrack::flex(1),        // Secondary content (1/3 of flexible space)
+        UI::GridTrack::fixed(120)      // Action buttons
+    })
+    ->rows({
+        UI::GridTrack::auto(),         // Header row (content-based)
+        UI::GridTrack::flex(1),        // Content row (takes remaining space)
+        UI::GridTrack::fixed(48)       // Footer row (fixed height)
+    })
+    ->gap(12)                          // 12px gap between all cells
+    ->columnGap(16)                    // Override column gap
+    ->rowGap(8)                        // Override row gap
+    ->alignment(GridAlignment::Stretch) // How children fill their cells
+    ->justifyContent(GridJustify::Start); // How grid content is justified
+```
 
-`UiScrollView` 为内容提供垂直滚动功能，支持平滑滚动与滚动条渲染。
+### UiScrollView - Scrollable Container
+
+`UiScrollView` provides efficient scrolling for content that exceeds the visible area.
 
 ```cpp
 auto scrollView = UI::scrollView(
     UI::panel()
-        ->children({
-            UI::label()->text("项目 1"),
-            UI::label()->text("项目 2"),
-            UI::label()->text("项目 3"),
-            // ... 更多内容
-        })
-)->scrollBarVisible(true)               // 显示滚动条
-  ->fadeInOut(true);                    // 滚动条淡入淡出动画
+        ->children(createLargeContentList())
+        ->spacing(8)
+)
+->scrollBarPolicy(ScrollBarPolicy::AsNeeded)
+->horizontalScrollEnabled(false)
+->verticalScrollEnabled(true)
+->contentMargins(16);
 ```
 
-**滚动特性**：
-- **Width-bounded 测量**: 内容宽度受容器约束，高度可超出
-- **Viewport 坐标**: 支持顶部偏移滚动
-- **平滑动画**: 鼠标滚轮触发平滑滚动动画
-- **滚动条渲染**: 可选的滚动条显示与动画
-
-**高级配置**：
-```cpp
-auto advancedScroll = UI::scrollView(content)
-    ->scrollSpeed(120)                  // 滚动速度（像素/滚轮单位）
-    ->scrollBarWidth(8)                 // 滚动条宽度
-    ->scrollBarMargin(4)                // 滚动条边距
-    ->animationDuration(200);           // 滚动动画时长（毫秒）
-```
-
-## 布局协议与接口
-
-### ILayoutable 接口
-
-所有容器组件实现 `ILayoutable` 接口：
+#### Scroll Configuration Options
 
 ```cpp
-class ILayoutable {
+enum class ScrollBarPolicy {
+    AlwaysOff,      // Never show scroll bars
+    AlwaysOn,       // Always show scroll bars
+    AsNeeded        // Show scroll bars when content overflows
+};
+
+enum class ScrollMode {
+    Pixel,          // Pixel-based scrolling
+    Item,           // Item-based scrolling (for lists)
+    Page            // Page-based scrolling
+};
+
+class UiScrollView : public Widget {
 public:
-    virtual QSize measure(const SizeConstraints& constraints) = 0;
-    virtual void arrange(const QRect& bounds) = 0;
-};
-```
-
-**测量阶段**（`measure`）:
-- 基于约束条件计算组件的期望尺寸
-- 递归测量所有子组件
-- 返回最终的布局尺寸
-
-**安排阶段**（`arrange`）:
-- 基于分配的矩形区域放置组件
-- 递归安排所有子组件的位置和大小
-
-### SizeConstraints 约束系统
-
-布局约束定义了组件可用的尺寸范围：
-
-```cpp
-struct SizeConstraints {
-    int minWidth, maxWidth;      // 宽度约束
-    int minHeight, maxHeight;    // 高度约束
+    // Content management
+    UiScrollView* content(WidgetPtr content);
     
-    // 便利构造函数
-    static SizeConstraints fixed(int w, int h);           // 固定尺寸
-    static SizeConstraints unbounded();                   // 无约束
-    static SizeConstraints widthFixed(int w);             // 固定宽度
-    static SizeConstraints heightFixed(int h);            // 固定高度
+    // Scroll behavior
+    UiScrollView* horizontalScrollEnabled(bool enabled);
+    UiScrollView* verticalScrollEnabled(bool enabled);
+    UiScrollView* scrollBarPolicy(ScrollBarPolicy policy);
+    UiScrollView* scrollMode(ScrollMode mode);
+    
+    // Visual configuration
+    UiScrollView* contentMargins(int margin);
+    UiScrollView* contentMargins(int horizontal, int vertical);
+    UiScrollView* scrollBarWidth(int width);
+    UiScrollView* scrollBarColor(const QColor& color);
+    
+    // Performance optimization
+    UiScrollView* virtualScrolling(bool enabled);    // For large lists
+    UiScrollView* itemHeight(int height);           // For virtual scrolling
+    UiScrollView* visibleItems(int count);          // Visible item count hint
+    
+    // Scroll control
+    void scrollTo(const QPoint& position);
+    void scrollToItem(int index);                   // For item-based scrolling
+    void scrollBy(const QPoint& delta);
+    
+    // Event handling
+    UiScrollView* onScrolled(std::function<void(const QPoint&)> callback);
+    UiScrollView* onScrollStart(std::function<void()> callback);
+    UiScrollView* onScrollEnd(std::function<void()> callback);
 };
 ```
 
-## 容器选择指南
+## Layout Patterns & Best Practices
 
-### 使用场景建议
-
-**选择 UiPanel 当**：
-- 需要简单的组件堆叠
-- 不需要复杂的布局计算
-- 主要依赖装饰器（padding、margin）控制间距
-
-**选择 UiBoxLayout 当**：
-- 需要水平或垂直线性排列
-- 需要弹性空间分配
-- 需要统一的组件间距
-
-**选择 UiGrid 当**：
-- 需要复杂的二维布局
-- 需要组件跨行或跨列
-- 需要精确的尺寸控制
-
-**选择 UiScrollView 当**：
-- 内容可能超出容器尺寸
-- 需要垂直滚动功能
-- 需要滚动条视觉反馈
-
-### 性能考虑
-
-- **UiPanel**: 最低布局开销，适合静态内容
-- **UiBoxLayout**: 一维布局计算，性能良好
-- **UiGrid**: 二维布局计算，适中的性能开销
-- **UiScrollView**: 额外的滚动逻辑，但支持大量内容
-
-## 代码示例
-
-### 典型应用布局
+### Responsive Grid Layouts
 
 ```cpp
-auto createMainLayout() {
-    return UI::grid()
-        ->rows({
-            UI::GridTrack::fixed(60),    // 顶部栏
-            UI::GridTrack::flex(1),      // 主内容区
-            UI::GridTrack::fixed(40)     // 状态栏
-        })
-        ->columns({
-            UI::GridTrack::fixed(200),   // 侧边栏
-            UI::GridTrack::flex(1)       // 主内容
-        })
-        ->children({
-            // 顶部栏（跨两列）
-            UI::topBar()->gridArea(0, 0, 1, 2),
-            
-            // 侧边导航
-            UI::navRail()->gridArea(1, 0),
-            
-            // 主内容区（带滚动）
-            UI::scrollView(
-                createMainContent()
-            )->gridArea(1, 1),
-            
-            // 状态栏（跨两列）
-            UI::statusBar()->gridArea(2, 0, 1, 2)
-        });
+auto createResponsiveGrid() {
+    return UI::bindingHost([this]() -> WidgetPtr {
+        auto windowSize = getCurrentWindowSize();
+        
+        // Adapt grid based on available width
+        std::vector<UI::GridTrack> columns;
+        if (windowSize.width() > 1200) {
+            // Wide layout: 4 columns
+            columns = {
+                UI::GridTrack::flex(1),
+                UI::GridTrack::flex(1),
+                UI::GridTrack::flex(1),
+                UI::GridTrack::flex(1)
+            };
+        } else if (windowSize.width() > 768) {
+            // Medium layout: 2 columns
+            columns = {
+                UI::GridTrack::flex(1),
+                UI::GridTrack::flex(1)
+            };
+        } else {
+            // Narrow layout: 1 column
+            columns = { UI::GridTrack::flex(1) };
+        }
+        
+        return UI::grid()
+            ->columns(columns)
+            ->children(createGridItems())
+            ->gap(16);
+    });
 }
 ```
 
-## 相关文档
+### Efficient List Rendering
 
-- [表现层架构概览](../architecture.md) - 组件生命周期与事件处理
-- [声明式 TopBar 组件](topbar/declarative-topbar.md) - TopBar 具体使用方法
-- [Binding 与响应式重建](../binding.md) - 动态内容更新机制
+```cpp
+class VirtualListView : public UiScrollView {
+public:
+    VirtualListView(IListDataProvider* dataProvider) 
+        : m_dataProvider(dataProvider) {
+        
+        setupVirtualScrolling();
+        connectDataSignals();
+    }
+    
+protected:
+    WidgetPtr buildContent() override {
+        auto visibleRange = calculateVisibleRange();
+        std::vector<WidgetPtr> visibleItems;
+        
+        for (int i = visibleRange.start; i < visibleRange.end; ++i) {
+            auto item = createListItem(i);
+            visibleItems.push_back(item);
+        }
+        
+        return UI::panel()
+            ->children(visibleItems)
+            ->spacing(0);
+    }
+    
+private:
+    struct VisibleRange {
+        int start;
+        int end;
+    };
+    
+    VisibleRange calculateVisibleRange() {
+        int itemHeight = m_dataProvider->itemHeight();
+        int visibleHeight = getVisibleHeight();
+        int scrollTop = getScrollPosition().y();
+        
+        int startIndex = std::max(0, scrollTop / itemHeight);
+        int endIndex = std::min(m_dataProvider->itemCount(), 
+                               startIndex + (visibleHeight / itemHeight) + 2);
+        
+        return {startIndex, endIndex};
+    }
+    
+    WidgetPtr createListItem(int index) {
+        auto itemData = m_dataProvider->itemData(index);
+        
+        return UI::panel()
+            ->children({
+                UI::label()->text(itemData.title),
+                UI::label()->text(itemData.subtitle)
+            })
+            ->padding(16)
+            ->fixedHeight(m_dataProvider->itemHeight());
+    }
+    
+    void setupVirtualScrolling() {
+        virtualScrolling(true);
+        itemHeight(m_dataProvider->itemHeight());
+        
+        onScrolled([this](const QPoint&) {
+            requestRebuild();  // Rebuild visible items
+        });
+    }
+    
+    void connectDataSignals() {
+        connect(m_dataProvider, &IListDataProvider::dataChanged,
+                this, [this]() { requestRebuild(); });
+    }
+    
+    IListDataProvider* m_dataProvider;
+};
+```
+
+### Complex Form Layouts
+
+```cpp
+auto createFormLayout() {
+    return UI::grid()
+        ->columns({
+            UI::GridTrack::fixed(120),     // Label column
+            UI::GridTrack::flex(2),        // Input column (main)
+            UI::GridTrack::flex(1)         // Helper text column
+        })
+        ->children({
+            // Row 1: Text input
+            UI::label()->text("Name:"),
+            UI::textField()->placeholder("Enter your name"),
+            UI::label()->text("Required").color(Qt::red),
+            
+            // Row 2: Email input
+            UI::label()->text("Email:"),
+            UI::textField()->placeholder("Enter your email"),
+            UI::label()->text("We'll never share your email"),
+            
+            // Row 3: Password input
+            UI::label()->text("Password:"),
+            UI::textField()->placeholder("Enter password")->password(true),
+            UI::label()->text("At least 8 characters"),
+            
+            // Row 4: Checkbox (spans all columns)
+            UI::spacer(),  // Empty label cell
+            UI::checkBox()->text("I agree to the terms and conditions"),
+            UI::spacer(),  // Empty helper cell
+            
+            // Row 5: Submit button (spans all columns)
+            UI::spacer(),  // Empty label cell
+            UI::button()->text("Create Account")->primary(true),
+            UI::spacer()   // Empty helper cell
+        })
+        ->gap(12)
+        ->alignment(GridAlignment::Start);
+}
+```
+
+## Performance Optimization
+
+### Container Reuse
+
+```cpp
+class ContainerPool {
+public:
+    WidgetPtr acquirePanel() {
+        if (m_panelPool.empty()) {
+            return UI::panel();
+        }
+        
+        auto panel = m_panelPool.back();
+        m_panelPool.pop_back();
+        
+        // Reset to default state
+        panel->children({});
+        panel->padding(0);
+        panel->backgroundColor(QColor());
+        
+        return panel;
+    }
+    
+    void releasePanel(WidgetPtr panel) {
+        if (m_panelPool.size() < MAX_POOL_SIZE) {
+            m_panelPool.push_back(panel);
+        }
+    }
+    
+private:
+    static constexpr int MAX_POOL_SIZE = 100;
+    std::vector<WidgetPtr> m_panelPool;
+};
+```
+
+### Lazy Content Loading
+
+```cpp
+class LazyContentPanel : public UiPanel {
+public:
+    LazyContentPanel(std::function<WidgetPtr()> contentFactory)
+        : m_contentFactory(std::move(contentFactory)) {}
+    
+protected:
+    void onFirstRender() override {
+        if (!m_contentLoaded) {
+            auto content = m_contentFactory();
+            addChild(content);
+            m_contentLoaded = true;
+        }
+    }
+    
+private:
+    std::function<WidgetPtr()> m_contentFactory;
+    bool m_contentLoaded = false;
+};
+
+// Usage
+auto lazyPanel = std::make_shared<LazyContentPanel>([]() {
+    // This expensive content creation is deferred until first render
+    return createExpensiveContent();
+});
+```
+
+### Memory-Efficient Scrolling
+
+```cpp
+class RecyclingScrollView : public UiScrollView {
+public:
+    RecyclingScrollView(IListDataProvider* dataProvider, int itemHeight)
+        : m_dataProvider(dataProvider), m_itemHeight(itemHeight) {
+        
+        setupRecycling();
+    }
+    
+protected:
+    WidgetPtr buildContent() override {
+        auto visibleRange = calculateVisibleRange();
+        auto visibleItems = acquireItemsForRange(visibleRange);
+        
+        // Return items that are no longer visible to the pool
+        returnUnusedItems(visibleRange);
+        
+        return UI::panel()
+            ->children(visibleItems)
+            ->spacing(0);
+    }
+    
+private:
+    std::vector<WidgetPtr> acquireItemsForRange(const VisibleRange& range) {
+        std::vector<WidgetPtr> items;
+        
+        for (int i = range.start; i < range.end; ++i) {
+            WidgetPtr item;
+            
+            if (!m_itemPool.empty()) {
+                // Reuse existing item
+                item = m_itemPool.back();
+                m_itemPool.pop_back();
+            } else {
+                // Create new item
+                item = createNewItem();
+            }
+            
+            // Update item content
+            updateItemContent(item, i);
+            items.push_back(item);
+        }
+        
+        return items;
+    }
+    
+    void returnUnusedItems(const VisibleRange& currentRange) {
+        // Return items that are no longer in the visible range
+        for (auto& item : m_currentItems) {
+            int itemIndex = getItemIndex(item);
+            if (itemIndex < currentRange.start || itemIndex >= currentRange.end) {
+                m_itemPool.push_back(item);
+            }
+        }
+    }
+    
+    IListDataProvider* m_dataProvider;
+    int m_itemHeight;
+    std::vector<WidgetPtr> m_itemPool;
+    std::vector<WidgetPtr> m_currentItems;
+};
+```
+
+## Related Documentation
+
+- [Presentation Architecture Overview](../architecture.md) - How containers integrate with the overall UI system
+- [Layout System](../ui-framework/layouts.md) - Detailed layout algorithms and positioning
+- [Binding & Reactive Rebuild](../binding.md) - Reactive data binding with containers
