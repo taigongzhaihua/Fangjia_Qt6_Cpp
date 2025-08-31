@@ -7,6 +7,7 @@
 #include "ScrollView.h"
 #include "Widget.h"
 #include "AppShell.h"
+#include "NavTopBarWidgets.h"
 
 namespace UI {
 
@@ -32,6 +33,12 @@ namespace UI {
 
 	// AppShell factory (declarative)
 	inline auto appShell() { return make_widget<AppShell>(); }
+
+	// NavRail factory (declarative)
+	inline auto navRail() { return make_widget<NavRail>(); }
+
+	// TopBar factory (declarative)
+	inline auto topBar() { return make_widget<TopBar>(); }
 
 	// 条件渲染
 	inline auto when(bool condition, WidgetPtr ifTrue, WidgetPtr ifFalse = nullptr) {
