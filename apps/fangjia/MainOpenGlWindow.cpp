@@ -474,23 +474,26 @@ void MainOpenGlWindow::setupThemeListeners()
 		connect(m_themeMgr.get(), &ThemeManager::modeChanged, this,
 			[this](const ThemeManager::ThemeMode mode)
 			{
-				// 声明式TopBar会在Shell重建时自动获取最新的followSystem状态
-				// 触发Shell重建以更新TopBar的followSystem状态
-				if (m_shellRebuildHost)
-				{
-					m_shellRebuildHost->requestRebuild();
-					// Ensure animation timer is running if a follow animation is expected
-					if (m_animateFollowChange && !m_animTimer.isActive()) {
-						m_animClock.start();
-						m_animTimer.start();
+				// Defer rebuild to the next event loop turn to avoid re-entrant destruction
+				QTimer::singleShot(0, this, [this]() {
+					// 声明式TopBar会在Shell重建时自动获取最新的followSystem状态
+					// 触发Shell重建以更新TopBar的followSystem状态
+					if (m_shellRebuildHost)
+					{
+						m_shellRebuildHost->requestRebuild();
+						// Ensure animation timer is running if a follow animation is expected
+						if (m_animateFollowChange && !m_animTimer.isActive()) {
+							m_animClock.start();
+							m_animTimer.start();
+						}
+						// Clear the animation intent after a short delay to avoid racing the rebuild
+						QTimer::singleShot(300, [this]() {
+							m_animateFollowChange = false;
+						});
 					}
-					// Clear the animation intent after a short delay to avoid racing the rebuild
-					QTimer::singleShot(300, [this]() {
-						m_animateFollowChange = false;
-					});
-				}
-				updateLayout();
-				update();
+					updateLayout();
+					update();
+				});
 			});
 	}
 }
@@ -598,15 +601,19 @@ void MainOpenGlWindow::onFollowSystemToggle() const
 	
 	setFollowSystem(m_themeMgr->mode() != ThemeManager::ThemeMode::FollowSystem);
 
-	// Proactively rebuild and kick animation so the TopBar can start animating immediately
-	if (m_shellRebuildHost) {
-		m_shellRebuildHost->requestRebuild();
-	}
-	if (!m_animTimer.isActive()) {
-		const_cast<MainOpenGlWindow*>(this)->m_animClock.start();
-		const_cast<MainOpenGlWindow*>(this)->m_animTimer.start();
-	}
-	const_cast<MainOpenGlWindow*>(this)->update();
+	// Defer rebuild and animation to the next event loop turn to avoid re-entrant destruction
+	auto* self = const_cast<MainOpenGlWindow*>(this);
+	QTimer::singleShot(0, self, [self]() {
+		// Proactively rebuild and kick animation so the TopBar can start animating immediately
+		if (self->m_shellRebuildHost) {
+			self->m_shellRebuildHost->requestRebuild();
+		}
+		if (!self->m_animTimer.isActive()) {
+			self->m_animClock.start();
+			self->m_animTimer.start();
+		}
+		self->update();
+	});
 }
 
 void MainOpenGlWindow::onAnimationTick()
