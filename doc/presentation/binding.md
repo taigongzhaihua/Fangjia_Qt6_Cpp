@@ -1,23 +1,23 @@
-**简体中文** | [English](../../doc.zh-cn/presentation/binding.md)
+**English** | [简体中文](../../doc.zh-cn/presentation/binding.md)
 
-# Binding 与响应式重建
+# Binding and Reactive Rebuild
 
-本文档介绍 Fangjia Qt6 C++ 框架中的数据绑定机制，包括 binding/observe/requestRebuild 的使用模式与最佳实践。
+This document describes the data binding mechanism in the Fangjia Qt6 C++ framework, including usage patterns and best practices for binding/observe/requestRebuild.
 
-## 响应式编程概念
+## Reactive Programming Concepts
 
-### BindingHost - 响应式容器
+### BindingHost - Reactive Container
 
-`BindingHost` 是响应式 UI 系统的核心，它能够：
+`BindingHost` is the core of the reactive UI system, providing:
 
-- **自动依赖追踪**: 检测构建函数中访问的外部状态
-- **变更响应**: 当依赖状态变化时自动触发重建
-- **生命周期管理**: 管理重建产生的 Widget 实例
+- **Automatic dependency tracking**: Detects external state accessed in builder functions
+- **Change response**: Automatically triggers rebuilds when dependent state changes
+- **Lifecycle management**: Manages Widget instances created during rebuilds
 
 ```cpp
-// 创建响应式 UI 容器
+// Create reactive UI container
 m_shellHost = UI::bindingHost([this]() -> WidgetPtr {
-    // 这个 lambda 中访问的所有外部状态都会被自动追踪
+    // All external state accessed in this lambda is automatically tracked
     const bool isDark = m_themeMgr->isDarkMode();
     const auto currentPage = m_navigationModel->currentPage();
     
@@ -31,20 +31,20 @@ m_shellHost = UI::bindingHost([this]() -> WidgetPtr {
 });
 ```
 
-### 依赖追踪机制
+### Dependency Tracking Mechanism
 
-BindingHost 通过以下方式实现自动依赖追踪：
+BindingHost implements automatic dependency tracking through:
 
-1. **访问检测**: 记录构建过程中访问的所有观察对象
-2. **变更通知**: 被访问的对象发生变化时通知 BindingHost
-3. **重建触发**: BindingHost 在下一个事件循环中重新执行构建函数
-4. **实例替换**: 用新构建的 Widget 替换旧实例
+1. **Access detection**: Records all observable objects accessed during build process
+2. **Change notification**: Objects notify BindingHost when they change
+3. **Rebuild trigger**: BindingHost re-executes the builder function in the next event loop
+4. **Instance replacement**: Replaces old Widget with newly built instance
 
-## 观察对象与通知机制
+## Observable Objects and Notification Mechanism
 
-### INotifyPropertyChanged 接口
+### INotifyPropertyChanged Interface
 
-实现此接口的对象可作为响应式数据源：
+Objects implementing this interface can serve as reactive data sources:
 
 ```cpp
 class ThemeManager : public INotifyPropertyChanged {
@@ -54,14 +54,14 @@ private:
     
 public:
     bool isDarkMode() const { 
-        notifyAccess("isDarkMode");  // 通知访问
+        notifyAccess("isDarkMode");  // Notify access
         return m_isDark; 
     }
     
     void setDarkMode(bool dark) {
         if (m_isDark != dark) {
             m_isDark = dark;
-            notifyChanged("isDarkMode");  // 通知变更
+            notifyChanged("isDarkMode");  // Notify change
         }
     }
     
@@ -79,41 +79,41 @@ public:
 };
 ```
 
-### 手动观察与通知
+### Manual Observation and Notification
 
-对于不支持自动追踪的对象，可使用手动方式：
+For objects that don't support automatic tracking, manual approaches can be used:
 
 ```cpp
-// 手动注册观察
-m_shellHost->observe(m_dataModel, [this]() {
-    // 数据模型变化时的处理逻辑
+// Manual observation registration using observe helper
+UI::observe(m_dataModel, &DataModel::dataChanged, [this]() {
+    // Handle data model changes
     requestRebuild();
 });
 
-// 手动触发重建
+// Manual rebuild trigger
 m_shellHost->requestRebuild();
 ```
 
-## RebuildHost - 重建顺序管理
+## RebuildHost - Rebuild Order Management
 
-### 重建生命周期
+### Rebuild Lifecycle
 
-`RebuildHost` 确保重建过程按正确顺序执行：
+`RebuildHost` ensures the rebuild process executes in the correct order:
 
 ```
-requestRebuild() 执行顺序：
-1. 设置 viewport（给 IUiContent/ILayoutable）
-2. 调用 onThemeChanged(isDark)
-3. 更新资源上下文 updateResourceContext(...)  
-4. 调用 updateLayout(...)
+requestRebuild() execution order:
+1. Set viewport (for IUiContent/ILayoutable)
+2. Call onThemeChanged(isDark)
+3. Update resource context updateResourceContext(...)  
+4. Call updateLayout(...)
 ```
 
-这一顺序设计的重要性：
-- **避免闪烁**: 确保组件在获得新布局前已完成主题适配
-- **资源一致性**: 保证图标缓存键、文本缓存键与当前主题匹配
-- **动画连续性**: 支持平滑的主题切换动画
+The importance of this order design:
+- **Avoid flickering**: Ensures components complete theme adaptation before receiving new layout
+- **Resource consistency**: Guarantees icon cache keys and text cache keys match current theme
+- **Animation continuity**: Supports smooth theme transition animations
 
-### 重建性能优化
+### Rebuild Performance Optimization
 
 ```cpp
 class OptimizedComponent : public IUiComponent {
@@ -124,7 +124,7 @@ private:
 public:
     void requestRebuild() override {
         m_layoutDirty = true;
-        // 仅在必要时触发重建
+        // Only trigger rebuild when necessary
         if (shouldRebuild()) {
             RebuildHost::requestRebuild();
         }
@@ -132,7 +132,7 @@ public:
     
     QSize measure(const SizeConstraints& constraints) override {
         if (!m_layoutDirty && m_lastConstraints == constraints) {
-            return m_cachedSize;  // 使用缓存结果
+            return m_cachedSize;  // Use cached result
         }
         
         m_cachedSize = computeLayout(constraints);
@@ -143,11 +143,11 @@ public:
 };
 ```
 
-## 使用模式与最佳实践
+## Usage Patterns and Best Practices
 
-### 状态管理模式
+### State Management Pattern
 
-**集中式状态管理**：
+**Centralized state management**:
 ```cpp
 class AppViewModel : public INotifyPropertyChanged {
 private:
@@ -166,9 +166,9 @@ public:
         return m_navigation.get();
     }
     
-    // 组合多个状态变更
+    // Combine multiple state changes
     void updateAppState(const AppState& newState) {
-        beginBatchUpdate();  // 批量更新开始
+        beginBatchUpdate();  // Begin batch update
         
         if (newState.theme != m_theme->mode()) {
             m_theme->setMode(newState.theme);
@@ -178,12 +178,12 @@ public:
             m_navigation->navigateTo(newState.currentPage);
         }
         
-        endBatchUpdate();    // 批量更新结束，触发单次重建
+        endBatchUpdate();    // End batch update, trigger single rebuild
     }
 };
 ```
 
-### 条件渲染模式
+### Conditional Rendering Pattern
 
 ```cpp
 auto createConditionalUI() {
@@ -191,13 +191,13 @@ auto createConditionalUI() {
         const auto user = m_userService->currentUser();
         
         if (!user) {
-            // 未登录状态
+            // Not logged in state
             return UI::panel()
                 ->children({ createLoginForm() })
                 ->padding(32);
         }
         
-        // 已登录状态
+        // Logged in state
         return UI::grid()
             ->rows({ /* ... */ })
             ->children({
@@ -209,7 +209,7 @@ auto createConditionalUI() {
 }
 ```
 
-### 列表渲染模式
+### List Rendering Pattern
 
 ```cpp
 auto createDynamicList() {
@@ -226,7 +226,7 @@ auto createDynamicList() {
                         UI::label()->text(item.title),
                         UI::label()->text(item.subtitle),
                         UI::button()
-                            ->text("操作")
+                            ->text("Action")
                             ->onClick([this, id = item.id]() {
                                 handleItemAction(id);
                             })
@@ -243,21 +243,21 @@ auto createDynamicList() {
 }
 ```
 
-## 性能优化策略
+## Performance Optimization Strategies
 
-### 避免过度重建
+### Avoiding Excessive Rebuilds
 
 ```cpp
-// ❌ 错误：每次访问都触发重建
+// ❌ Wrong: Triggers rebuild on every access
 auto badExample() {
     return UI::bindingHost([this]() -> WidgetPtr {
         return UI::label()->text(
-            QString("当前时间: %1").arg(QTime::currentTime().toString())
+            QString("Current time: %1").arg(QTime::currentTime().toString())
         );
     });
 }
 
-// ✅ 正确：使用定时器更新状态
+// ✅ Correct: Use timer to update state
 class TimeDisplayModel : public INotifyPropertyChanged {
 private:
     QString m_currentTime;
@@ -268,7 +268,7 @@ public:
         connect(&m_timer, &QTimer::timeout, [this]() {
             updateCurrentTime();
         });
-        m_timer.start(1000);  // 每秒更新
+        m_timer.start(1000);  // Update every second
     }
     
     QString currentTime() const {
@@ -287,64 +287,86 @@ private:
 };
 ```
 
-### 组件粒度控制
+### Component Granularity Control
 
 ```cpp
-// 将频繁变化的部分拆分为独立的 BindingHost
+// Split frequently changing parts into independent BindingHost instances
 auto createOptimizedLayout() {
     return UI::grid()
         ->rows({ /* ... */ })
         ->children({
-            // 静态标题栏
+            // Static header
             UI::topBar()->followSystem(true),
             
-            // 动态内容区（独立重建）
+            // Dynamic content area (independent rebuild)
             UI::bindingHost([this]() -> WidgetPtr {
                 return createDynamicContent();
             }),
             
-            // 静态状态栏
+            // Static status bar
             UI::statusBar()
         });
 }
 ```
 
-## 常见问题与解决方案
+## Common Issues and Solutions
 
-### 循环依赖检测
+### Circular Dependency Detection
 
 ```cpp
-// 框架会自动检测并阻止循环依赖
+// Framework automatically detects and prevents circular dependencies
 class ComponentA : public INotifyPropertyChanged {
     void updateFromB() {
-        auto value = m_componentB->getValue();  // 访问 B
-        // 此时如果 B 同时访问 A，会触发循环依赖警告
+        auto value = m_componentB->getValue();  // Access B
+        // If B simultaneously accesses A, circular dependency warning is triggered
     }
 };
 ```
 
-### 内存泄漏防护
+### Memory Leak Protection
 
 ```cpp
-// BindingHost 自动管理 Widget 生命周期
+// BindingHost automatically manages Widget lifecycle
 class SafeComponent {
     std::unique_ptr<UI::BindingHost> m_host;
     
 public:
     SafeComponent() {
         m_host = UI::bindingHost([this]() -> WidgetPtr {
-            // Widget 实例由 BindingHost 管理，无需手动释放
+            // Widget instances are managed by BindingHost, no manual cleanup needed
             return createUI();
         });
     }
     
-    // 析构时 BindingHost 自动清理所有 Widget
+    // BindingHost automatically cleans up all Widgets on destruction
     ~SafeComponent() = default;
 };
 ```
 
-## 相关文档
+## Using Connectors for Signal Binding
 
-- [表现层架构概览](architecture.md) - BindingHost 与 UiRoot 的协作机制
-- [UI 基础部件与容器](ui/components.md) - 如何在容器中使用响应式组件
-- [声明式 TopBar 组件](ui/topbar/declarative-topbar.md) - TopBar 中的响应式特性示例
+For more complex scenarios, use the `connect` method to set up signal bindings:
+
+```cpp
+auto createReactiveComponent() {
+    return UI::bindingHost([this]() -> WidgetPtr {
+        return createMyUI();
+    })
+    ->connect([this](UI::RebuildHost* host) {
+        // Use observe helper to connect ViewModel signals to rebuild
+        UI::observe(m_viewModel, &ViewModel::dataChanged, [host]() {
+            host->requestRebuild();
+        });
+        
+        UI::observe(m_themeManager, &ThemeManager::themeChanged, [host]() {
+            host->requestRebuild();
+        });
+    });
+}
+```
+
+## Related Documentation
+
+- [Presentation Layer Architecture Overview](architecture.md) - Collaboration mechanism between BindingHost and UiRoot
+- [UI Basic Components and Containers](ui/components.md) - How to use reactive components in containers
+- [Declarative TopBar Component](ui/topbar/declarative-topbar.md) - Examples of reactive features in TopBar
