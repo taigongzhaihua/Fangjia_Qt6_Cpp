@@ -116,7 +116,9 @@ std::vector<int> UiGrid::computeColumnWidths(const int contentW) const {
 			width[col] = std::max(width[col], nat.width());
 		}
 		else if (def.type == TrackDef::Type::Star) {
-			starMin[col] = std::max(starMin[col], nat.width());
+			// 对于Star列，每次重新测量都重置最小值，不累积历史大小
+			// 这允许Star列根据当前内容和可用空间进行收缩
+			starMin[col] = nat.width();
 		}
 		// Pixel: 不增长（WPF 语义）
 	}
@@ -196,16 +198,29 @@ std::vector<int> UiGrid::computeColumnWidths(const int contentW) const {
 	fixed += std::max(0, n - 1) * m_colSpacing;
 
 	// 将剩余空间分配给 Star
-	const int avail = std::max(0, contentW - fixed);
+	const int avail = contentW - fixed;
 	const float totalStar = std::accumulate(starWeight.begin(), starWeight.end(), 0.0f);
 
 	std::vector<int> out(n, 0);
 	for (int i = 0; i < n; ++i) {
 		if (m_cols[i].type == TrackDef::Type::Star) {
-			const int add = (totalStar > 0.0f)
-				? static_cast<int>(std::floor(avail * (starWeight[i] / totalStar)))
-				: 0;
-			out[i] = starMin[i] + add;
+			if (avail >= 0) {
+				// 正常情况：有额外空间分配给Star列
+				const int add = (totalStar > 0.0f)
+					? static_cast<int>(std::floor(avail * (starWeight[i] / totalStar)))
+					: 0;
+				out[i] = starMin[i] + add;
+			} else {
+				// 收缩情况：需要压缩Star列低于其最小尺寸
+				const int totalStarMin = std::accumulate(starMin.begin(), starMin.end(), 0);
+				if (totalStarMin > 0 && totalStar > 0.0f) {
+					// 按比例收缩Star列
+					const float shrinkFactor = std::max(0.1f, static_cast<float>(contentW - (fixed - totalStarMin)) / static_cast<float>(totalStarMin));
+					out[i] = std::max(10, static_cast<int>(starMin[i] * shrinkFactor)); // 最小10px防止完全消失
+				} else {
+					out[i] = std::max(10, starMin[i]); // 保底最小宽度
+				}
+			}
 		}
 		else {
 			out[i] = width[i];
@@ -276,7 +291,9 @@ std::vector<int> UiGrid::computeRowHeights(const int contentH, const std::vector
 			height[ch.row] = std::max(height[ch.row], d.height());
 		}
 		else if (def.type == TrackDef::Type::Star) {
-			starMin[ch.row] = std::max(starMin[ch.row], d.height());
+			// 对于Star行，每次重新测量都重置最小值，不累积历史大小
+			// 这允许Star行根据当前内容和可用空间进行收缩
+			starMin[ch.row] = d.height();
 		}
 		// Pixel: 不增长
 	}
@@ -355,16 +372,29 @@ std::vector<int> UiGrid::computeRowHeights(const int contentH, const std::vector
 	fixed += std::max(0, rN - 1) * m_rowSpacing;
 
 	// 将剩余空间分配给 Star
-	const int avail = std::max(0, contentH - fixed);
+	const int avail = contentH - fixed;
 	const float totalStar = std::accumulate(starWeight.begin(), starWeight.end(), 0.0f);
 
 	std::vector<int> out(rN, 0);
 	for (int r = 0; r < rN; ++r) {
 		if (m_rows[r].type == TrackDef::Type::Star) {
-			const int add = (totalStar > 0.0f)
-				? static_cast<int>(std::floor(avail * (starWeight[r] / totalStar)))
-				: 0;
-			out[r] = starMin[r] + add;
+			if (avail >= 0) {
+				// 正常情况：有额外空间分配给Star行
+				const int add = (totalStar > 0.0f)
+					? static_cast<int>(std::floor(avail * (starWeight[r] / totalStar)))
+					: 0;
+				out[r] = starMin[r] + add;
+			} else {
+				// 收缩情况：需要压缩Star行低于其最小尺寸
+				const int totalStarMin = std::accumulate(starMin.begin(), starMin.end(), 0);
+				if (totalStarMin > 0 && totalStar > 0.0f) {
+					// 按比例收缩Star行
+					const float shrinkFactor = std::max(0.1f, static_cast<float>(contentH - (fixed - totalStarMin)) / static_cast<float>(totalStarMin));
+					out[r] = std::max(10, static_cast<int>(starMin[r] * shrinkFactor)); // 最小10px防止完全消失
+				} else {
+					out[r] = std::max(10, starMin[r]); // 保底最小高度
+				}
+			}
 		}
 		else {
 			out[r] = height[r];
