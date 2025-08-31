@@ -218,11 +218,18 @@ void MainOpenGlWindow::paintGL()
 
 void MainOpenGlWindow::mousePressEvent(QMouseEvent* e)
 {
-	if (e->button() == Qt::LeftButton)
-	{
-		if (m_uiRoot.onMousePress(e->pos()))
-		{
+	if (e->button() == Qt::LeftButton) {
+		if (m_uiRoot.onMousePress(e->pos())) {
 			update();
+			e->accept();
+			return;
+		}
+		// 手动处理TopBar空白区域拖拽：不在系统按钮区域内时开始系统移动
+		const QPoint p = e->pos();
+		const QRect tb = topBarBounds();
+		if (tb.contains(p) && !topBarSystemButtonsRect().contains(p)) {
+			// 开始系统移动（Qt提供的API）
+			startSystemMove();
 			e->accept();
 			return;
 		}
@@ -665,4 +672,19 @@ void MainOpenGlWindow::initializeDeclarativeShell()
 	// 将Shell BindingHost添加到UiRoot
 	auto shellComponent = m_shellHost->build();
 	m_uiRoot.add(shellComponent.release()); // 转移所有权给UiRoot
+}
+
+// 计算右上角系统按钮集的矩形（与 UiTopBar 的布局常量保持一致）
+QRect MainOpenGlWindow::topBarSystemButtonsRect() const {
+	// 与 UiTopBar::updateLayout 常量保持一致
+	constexpr int margin = 12;
+	constexpr int btnSize = 28;
+	constexpr int gap = 8;
+	constexpr int count = 5; // follow, theme, min, max, close
+
+	const int clusterW = count * btnSize + (count - 1) * gap; // 5*28 + 4*8 = 172
+	const int x = width() - margin - clusterW;
+	const int y = margin;           // 顶部对齐
+	const int h = btnSize;          // 高度为按钮高度
+	return QRect(x, y, clusterW, h);
 }

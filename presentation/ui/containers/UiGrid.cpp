@@ -197,21 +197,47 @@ std::vector<int> UiGrid::computeColumnWidths(const int contentW) const {
 	}
 	fixed += std::max(0, n - 1) * m_colSpacing;
 
-	// 将剩余空间分配给 Star
+	// 将剩余空间分配给 Star（支持负空间下的压缩）
 	const int avail = contentW - fixed;
 	const float totalStar = std::accumulate(starWeight.begin(), starWeight.end(), 0.0f);
 
 	std::vector<int> out(n, 0);
-	for (int i = 0; i < n; ++i) {
-		if (m_cols[i].type == TrackDef::Type::Star) {
-			// For avail < 0, keep Star track sizes at starMin (previous behavior), avoiding over-aggressive compression
-			const int add = (avail >= 0 && totalStar > 0.0f)
-				? static_cast<int>(std::floor(avail * (starWeight[i] / totalStar)))
-				: 0;
-			out[i] = starMin[i] + add;
+	if (totalStar > 0.0f && avail < 0) {
+		// 负空间：从 starMin 中按权重等比扣减，直到总宽匹配 contentW
+		int shrink = -avail;
+		std::vector<int> dec(n, 0);
+		int distributed = 0;
+		for (int i = 0; i < n; ++i) {
+			if (m_cols[i].type == TrackDef::Type::Star) {
+				const float w = (starWeight[i] <= 0.0f ? 1.0f : starWeight[i]);
+				int d = static_cast<int>(std::floor(static_cast<float>(shrink) * (w / totalStar)));
+				d = std::min(d, starMin[i]); // 不低于0
+				dec[i] = d;
+				distributed += d;
+			}
 		}
-		else {
-			out[i] = width[i];
+		int rem = shrink - distributed;
+		for (int i = n - 1; i >= 0 && rem > 0; --i) {
+			if (m_cols[i].type == TrackDef::Type::Star) {
+				const int extra = std::min(rem, std::max(0, starMin[i] - dec[i]));
+				dec[i] += extra;
+				rem -= extra;
+			}
+		}
+		for (int i = 0; i < n; ++i) {
+			if (m_cols[i].type == TrackDef::Type::Star) out[i] = std::max(0, starMin[i] - dec[i]);
+			else out[i] = width[i];
+		}
+	} else {
+		for (int i = 0; i < n; ++i) {
+			if (m_cols[i].type == TrackDef::Type::Star) {
+				const int add = (avail >= 0 && totalStar > 0.0f)
+					? static_cast<int>(std::floor(avail * (starWeight[i] / totalStar)))
+					: 0;
+				out[i] = starMin[i] + add;
+			} else {
+				out[i] = width[i];
+			}
 		}
 	}
 
@@ -359,21 +385,46 @@ std::vector<int> UiGrid::computeRowHeights(const int contentH, const std::vector
 	}
 	fixed += std::max(0, rN - 1) * m_rowSpacing;
 
-	// 将剩余空间分配给 Star
+	// 将剩余空间分配给 Star（支持负空间下的压缩）
 	const int avail = contentH - fixed;
 	const float totalStar = std::accumulate(starWeight.begin(), starWeight.end(), 0.0f);
 
 	std::vector<int> out(rN, 0);
-	for (int r = 0; r < rN; ++r) {
-		if (m_rows[r].type == TrackDef::Type::Star) {
-			// For avail < 0, keep Star track sizes at starMin (previous behavior), avoiding over-aggressive compression
-			const int add = (avail >= 0 && totalStar > 0.0f)
-				? static_cast<int>(std::floor(avail * (starWeight[r] / totalStar)))
-				: 0;
-			out[r] = starMin[r] + add;
+	if (totalStar > 0.0f && avail < 0) {
+		int shrink = -avail;
+		std::vector<int> dec(rN, 0);
+		int distributed = 0;
+		for (int r = 0; r < rN; ++r) {
+			if (m_rows[r].type == TrackDef::Type::Star) {
+				const float w = (starWeight[r] <= 0.0f ? 1.0f : starWeight[r]);
+				int d = static_cast<int>(std::floor(static_cast<float>(shrink) * (w / totalStar)));
+				d = std::min(d, starMin[r]);
+				dec[r] = d;
+				distributed += d;
+			}
 		}
-		else {
-			out[r] = height[r];
+		int rem = shrink - distributed;
+		for (int r = rN - 1; r >= 0 && rem > 0; --r) {
+			if (m_rows[r].type == TrackDef::Type::Star) {
+				const int extra = std::min(rem, std::max(0, starMin[r] - dec[r]));
+				dec[r] += extra;
+				rem -= extra;
+			}
+		}
+		for (int r = 0; r < rN; ++r) {
+			if (m_rows[r].type == TrackDef::Type::Star) out[r] = std::max(0, starMin[r] - dec[r]);
+			else out[r] = height[r];
+		}
+	} else {
+		for (int r = 0; r < rN; ++r) {
+			if (m_rows[r].type == TrackDef::Type::Star) {
+				const int add = (avail >= 0 && totalStar > 0.0f)
+					? static_cast<int>(std::floor(avail * (starWeight[r] / totalStar)))
+					: 0;
+				out[r] = starMin[r] + add;
+			} else {
+				out[r] = height[r];
+			}
 		}
 	}
 

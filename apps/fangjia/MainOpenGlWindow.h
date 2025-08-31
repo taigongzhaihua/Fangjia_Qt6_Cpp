@@ -81,6 +81,9 @@ public:
 		return QRect(navWidth, 0, std::max(0, width() - navWidth), topBarHeight);
 	}
 
+	// 系统按钮区域（右侧5个按钮：follow/theme/min/max/close）用于禁用拖拽
+	QRect topBarSystemButtonsRect() const;
+
 protected:
 	/// OpenGL生命周期回调
 	void initializeGL() override;
