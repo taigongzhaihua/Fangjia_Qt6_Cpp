@@ -97,13 +97,68 @@ auto customBar = UI::topBar()
 
 | Method | Parameters | Default | Description |
 |--------|------------|---------|-------------|
-| `followSystem()` | `bool on, bool animate = false` | `false, false` | Set system theme following |
+| `followSystem()` | `bool on, bool animate = false` | `false, false` | Set system theme following with optional animation |
 | `cornerRadius()` | `float r` | `6.0f` | Set button corner radius |
 | `svgTheme()` | `QString sunWhenDark, QString moonWhenLight` | - | Set theme toggle icons |
 | `svgFollow()` | `QString on, QString off` | - | Set follow system icons |
 | `svgSystem()` | `QString min, QString max, QString close` | - | Set window control icons |
 | `palette()` | `const UiTopBar::Palette&` | - | Override default color scheme |
 | `onThemeToggle()` | `std::function<void()>` | - | Set theme change callback |
+| `onFollowToggle()` | `std::function<void()>` | - | Set follow system toggle callback |
+
+### Follow System Animation
+
+The TopBar component includes sophisticated two-phase animation for the Follow System toggle:
+
+#### Animation Behavior
+
+**Enabling Follow System (when `followSystem(true, true)`):**
+1. **Phase 1**: Theme button fades out (160ms with ease-in-out curve)
+2. **Phase 2**: Follow button slides right into theme button's position (200ms)
+3. Theme button becomes non-interactive while hidden
+
+**Disabling Follow System (when `followSystem(false, true)`):**
+1. **Phase 1**: Follow button slides left back to original position (180ms)
+2. **Phase 2**: Theme button fades in to full opacity (160ms)
+3. Theme button becomes interactive again
+
+#### Usage with Animation
+
+```cpp
+// Enable follow system with animation
+auto bar = UI::topBar()
+    ->followSystem(true, true)   // animate = true triggers animation
+    ->onFollowToggle([this]() {
+        // This callback is triggered by user clicks
+        // MainOpenGlWindow sets animation flag before calling setFollowSystem
+    });
+```
+
+#### Integration Pattern
+
+The typical integration pattern in MainOpenGlWindow:
+
+```cpp
+// 1. User clicks Follow button -> onFollowSystemToggle() called
+void MainOpenGlWindow::onFollowSystemToggle() const {
+    // Set animation flag before changing theme mode
+    const_cast<MainOpenGlWindow*>(this)->m_animateFollowChange = true;
+    setFollowSystem(!followSystem());
+}
+
+// 2. Shell rebuilds with animation flag
+->followSystem(followSystem, m_animateFollowChange)  // Uses animation flag
+
+// 3. Flag is reset after rebuild
+m_animateFollowChange = false;
+```
+
+#### Technical Details
+
+- **Timing Values**: Subtle timing (160-200ms) for smooth user experience
+- **Easing**: Smooth ease-in-out curve for natural motion
+- **Interactivity**: Theme button disabled while Follow System is active (except during fade-in)
+- **State Management**: Explicit animation state machine prevents conflicts
 
 ## Integration with AppShell
 
