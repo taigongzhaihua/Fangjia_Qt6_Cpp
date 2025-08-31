@@ -1,6 +1,8 @@
 #include "RenderData.hpp"
 #include "UiContent.hpp"
 #include "UiPage.h"
+#include "IFocusable.hpp"
+#include "IFocusContainer.hpp"
 
 #include <algorithm>
 #include <cmath>
@@ -182,4 +184,21 @@ bool UiPage::tick()
 	bool any = false;
 	if (m_content) any = m_content->tick() || any;
 	return any;
+}
+
+void UiPage::enumerateFocusables(std::vector<IFocusable*>& out) const
+{
+	if (!m_content) return;
+	
+	// 如果内容组件本身可以获得焦点，添加它
+	if (auto* focusable = dynamic_cast<IFocusable*>(m_content)) {
+		if (focusable->canFocus()) {
+			out.push_back(focusable);
+		}
+	}
+	
+	// 如果内容组件是容器，递归枚举其可焦点子组件
+	if (auto* container = dynamic_cast<IFocusContainer*>(m_content)) {
+		container->enumerateFocusables(out);
+	}
 }

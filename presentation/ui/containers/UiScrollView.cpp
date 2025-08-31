@@ -1,6 +1,8 @@
 #include "UiScrollView.h"
 #include <algorithm>
 #include <ILayoutable.hpp>
+#include "IFocusable.hpp"
+#include "IFocusContainer.hpp"
 #include <qcolor.h>
 #include <qpoint.h>
 #include <qrect.h>
@@ -534,4 +536,21 @@ QRect UiScrollView::getDownButtonRect() const {
 
 	return QRect(scrollbarRect.left(), scrollbarRect.bottom() - BUTTON_HEIGHT + 1,
 		scrollbarRect.width(), BUTTON_HEIGHT);
+}
+
+void UiScrollView::enumerateFocusables(std::vector<IFocusable*>& out) const
+{
+	if (!m_child) return;
+	
+	// 如果子组件本身可以获得焦点，添加它
+	if (auto* focusable = dynamic_cast<IFocusable*>(m_child)) {
+		if (focusable->canFocus()) {
+			out.push_back(focusable);
+		}
+	}
+	
+	// 如果子组件是容器，递归枚举其可焦点子组件
+	if (auto* container = dynamic_cast<IFocusContainer*>(m_child)) {
+		container->enumerateFocusables(out);
+	}
 }

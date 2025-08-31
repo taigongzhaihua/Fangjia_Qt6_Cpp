@@ -2,6 +2,7 @@
 #include "UiComponent.hpp"
 #include "UiContent.hpp"
 #include "ILayoutable.hpp"
+#include "IFocusContainer.hpp"
 #include <functional>
 #include <memory>
 #include <algorithm>
@@ -9,7 +10,7 @@
 namespace UI {
 
 	// 可重建的宿主组件：用于将某一段 Widget 构造成的 IUiComponent 动态重建
-	class RebuildHost : public IUiComponent, public IUiContent, public ILayoutable {
+	class RebuildHost : public IUiComponent, public IUiContent, public ILayoutable, public IFocusContainer {
 	public:
 		using BuildFn = std::function<std::unique_ptr<IUiComponent>()>;
 
@@ -139,6 +140,23 @@ namespace UI {
 		void onThemeChanged(const bool isDark) override {
 			m_isDark = isDark; m_hasTheme = true;
 			if (m_child) m_child->onThemeChanged(isDark);
+		}
+
+		// IFocusContainer
+		void enumerateFocusables(std::vector<IFocusable*>& out) const override {
+			if (!m_child) return;
+			
+			// 如果子组件本身可以获得焦点，添加它
+			if (auto* focusable = dynamic_cast<IFocusable*>(m_child.get())) {
+				if (focusable->canFocus()) {
+					out.push_back(focusable);
+				}
+			}
+			
+			// 如果子组件是容器，递归枚举其可焦点子组件
+			if (auto* container = dynamic_cast<IFocusContainer*>(m_child.get())) {
+				container->enumerateFocusables(out);
+			}
 		}
 
 	private:

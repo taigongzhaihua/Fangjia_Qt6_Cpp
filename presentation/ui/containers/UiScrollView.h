@@ -1,5 +1,6 @@
 #pragma once
 #include "ILayoutable.hpp"
+#include "IFocusContainer.hpp"
 #include "UiComponent.hpp"
 #include "UiContent.hpp"
 
@@ -32,7 +33,7 @@ class QOpenGLFunctions;
  * - 绘制时先 append 子项，再通过 RenderUtils::applyParentClip 裁剪到自身 viewport
  * - 在右侧绘制滚动条（仅当 contentHeight > viewport.height() 时显示）
  */
-class UiScrollView final : public IUiComponent, public IUiContent, public ILayoutable {
+class UiScrollView final : public IUiComponent, public IUiContent, public ILayoutable, public IFocusContainer {
 public:
 	UiScrollView();
 	~UiScrollView() override = default;
@@ -65,6 +66,9 @@ public:
 	bool tick() override;
 	QRect bounds() const override { return m_viewport; }
 	void applyTheme(bool isDark) override;
+
+	// IFocusContainer
+	void enumerateFocusables(std::vector<IFocusable*>& out) const override;
 
 private:
 	// 布局计算
