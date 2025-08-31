@@ -19,7 +19,6 @@
 #include <Widget.h>
 
 #include "BasicWidgets_Button.h"
-#include <qmargins.h>
 using namespace UI;
 
 // CounterViewModel 实现
@@ -153,20 +152,15 @@ private:
 
 					// 按钮区域（不使用绑定，演示混合用法）
 					grid()->columns({1_fr, 1_fr})
-						  ->add(text("递增")
-								->fontSize(14)
-								->align(Qt::AlignHCenter)
-								->onTap([this] { counterVM->increment(); })
-								->padding(8, 4)
-								->background(QColor(100, 160, 220), 6.0f),
+						  ->add(button("递增")
+								->onTap([this] { counterVM->increment(); }),
 								0, 0)
 						  ->add(button("递减")
 								->onTap([this] { counterVM->decrement(); })
-							  ->destructive()
-								->padding(QMargins(8,4,8,4)),
+							  ->destructive(),
 								0, 1)
 						  ->colSpacing(10)
-						  ->size(120, 28),
+						  ->size(120, 40),
 
 					spacer(5),
 					text("点击按钮观察绑定效果 - UI会自动重建")
