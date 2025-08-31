@@ -17,11 +17,11 @@ jobs:
     - name: Install Qt6
       uses: jurplel/install-qt-action@v4
       with:
-        version: '6.8.0'
+        version: '6.6.3'
         host: 'windows'
         target: 'desktop'
-        arch: 'win64_msvc2019_64'
-        modules: ''
+        arch: 'win64_msvc2019_64'    # 原来为 win64_msvc2022_64
+        modules: 'qtsvg qttools'
         cache: true
         
     - name: Setup MSVC
