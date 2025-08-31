@@ -56,6 +56,23 @@ namespace {
 		std::cout << "TopBar API test passed (including onFollowToggle)" << std::endl;
 	}
 
+	// 测试TopBar动画标志
+	void testTopBarAnimation() {
+		// 测试不带动画的TopBar
+		auto barNoAnim = UI::topBar()
+			->followSystem(true, false);
+		auto componentNoAnim = barNoAnim->build();
+		assert(componentNoAnim != nullptr);
+
+		// 测试带动画的TopBar
+		auto barWithAnim = UI::topBar()
+			->followSystem(true, true); // 启用动画
+		auto componentWithAnim = barWithAnim->build();
+		assert(componentWithAnim != nullptr);
+
+		std::cout << "TopBar animation flag test passed" << std::endl;
+	}
+
 	// 测试装饰器集成
 	void testDecorators() {
 		// 测试NavRail与装饰器的配合
@@ -76,6 +93,7 @@ int main() {
 	try {
 		testNavRailAPI();
 		testTopBarAPI();
+		testTopBarAnimation();
 		testDecorators();
 		
 		std::cout << "All NavTopBarWidgets tests passed!" << std::endl;

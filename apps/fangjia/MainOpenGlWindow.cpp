@@ -479,6 +479,8 @@ void MainOpenGlWindow::setupThemeListeners()
 				if (m_shellRebuildHost)
 				{
 					m_shellRebuildHost->requestRebuild();
+					// Reset animation flag after rebuild so animation only plays once per user-initiated toggle
+					m_animateFollowChange = false;
 				}
 				updateLayout();
 				update();
@@ -583,6 +585,10 @@ void MainOpenGlWindow::onThemeToggle() const
 void MainOpenGlWindow::onFollowSystemToggle() const
 {
 	if (!m_themeMgr) return;
+	
+	// Set animation flag before changing theme mode so the next rebuild knows to animate
+	const_cast<MainOpenGlWindow*>(this)->m_animateFollowChange = true;
+	
 	setFollowSystem(m_themeMgr->mode() != ThemeManager::ThemeMode::FollowSystem);
 }
 
@@ -624,7 +630,7 @@ void MainOpenGlWindow::initializeDeclarativeShell()
 			return appShell()
 				->nav(wrap(&m_nav))
 				->topBar(UI::topBar()
-					->followSystem(followSystem, false) // false = 无动画，与原始配置一致
+					->followSystem(followSystem, m_animateFollowChange) // 使用动画标志
 					->cornerRadius(8.0f)
 					->svgTheme(":/icons/sun.svg", ":/icons/moon.svg")
 					->svgFollow(":/icons/follow_on.svg", ":/icons/follow_off.svg")
