@@ -1,6 +1,6 @@
 # Declarative NavRail and TopBar Widgets
 
-[中文文档 (Chinese Documentation)](./DECLARATIVE_NAV_TOPBAR.zh-CN.md)
+[简体中文版本 (Simplified Chinese)](./DECLARATIVE_NAV_TOPBAR.zh-CN.md)
 
 This document describes the new declarative UI widgets for NavRail and TopBar components that provide first-class declarative APIs without requiring runtime component wrapping via `UI::wrap()`.
 

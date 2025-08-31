@@ -26,6 +26,12 @@
 - **关键概念**: 跟随系统动画、BindingHost 集成、MainOpenGlWindow 交互、时长缩放 (2/3)
 - **重要性**: ⭐⭐⭐⭐ 应用开发的核心组件
 
+#### [TopBar 动画实现详解](../DECLARATIVE_TOPBAR_ANIMATION_IMPLEMENTATION.zh-CN.md)
+- **适用读者**: UI 开发者、框架贡献者
+- **内容概要**: TopBar 跟随系统动画的两阶段实现细节、交互判定和集成模式
+- **关键概念**: 动画状态机、时长缩放、交互阈值、主题资源顺序
+- **重要性**: ⭐⭐⭐ TopBar 动画机制深度理解
+
 #### [滚动容器详解](./SCROLL_VIEW.zh-CN.md)
 - **适用读者**: UI 开发者、应用开发者  
 - **内容概要**: UiScrollView 使用方法、滚动条渲染、主题适配、IScrollContent 交互
@@ -39,6 +45,20 @@
 - **内容概要**: 完整的声明式 UI 体系，包括 Widget、装饰器、BindingHost、UI 工厂函数
 - **关键概念**: 装饰器系统、ComponentWrapper、响应式重建、文本/图标缓存键、主题适配
 - **重要性**: ⭐⭐⭐⭐⭐ 现代化 UI 开发的核心指南
+
+### 开发者指南
+
+#### [贡献指南](./CONTRIBUTING.zh-CN.md)
+- **适用读者**: 开发者、文档贡献者
+- **内容概要**: 代码和文档贡献规范、PR 提交流程、代码审查要求
+- **关键概念**: 文档结构、术语统一、代码示例、提交规范、审查清单
+- **重要性**: ⭐⭐⭐ 参与项目开发必读
+
+#### [术语表](./GLOSSARY.zh-CN.md)
+- **适用读者**: 所有用户
+- **内容概要**: 项目中使用的中英文术语对照表，确保文档翻译一致性
+- **关键概念**: 核心组件、主题系统、布局术语、交互动画、架构术语
+- **重要性**: ⭐⭐⭐⭐ 理解文档和 API 的基础参考
 
 ## 快速导航
 
@@ -64,6 +84,7 @@
 
 #### 🔄 动画和交互
 - [TopBar 跟随系统动画](./DECLARATIVE_NAV_TOPBAR.zh-CN.md#跟随系统动画) - 两阶段动画、时长缩放
+- [TopBar 动画实现详解](../DECLARATIVE_TOPBAR_ANIMATION_IMPLEMENTATION.zh-CN.md) - 深度实现细节和集成模式
 - [滚动条淡入淡出](./SCROLL_VIEW.zh-CN.md#淡入淡出动画) - 滚动条动画
 - [装饰器状态动画](./DECLARATIVE_OVERVIEW.zh-CN.md#状态动画) - hover/press 状态过渡
 
@@ -137,11 +158,83 @@
 
 1. 检查对应的源代码实现是否已更新
 2. 确认文档描述与实际行为是否一致
-3. 提交反馈或改进建议
+3. 参考 [贡献指南](./CONTRIBUTING.zh-CN.md) 了解详细的贡献流程
+4. 使用 [术语表](./GLOSSARY.zh-CN.md) 确保术语翻译的一致性
+5. 提交反馈或改进建议
+
+## 项目快速上手
+
+### 项目结构概览
+
+本项目采用分层架构设计：
+
+- **`infrastructure/`** - 基础设施层：工具类、算法、平台抽象
+- **`domain/`** - 领域层：业务逻辑、数据模型
+- **`data/`** - 数据层：数据访问、外部服务集成
+- **`presentation/`** - 表现层：UI 组件、视图模型、声明式系统
+- **`apps/`** - 应用层：主程序入口、窗口管理
+
+### 构建与运行
+
+#### 依赖要求
+
+- **CMake** 3.20 或更高版本
+- **Qt6** 完整开发环境
+- **C++23** 兼容编译器
+
+#### 构建步骤
+
+```bash
+# 克隆项目
+git clone <repository-url>
+cd Fangjia_Qt6_Cpp
+
+# 创建构建目录
+mkdir build && cd build
+
+# 配置 CMake
+cmake ..
+
+# 编译项目
+cmake --build .
+```
+
+#### Windows 注意事项
+
+- 确保 Qt6 环境变量正确配置
+- 推荐使用 Visual Studio 2022 或 QtCreator
+- 注意 DPI 缩放设置对 UI 渲染的影响
+
+### 快速入门
+
+#### 1. 找到入口点
+
+主应用程序入口位于：
+- **主窗口类**: `apps/fangjia/MainOpenGlWindow.h/.cpp`
+- **程序入口**: `apps/fangjia/main.cpp`
+
+#### 2. 了解声明式 UI
+
+声明式 UI 组件位于：
+- **组件定义**: `presentation/ui/declarative/`
+- **使用示例**: 查看 `MainOpenGlWindow::initializeDeclarativeShell()` 方法
+
+#### 3. 查看核心组件
+
+- **TopBar**: `presentation/ui/widgets/UiTopBar.h/.cpp`
+- **NavRail**: `presentation/ui/widgets/UiNavRail.h/.cpp`
+- **布局系统**: `presentation/ui/containers/`
 
 ## 英文文档链接
 
-- [English TopBar Documentation](./DECLARATIVE_NAV_TOPBAR.md) - 英文版 TopBar 文档
+- [English TopBar Documentation](./DECLARATIVE_NAV_TOPBAR.md) - 英文版 TopBar 声明式组件文档
+- [English TopBar Animation Implementation](../DECLARATIVE_TOPBAR_ANIMATION_IMPLEMENTATION.md) - 英文版 TopBar 动画实现文档
+
+## 相关文档
+
+- [贡献指南](./CONTRIBUTING.zh-CN.md) - 了解如何参与项目开发
+- [术语表](./GLOSSARY.zh-CN.md) - 中英文术语对照和翻译规范
+- [编码规范](../编码规范.md) - C++/Qt 代码风格要求
 
 ---
 
