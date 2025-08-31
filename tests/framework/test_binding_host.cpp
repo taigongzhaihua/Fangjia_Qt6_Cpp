@@ -6,6 +6,7 @@
 #include "../../src/framework/declarative/UI.h"
 #include "../../src/models/TabViewModel.h"
 #include "../../src/core/rendering/RenderData.hpp"
+#include "presentation/binding/tab_interface.h"
 
 // 测试用的 ViewModel
 class TestViewModel : public QObject {
@@ -120,7 +121,7 @@ private slots:
     void testTabViewModelIntegration() {
         // 测试与 TabViewModel 的集成
         TabViewModel tabVm;
-        tabVm.setItems(QVector<TabViewModel::TabItem>{
+        tabVm.setItems(QVector<fj::presentation::binding::TabItem>{
             {.id = "tab1", .label = "Tab 1", .tooltip = "First tab"},
             {.id = "tab2", .label = "Tab 2", .tooltip = "Second tab"}
         });

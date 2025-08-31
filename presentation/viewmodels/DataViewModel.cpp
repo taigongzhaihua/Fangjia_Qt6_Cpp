@@ -48,7 +48,7 @@ void DataViewModel::onTabSelectionChanged(const int index)
 void DataViewModel::initializeTabs()
 {
 	// 初始化标签页数据（与原 DataPage::Impl 保持一致）
-	m_tabViewModel->setItems(QVector<TabViewModel::TabItem>{
+	m_tabViewModel->setItems(QVector<fj::presentation::binding::TabItem>{
 		{.id = "formula", .label = "方剂", .tooltip = "中医方剂数据库"},
 		{ .id = "herb", .label = "中药", .tooltip = "中药材信息" },
 		{ .id = "classic", .label = "经典", .tooltip = "经典医籍" },
