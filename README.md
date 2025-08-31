@@ -1,67 +1,82 @@
 # Fangjia Qt6 C++
 
-## 项目简介
+## Project Overview
 
-Fangjia Qt6 C++ 是一个基于 Qt 6 + OpenGL 的现代化自绘 UI 应用框架，展示了企业级 C++ 桌面应用的最佳实践。项目采用分层架构设计，提供完整的 UI 组件体系、声明式编程接口、主题管理和跨平台支持。
+Fangjia Qt6 C++ is a modern desktop application framework built on Qt 6 and OpenGL, showcasing enterprise-grade C++ desktop application best practices. The project features a layered architecture design with comprehensive UI components, declarative programming interfaces, theme management, and cross-platform support.
 
-## 主要特性
+## Key Features
 
-- **自定义渲染管线** - 基于 OpenGL 的高性能渲染系统（Renderer、RenderData、IconCache）
-- **声明式 UI 体系** - 现代化的链式 API 与组件装饰器系统
-- **丰富的 UI 组件** - UiRoot、UiPanel、UiGrid、UiTopBar、NavRail、ScrollView 等
-- **响应式数据绑定** - BindingHost/RebuildHost 机制支持自动 UI 更新
-- **主题管理系统** - 支持明暗主题切换与跟随系统主题
-- **跨平台支持** - Windows 平台窗口装饰与交互优化
+- **Custom Rendering Pipeline** - High-performance OpenGL-based rendering system (Renderer, RenderData, IconCache)
+- **Declarative UI System** - Modern chain-based APIs and component decorator system
+- **Rich UI Components** - UiRoot, UiPanel, UiGrid, UiTopBar, NavRail, ScrollView, and more
+- **Reactive Data Binding** - BindingHost/RebuildHost mechanism with automatic UI updates
+- **Theme Management System** - Light/dark theme switching with system theme following
+- **Cross-Platform Support** - Windows platform window decoration and interaction optimization
 
-## 工程结构概览
+## Project Structure
 
 ```
-├─ presentation/        # 表现层（UI 框架、声明式组件、数据绑定）
-├─ infrastructure/      # 基础设施（渲染、图形、平台抽象）
-├─ domain/             # 业务领域（模型、服务）
-├─ apps/               # 应用程序（主窗口、页面路由）
-├─ resources/          # Qt 资源文件
-├─ doc/                # 项目文档
-└─ examples/           # 代码示例
+├─ presentation/        # Presentation layer (UI framework, declarative components, data binding)
+├─ infrastructure/      # Infrastructure (rendering, graphics, platform abstraction)
+├─ domain/             # Business domain (models, services)
+├─ apps/               # Applications (main window, page routing)
+├─ resources/          # Qt resource files
+├─ doc/                # Project documentation
+└─ examples/           # Code examples
 ```
 
-## 构建与运行
+## Build & Run
 
-### 环境要求
+### Requirements
 
-- **Qt 6 组件**: Core、Gui、Widgets、OpenGL、Svg
-- **构建工具**: CMake ≥ 3.16
-- **编译器**: 支持 C++23 的现代编译器
+- **Qt 6 Components**: Core, Gui, Widgets, OpenGL, Svg
+- **Build Tools**: CMake ≥ 3.16
+- **Compiler**: Modern C++23 compatible compiler
 
-### 构建步骤
+### Build Steps
 
 ```bash
 # Linux/macOS
 cmake -S . -B build -DCMAKE_BUILD_TYPE=Debug
 cmake --build build -j$(nproc)
 
-# Windows (在 Qt 开发者命令提示符中)
+# Windows (in Qt Developer Command Prompt)
 cmake -S . -B build -DCMAKE_BUILD_TYPE=Debug
 cmake --build build --config Debug
 ```
 
-### 运行 Demo
+### Run Demo
 
-构建完成后运行可执行文件：
+After successful build, run the executable:
 - Linux/macOS: `./build/apps/fangjia/fangjia`
 - Windows: `.\build\apps\fangjia\Debug\FangJia.exe`
 
-应用启动后可体验声明式 UI 组件、主题切换、导航交互等核心功能。
+The application demonstrates declarative UI components, theme switching, navigation interactions, and other core features.
 
-## 快速开始
+## Quick Start
 
-1. **克隆仓库并构建项目**
-2. **运行示例应用**，熟悉 UI 组件和交互模式
-3. **查看代码示例** (`examples/` 目录) 了解声明式 API 用法
-4. **阅读架构文档**，深入理解框架设计理念
+1. **Clone the repository and build the project**
+2. **Run the sample application** to explore UI components and interaction patterns
+3. **Review code examples** (`examples/` directory) to understand declarative API usage
+4. **Read architecture documentation** to understand the framework design philosophy
 
-## 文档入口
+## Documentation
 
-完整的中文技术文档请参阅：**[doc/index.md](doc/index.md)**
+Comprehensive technical documentation is available in the **[doc/](doc/index.md)** directory:
 
-文档按系统分组组织，涵盖架构设计、组件使用、开发指南等各个方面。
+### Getting Started
+- **[Architecture Overview](doc/architecture/overview.md)** - Understand the system design and component relationships
+- **[Build Guides](doc/build/)** - Platform-specific setup and compilation instructions  
+- **[UI Framework Overview](doc/presentation/ui-framework/overview.md)** - Learn about the component system and declarative APIs
+
+### Key Features Documentation
+- **[Graphics & Rendering](doc/infrastructure/gfx.md)** - High-performance OpenGL rendering pipeline
+- **[Theme System](doc/presentation/ui-framework/theme-and-rendering.md)** - Light/dark theme support with system following
+- **[Layout System](doc/presentation/ui-framework/layouts.md)** - Flexible container and positioning system
+- **[Component Library](doc/presentation/components/)** - TopBar, NavRail, TabView, ScrollView components
+
+### Advanced Topics
+- **[Data Binding](doc/presentation/binding.md)** - Reactive data binding and UI updates
+- **[Platform Integration](doc/infrastructure/platform-windows.md)** - Native Windows features and optimizations
+
+For a complete table of contents, see **[doc/index.md](doc/index.md)**.
