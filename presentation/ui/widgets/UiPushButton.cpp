@@ -328,6 +328,7 @@ void UiPushButton::createIconAndTextPainter() {
 		const QRectF contentRect = rect.adjusted(padding.left(), padding.top(), -padding.right(), -padding.bottom());
 		
 		float currentX = contentRect.left();
+		bool hasIcon = false;
 		
 		// 绘制图标
 		if (!iconPath.isEmpty()) {
@@ -353,6 +354,7 @@ void UiPushButton::createIconAndTextPainter() {
 					});
 					
 					currentX += iconSize + (m_text.isEmpty() ? 0 : 8); // 图标后加间距
+					hasIcon = true;
 				}
 			}
 		}
@@ -376,7 +378,19 @@ void UiPushButton::createIconAndTextPainter() {
 				const float textWidth = fm.horizontalAdvance(m_text);
 				const float textHeight = fm.height();
 				const float textY = contentRect.top() + (contentRect.height() - textHeight) * 0.5f;
-				const QRectF textRect(currentX, textY, textWidth, textHeight);
+				
+				// 计算水平居中位置
+				float textX;
+				if (hasIcon) {
+					// 有图标：在剩余区域内水平居中
+					const QRectF remainingRect(currentX, contentRect.top(), contentRect.right() - currentX, contentRect.height());
+					textX = remainingRect.left() + (remainingRect.width() - textWidth) * 0.5f;
+				} else {
+					// 仅文本：在整个内容区域内水平居中
+					textX = contentRect.left() + (contentRect.width() - textWidth) * 0.5f;
+				}
+				
+				const QRectF textRect(textX, textY, textWidth, textHeight);
 				
 				fd.images.push_back(Render::ImageCmd{
 					.dstRect = textRect,
