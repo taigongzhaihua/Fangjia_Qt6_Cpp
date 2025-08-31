@@ -259,7 +259,7 @@ bool UiTopBar::tick()
 	switch (m_animPhase) {
 	case AnimPhase::HideTheme_FadeOut:
 		m_themeAlpha = lerp(m_phaseStartAlpha, 0.0f, e);
-		if (t >= 1.0f) { m_phaseStartSlide = m_followSlide; beginPhase(AnimPhase::MoveFollow_Right, 200); }
+		if (t >= 1.0f) { m_phaseStartSlide = m_followSlide; beginPhase(AnimPhase::MoveFollow_Right, scaleDuration(200)); }
 		break;
 	case AnimPhase::MoveFollow_Right:
 		m_followSlide = lerp(m_phaseStartSlide, 1.0f, e);
@@ -267,7 +267,7 @@ bool UiTopBar::tick()
 		break;
 	case AnimPhase::MoveFollow_Left:
 		m_followSlide = lerp(m_phaseStartSlide, 0.0f, e);
-		if (t >= 1.0f) { m_phaseStartAlpha = m_themeAlpha; beginPhase(AnimPhase::ShowTheme_FadeIn, 160); }
+		if (t >= 1.0f) { m_phaseStartAlpha = m_themeAlpha; beginPhase(AnimPhase::ShowTheme_FadeIn, scaleDuration(160)); }
 		break;
 	case AnimPhase::ShowTheme_FadeIn:
 		m_themeAlpha = lerp(m_phaseStartAlpha, 1.0f, e);
@@ -300,14 +300,19 @@ float UiTopBar::easeInOut(float t)
 	return t * t * (3.0f - 2.0f * t);
 }
 
+int UiTopBar::scaleDuration(int durationMs)
+{
+	return static_cast<int>(std::lround(static_cast<double>(durationMs) * 2.0 / 3.0));
+}
+
 void UiTopBar::startAnimSequence(const bool followOn)
 {
 	if (!m_animClock.isValid()) m_animClock.start();
 	m_phaseStartAlpha = m_themeAlpha;
 	m_phaseStartSlide = m_followSlide;
 
-	if (followOn) beginPhase(AnimPhase::HideTheme_FadeOut, 160);
-	else          beginPhase(AnimPhase::MoveFollow_Left, 180);
+	if (followOn) beginPhase(AnimPhase::HideTheme_FadeOut, scaleDuration(160));
+	else          beginPhase(AnimPhase::MoveFollow_Left, scaleDuration(180));
 }
 
 void UiTopBar::beginPhase(const AnimPhase ph, const int durationMs)
