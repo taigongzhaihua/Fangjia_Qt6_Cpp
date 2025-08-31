@@ -105,9 +105,15 @@ namespace UI {
 			const QString& svgFollowOn, const QString& svgFollowOff,
 			const QString& svgMin, const QString& svgMax, const QString& svgClose,
 			const UiTopBar::Palette& palette, bool hasCustomPalette,
-			std::function<void()> themeToggleCallback)
+			std::function<void()> themeToggleCallback,
+			std::function<void()> onMinimize,
+			std::function<void()> onMaxRestore,
+			std::function<void()> onClose)
 			: m_topBar(std::make_unique<UiTopBar>())
 			, m_themeToggleCallback(std::move(themeToggleCallback))
+			, m_onMinimize(std::move(onMinimize))
+			, m_onMaxRestore(std::move(onMaxRestore))
+			, m_onClose(std::move(onClose))
 		{
 			// 配置跟随系统
 			m_topBar->setFollowSystem(followSystem, animateFollow);
@@ -169,6 +175,20 @@ namespace UI {
 				}
 			}
 
+			// 检查系统按钮事件
+			bool clickedMin = false, clickedMaxRestore = false, clickedClose = false;
+			if (m_topBar->takeSystemActions(clickedMin, clickedMaxRestore, clickedClose)) {
+				if (clickedMin && m_onMinimize) {
+					m_onMinimize();
+				}
+				if (clickedMaxRestore && m_onMaxRestore) {
+					m_onMaxRestore();
+				}
+				if (clickedClose && m_onClose) {
+					m_onClose();
+				}
+			}
+
 			return m_topBar->tick();
 		}
 
@@ -183,6 +203,9 @@ namespace UI {
 	private:
 		std::unique_ptr<UiTopBar> m_topBar;
 		std::function<void()> m_themeToggleCallback;
+		std::function<void()> m_onMinimize;
+		std::function<void()> m_onMaxRestore;
+		std::function<void()> m_onClose;
 	};
 
 	// NavRail widget implementation
@@ -207,7 +230,8 @@ namespace UI {
 			m_svgFollowOn, m_svgFollowOff,
 			m_svgMin, m_svgMax, m_svgClose,
 			m_palette, m_hasCustomPalette,
-			m_themeToggleCallback
+			m_themeToggleCallback,
+			m_onMinimize, m_onMaxRestore, m_onClose
 		);
 
 		// 应用装饰器（支持Widget基类的padding、margin等）
