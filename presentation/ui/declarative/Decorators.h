@@ -39,6 +39,33 @@ namespace UI {
 			QColor   borderLight{ Qt::transparent };
 			QColor   borderDark{ Qt::transparent };
 
+			// Interactive states (hover/press) — background
+			// Option A: static colors for hover/press
+			bool     useInteractiveBg{ false };
+			QColor   bgHover{ Qt::transparent };
+			QColor   bgPressed{ Qt::transparent };
+			// Option B: theme-aware colors for hover/press
+			bool     useThemeInteractiveBg{ false };
+			QColor   bgHoverLight{ Qt::transparent };
+			QColor   bgHoverDark{ Qt::transparent };
+			QColor   bgPressedLight{ Qt::transparent };
+			QColor   bgPressedDark{ Qt::transparent };
+
+			// Interactive states (hover/press) — border (optional)
+			bool     useInteractiveBorder{ false };
+			QColor   borderHover{ Qt::transparent };
+			QColor   borderPressed{ Qt::transparent };
+			bool     useThemeInteractiveBorder{ false };
+			QColor   borderHoverLight{ Qt::transparent };
+			QColor   borderHoverDark{ Qt::transparent };
+			QColor   borderPressedLight{ Qt::transparent };
+			QColor   borderPressedDark{ Qt::transparent };
+
+			// Auto interactive background for clickable boxes (default on)
+			// When onTap is set and no explicit interactive bg provided,
+			// DecoratedBox will apply subtle hover/press backgrounds by theme.
+			bool     enableAutoInteractive{ true };
+
 			QSize    fixedSize{ -1, -1 };
 			bool     visible{ true };
 			float    opacity{ 1.0f };
@@ -74,9 +101,17 @@ namespace UI {
 	private:
 		static QColor withOpacity(QColor c, float mul);
 
-		// 计算当前主题下的有效背景/边框颜色
+		// Base colors by theme (no interactive consideration)
 		QColor effectiveBg() const;
 		QColor effectiveBorder() const;
+
+		// State-aware effective colors (hover/press)
+		QColor effectiveBgForState() const;
+		QColor effectiveBorderForState() const;
+
+		// Defaults for auto interactive backgrounds
+		QColor defaultHoverBg() const;
+		QColor defaultPressedBg() const;
 
 	private:
 		std::unique_ptr<IUiComponent> m_child;

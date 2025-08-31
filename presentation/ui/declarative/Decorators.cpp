@@ -124,8 +124,8 @@ namespace UI
 		// 裁剪到上级 viewport
 		const auto clip = QRectF(m_viewport);
 
-		const QColor borderColor = effectiveBorder();
-		const QColor bgColor = effectiveBg();
+		const QColor borderColor = effectiveBorderForState();
+		const QColor bgColor = effectiveBgForState();
 
 		// 先画边框（若启用）
 		if (m_drawRect.isValid() && borderColor.alpha() > 0 && m_p.borderW > 0.0f)
@@ -188,14 +188,16 @@ namespace UI
 		if (!m_p.visible) return false;
 		bool handled = false;
 		if (m_child) handled = m_child->onMouseMove(pos) || handled;
-		if (m_p.onHover)
+		
+		// Update hover state for interactive styling (regardless of onHover callback)
+		if (m_p.onTap || m_p.onHover)
 		{
 			// 对于交互元素，hover也应该使用完整的viewport区域
 			const bool hov = m_viewport.contains(pos);
 			if (hov != m_hover)
 			{
 				m_hover = hov;
-				m_p.onHover(m_hover);
+				if (m_p.onHover) m_p.onHover(m_hover);
 				handled = true;
 			}
 		}
@@ -270,5 +272,77 @@ namespace UI
 		const int a = std::clamp(static_cast<int>(std::lround(c.alphaF() * mul * 255.0f)), 0, 255);
 		c.setAlpha(a);
 		return c;
+	}
+
+	QColor DecoratedBox::effectiveBgForState() const
+	{
+		// Check for explicit interactive background colors first
+		if (m_p.useInteractiveBg)
+		{
+			if (m_pressed) return m_p.bgPressed;
+			if (m_hover) return m_p.bgHover;
+		}
+		else if (m_p.useThemeInteractiveBg)
+		{
+			if (m_pressed) return m_isDark ? m_p.bgPressedDark : m_p.bgPressedLight;
+			if (m_hover) return m_isDark ? m_p.bgHoverDark : m_p.bgHoverLight;
+		}
+		// Check for auto interactive (when onTap is set and enableAutoInteractive is true)
+		else if (m_p.enableAutoInteractive && m_p.onTap)
+		{
+			if (m_pressed) return defaultPressedBg();
+			if (m_hover) return defaultHoverBg();
+		}
+
+		// Fall back to regular background
+		return effectiveBg();
+	}
+
+	QColor DecoratedBox::effectiveBorderForState() const
+	{
+		// Check for explicit interactive border colors first
+		if (m_p.useInteractiveBorder)
+		{
+			if (m_pressed) return m_p.borderPressed;
+			if (m_hover) return m_p.borderHover;
+		}
+		else if (m_p.useThemeInteractiveBorder)
+		{
+			if (m_pressed) return m_isDark ? m_p.borderPressedDark : m_p.borderPressedLight;
+			if (m_hover) return m_isDark ? m_p.borderHoverDark : m_p.borderHoverLight;
+		}
+
+		// Fall back to regular border (no auto interactive for borders)
+		return effectiveBorder();
+	}
+
+	QColor DecoratedBox::defaultHoverBg() const
+	{
+		// Default hover colors matching NavRail/TreeList palette
+		if (m_isDark)
+		{
+			// Dark theme: hover rgba(255,255,255,18%)
+			return QColor(255, 255, 255, static_cast<int>(255 * 0.18));
+		}
+		else
+		{
+			// Light theme: hover rgba(0,0,0,14%)
+			return QColor(0, 0, 0, static_cast<int>(255 * 0.14));
+		}
+	}
+
+	QColor DecoratedBox::defaultPressedBg() const
+	{
+		// Default pressed colors matching NavRail/TreeList palette
+		if (m_isDark)
+		{
+			// Dark theme: pressed rgba(255,255,255,30%)
+			return QColor(255, 255, 255, static_cast<int>(255 * 0.30));
+		}
+		else
+		{
+			// Light theme: pressed rgba(0,0,0,26%)
+			return QColor(0, 0, 0, static_cast<int>(255 * 0.26));
+		}
 	}
 } // namespace UI
