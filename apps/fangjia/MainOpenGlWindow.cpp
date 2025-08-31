@@ -479,8 +479,11 @@ void MainOpenGlWindow::setupThemeListeners()
 				if (m_shellRebuildHost)
 				{
 					m_shellRebuildHost->requestRebuild();
-					// Reset animation flag after rebuild so animation only plays once per user-initiated toggle
-					m_animateFollowChange = false;
+					// Defer clearing animation flag until next event loop tick to ensure 
+					// the rebuilt TopBar receives animate=true
+					QTimer::singleShot(0, [this]() {
+						m_animateFollowChange = false;
+					});
 				}
 				updateLayout();
 				update();
