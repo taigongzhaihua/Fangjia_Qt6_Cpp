@@ -309,9 +309,8 @@ void MainOpenGlWindow::mouseDoubleClickEvent(QMouseEvent* e)
 void MainOpenGlWindow::wheelEvent(QWheelEvent* e)
 {
 	// 将 QWheelEvent 的位置与 angleDelta 传给 UiRoot
-	const bool handled = m_uiRoot.onWheel(e->position().toPoint(), e->angleDelta());
 
-	if (handled)
+	if (m_uiRoot.onWheel(e->position().toPoint(), e->angleDelta()))
 	{
 		// 如有消费则启动动画计时器并重绘
 		if (!m_animTimer.isActive())
@@ -331,9 +330,8 @@ void MainOpenGlWindow::wheelEvent(QWheelEvent* e)
 void MainOpenGlWindow::keyPressEvent(QKeyEvent* e)
 {
 	// 将键盘按下事件转发到UI组件层次结构
-	const bool handled = m_uiRoot.onKeyPress(e->key(), e->modifiers());
 
-	if (handled)
+	if (m_uiRoot.onKeyPress(e->key(), e->modifiers()))
 	{
 		// 如有消费则启动动画计时器并重绘
 		if (!m_animTimer.isActive())
@@ -353,9 +351,8 @@ void MainOpenGlWindow::keyPressEvent(QKeyEvent* e)
 void MainOpenGlWindow::keyReleaseEvent(QKeyEvent* e)
 {
 	// 将键盘释放事件转发到UI组件层次结构
-	const bool handled = m_uiRoot.onKeyRelease(e->key(), e->modifiers());
 
-	if (handled)
+	if (m_uiRoot.onKeyRelease(e->key(), e->modifiers()))
 	{
 		// 如有消费则启动动画计时器并重绘
 		if (!m_animTimer.isActive())
