@@ -157,7 +157,7 @@ private:
 								0, 0)
 						  ->add(button("递减")
 								->onTap([this] { counterVM->decrement(); })
-							  ->destructive(),
+								->destructive(),
 								0, 1)
 						  ->colSpacing(10)
 						  ->size(120, 40),
@@ -179,7 +179,8 @@ private:
 	{
 		// 注意：将 size(200,180) 施加在 card 外层，而不是内部 panel 上
 		return
-			card(panel({
+			card(
+				panel({
 					icon(iconLight)->themePaths(iconLight, iconDark)
 								   ->size(48)
 								   ->color(isDark ? QColor(100, 160, 220) : QColor(60, 120, 180)),
@@ -189,7 +190,7 @@ private:
 							   ->themeColor(QColor(30, 35, 40), QColor(210, 220, 215)),
 					text(desc)->fontSize(13)
 							  ->themeColor(QColor(100, 110, 120), QColor(150, 160, 155))
-				})->vertical()
+					})->vertical()
 				->crossAxisAlignment(Alignment::Center)
 				->spacing(10)
 				->size(200, 140)
