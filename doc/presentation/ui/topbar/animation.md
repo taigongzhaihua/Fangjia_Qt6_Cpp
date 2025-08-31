@@ -1,7 +1,5 @@
 # TopBar 跟随系统动画实现
 
-[English Documentation](./DECLARATIVE_TOPBAR_ANIMATION_IMPLEMENTATION.md)
-
 本文档解释 TopBar 在"跟随系统"开关时的两段式动画行为与交互判定，并给出典型集成模式。
 
 ## 动画行为
@@ -57,3 +55,9 @@ auto bar = UI::topBar()->followSystem(followSystem, m_animateFollowChange);
 ## 与主题、资源上下文的顺序
 
 `UI::RebuildHost::requestRebuild()` 按"先应用主题、再更新资源、最后更新布局"的顺序同步环境，可避免在重建期间出现 TopBar 临时使用错误调色或错误图标缓存键的情况。
+
+## 相关文档
+
+- [声明式 TopBar 组件](declarative-topbar.md) - TopBar 的声明式 API 与使用方法
+- [表现层架构概览](../../architecture.md) - 重建机制与主题传播
+- [Binding 与响应式重建](../../binding.md) - BindingHost 与 RebuildHost 详解

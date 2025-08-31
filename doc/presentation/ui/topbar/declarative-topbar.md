@@ -1,6 +1,4 @@
-# 声明式 NavRail 和 TopBar 组件（中文文档）
-
-[English Documentation](./DECLARATIVE_NAV_TOPBAR.md)
+# 声明式 TopBar 与 NavRail 组件
 
 本文档介绍新的声明式 UI 组件 NavRail 和 TopBar，它们提供一流的声明式 API，无需通过 `UI::wrap()` 包装运行时组件。
 
@@ -110,79 +108,7 @@ auto customBar = UI::topBar()
 
 ### 跟随系统动画
 
-TopBar 组件包含复杂的两阶段"跟随系统"切换动画：
-
-#### 动画行为
-
-**启用跟随系统**（当 `followSystem(true, true)`）：
-1. **阶段一**: 主题按钮淡出（160ms，使用 ease-in-out 缓动曲线）
-2. **阶段二**: 跟随按钮向右滑动到主题按钮位置（200ms）
-3. 隐藏期间，主题按钮不可交互
-
-**禁用跟随系统**（当 `followSystem(false, true)`）：
-1. **阶段一**: 跟随按钮向左滑回原位（180ms）
-2. **阶段二**: 主题按钮淡入到完全不透明（160ms）
-3. 淡入完成后，主题按钮恢复交互
-
-**时长缩放说明**: 当前代码中使用 `scaleDuration` 将时长缩短为原来的 2/3，即：
-- 160ms → ~107ms
-- 200ms → ~133ms  
-- 180ms → ~120ms
-
-这在 `UiTopBar::scaleDuration` 和 `Ui::NavRail::scaleDuration` 中均已采用。
-
-#### 动画使用方法
-
-```cpp
-// 启用跟随系统，带动画
-auto bar = UI::topBar()
-    ->followSystem(true, true)   // animate = true 触发动画
-    ->onFollowToggle([this]() {
-        // 此回调由用户点击触发
-        // MainOpenGlWindow 在调用 setFollowSystem 前设置动画标志
-    });
-```
-
-#### 集成模式
-
-MainOpenGlWindow 中的典型集成模式：
-
-```cpp
-// 1. 用户点击跟随按钮 -> 调用 onFollowSystemToggle()
-void MainOpenGlWindow::onFollowSystemToggle() const {
-    // 在改变主题模式之前设置动画标志
-    const_cast<MainOpenGlWindow*>(this)->m_animateFollowChange = true;
-    setFollowSystem(!followSystem());
-}
-
-// 2. Shell 重建时使用动画标志
-->followSystem(followSystem, m_animateFollowChange)  // 使用动画标志
-
-// 3. 重建后重置标志
-m_animateFollowChange = false;
-```
-
-#### 技术细节
-
-- **时长值**: 细致的时长调整（160-200ms）带来流畅的用户体验
-- **缓动**: 平滑的 ease-in-out 曲线营造自然动感
-- **交互性**: 跟随系统激活时主题按钮禁用（淡入过程中除外）
-- **状态管理**: 显式动画状态机防止冲突
-
-#### 交互判定
-
-```cpp
-bool UiTopBar::themeInteractive() const {
-    if (m_followSystem && m_animPhase != AnimPhase::ShowTheme_FadeIn) {
-        return m_themeAlpha > 0.6f;  // 跟随模式下使用更高阈值
-    }
-    return m_themeAlpha > 0.4f;      // 普通模式下使用标准阈值
-}
-```
-
-注意事项：
-- 仅在 `animate=true` 时才会启用动画
-- 布局与交互阈值 `themeInteractive()` 在跟随模式下使用 0.6 的更高可交互阈值
+TopBar 组件包含复杂的两阶段"跟随系统"切换动画。详细的动画实现请参阅 [TopBar 动画实现](animation.md)。
 
 ## 与 AppShell 集成
 
@@ -281,7 +207,7 @@ auto top = topBar();      // 等同于 make_widget<TopBar>()
 
 ## 相关文档
 
-- [UI 架构](./UI_ARCHITECTURE.zh-CN.md) - 组件生命周期和主题传播
-- [布局系统](./LAYOUTS.zh-CN.md) - Panel、BoxLayout、Grid 布局详解
-- [声明式概览](./DECLARATIVE_OVERVIEW.zh-CN.md) - Widget 体系和装饰器
-- [滚动容器](./SCROLL_VIEW.zh-CN.md) - UiScrollView 使用指南
+- [表现层架构概览](../../architecture.md) - 组件生命周期和主题传播机制
+- [UI 基础部件与容器](../components.md) - Panel、BoxLayout、Grid 布局详解
+- [Binding 与响应式重建](../../binding.md) - 数据绑定与声明式体系
+- [TopBar 动画实现](animation.md) - 跟随系统动画的详细实现
