@@ -1,5 +1,7 @@
 # Declarative NavRail and TopBar Widgets
 
+[中文文档 (Chinese Documentation)](./DECLARATIVE_NAV_TOPBAR.zh-CN.md)
+
 This document describes the new declarative UI widgets for NavRail and TopBar components that provide first-class declarative APIs without requiring runtime component wrapping via `UI::wrap()`.
 
 ## Overview
@@ -156,6 +158,7 @@ m_animateFollowChange = false;
 #### Technical Details
 
 - **Timing Values**: Subtle timing (160-200ms) for smooth user experience
+  - **Note**: Current implementation uses `scaleDuration` to reduce timing to 2/3 of original values (UiTopBar and Ui::NavRail both adopt this scaling)
 - **Easing**: Smooth ease-in-out curve for natural motion
 - **Interactivity**: Theme button disabled while Follow System is active (except during fade-in)
 - **State Management**: Explicit animation state machine prevents conflicts
