@@ -29,6 +29,9 @@
 
 ## 表现层
 
+### 架构与设计
+- **[表现层架构](presentation/architecture.md)** - 声明式体系概览、核心组件（UiRoot、BindingHost、RebuildHost）和架构设计原则
+
 ### UI 框架
 - **[UI 框架概览](presentation/ui-framework/overview.md)** - 组件架构、生命周期、容器和小部件系统
 - **[布局系统](presentation/ui-framework/layouts.md)** - UiPanel、UiGrid、UiContainer、尺寸策略和响应式设计

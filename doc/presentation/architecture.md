@@ -1,23 +1,23 @@
-**简体中文** | [English - N/A]
+**English** | [简体中文](../../doc.zh-cn/presentation/architecture.md)
 
-# 表现层架构与声明式体系概览
+# Presentation Architecture & Declarative System Overview
 
-本文档介绍 Fangjia Qt6 C++ 项目的表现层架构核心机制，包括 BindingHost、RebuildHost、UiRoot 的职责与协作，以及声明式 UI 体系的设计理念。
+This document introduces the core mechanisms of the Fangjia Qt6 C++ project's presentation layer architecture, including the responsibilities and collaboration of BindingHost, RebuildHost, and UiRoot, as well as the design philosophy of the declarative UI system.
 
-## 核心组件概览
+## Core Component Overview
 
-### UiRoot - 根容器与事件协调器
+### UiRoot - Root Container & Event Coordinator
 
-`UiRoot` 是整个 UI 系统的根容器，负责：
+`UiRoot` is the root container of the entire UI system, responsible for:
 
-- **统一事件分发**: 管理鼠标事件（press/move/release/wheel）与指针捕获
-- **布局驱动**: 协调所有顶级组件的 `updateLayout()`、`updateResourceContext()` 调用
-- **渲染协调**: 收集所有组件的渲染命令到 `Render::FrameData`
-- **主题传播**: 通过 `propagateThemeChange(isDark)` 向整个组件树下发主题变更
+- **Unified Event Dispatch**: Managing mouse events (press/move/release/wheel) and pointer capture
+- **Layout Coordination**: Coordinating `updateLayout()` and `updateResourceContext()` calls for all top-level components
+- **Render Coordination**: Collecting rendering commands from all components into `Render::FrameData`
+- **Theme Propagation**: Distributing theme changes to the entire component tree via `propagateThemeChange(isDark)`
 
-### BindingHost - 响应式重建容器
+### BindingHost - Reactive Rebuild Container
 
-`BindingHost` 提供响应式 UI 构建机制：
+`BindingHost` provides reactive UI construction mechanisms:
 
 ```cpp
 m_shellHost = UI::bindingHost([this]() -> WidgetPtr {
@@ -29,95 +29,95 @@ m_shellHost = UI::bindingHost([this]() -> WidgetPtr {
 });
 ```
 
-**职责**：
-- **依赖追踪**: 自动检测构建函数中访问的外部状态
-- **变更响应**: 当依赖状态变化时触发重建
-- **生命周期管理**: 管理重建产生的 Widget 实例
+**Responsibilities**:
+- **Dependency Tracking**: Automatically detects external state accessed in build functions
+- **Change Response**: Triggers rebuilds when dependent state changes
+- **Lifecycle Management**: Manages Widget instances produced by rebuilds
 
-### RebuildHost - 重建顺序管理
+### RebuildHost - Rebuild Order Management
 
-`RebuildHost` 确保重建过程中的正确顺序，避免主题切换时的视觉闪烁：
+`RebuildHost` ensures correct order during rebuilds, preventing visual flicker during theme switches:
 
 ```
-requestRebuild() 执行顺序：
-1. 设置 viewport（给 IUiContent/ILayoutable）
-2. 调用 onThemeChanged(isDark)
-3. 更新资源上下文 updateResourceContext(...)
-4. 调用 updateLayout(...)
+requestRebuild() execution order:
+1. Set viewport (for IUiContent/ILayoutable)
+2. Call onThemeChanged(isDark)
+3. Update resource context updateResourceContext(...)
+4. Call updateLayout(...)
 ```
 
-这一顺序设计确保组件在获得新布局尺寸前已完成主题适配与资源更新。
+This order design ensures components complete theme adaptation and resource updates before receiving new layout dimensions.
 
-## 声明式 UI 体系
+## Declarative UI System
 
-### Widget 基类与装饰器模式
+### Widget Base Class & Decorator Pattern
 
-声明式体系以 `Widget` 基类为核心，支持链式配置：
+The declarative system centers around the `Widget` base class, supporting fluent configuration:
 
 ```cpp
 auto decoratedPanel = UI::panel()
-    ->padding(16)                        // 内边距装饰器
-    ->margin(8, 12)                     // 外边距装饰器
-    ->background(QColor(240, 240, 240)) // 背景装饰器
-    ->border(QColor(200, 200, 200), 1.0f); // 边框装饰器
+    ->padding(16)                        // Padding decorator
+    ->margin(8, 12)                     // Margin decorator
+    ->background(QColor(240, 240, 240)) // Background decorator
+    ->border(QColor(200, 200, 200), 1.0f); // Border decorator
 ```
 
-**装饰器特性**：
-- **可组合**: 多个装饰器可任意组合
-- **顺序无关**: 装饰器应用顺序不影响最终效果
-- **类型安全**: 编译时检查装饰器与组件的兼容性
+**Decorator Features**:
+- **Composable**: Multiple decorators can be combined arbitrarily
+- **Order-Independent**: Decorator application order doesn't affect final result
+- **Type-Safe**: Compile-time checking of decorator-component compatibility
 
-### 工厂函数与类型推导
+### Factory Functions & Type Deduction
 
-UI 命名空间提供便利的工厂函数：
+The UI namespace provides convenient factory functions:
 
 ```cpp
 using namespace UI;
 
-// 容器组件
-auto panel = panel();           // UiPanel 容器
-auto grid = grid();             // UiGrid 网格布局
-auto scroll = scrollView();     // UiScrollView 滚动容器
+// Container components
+auto panel = panel();           // UiPanel container
+auto grid = grid();             // UiGrid grid layout
+auto scroll = scrollView();     // UiScrollView scroll container
 
-// 导航组件  
-auto nav = navRail();           // NavRail 导航栏
-auto top = topBar();            // TopBar 顶部栏
+// Navigation components  
+auto nav = navRail();           // NavRail navigation bar
+auto top = topBar();            // TopBar top bar
 
-// 应用组件
-auto shell = appShell();        // AppShell 应用外壳
+// Application components
+auto shell = appShell();        // AppShell application shell
 ```
 
-## 组件生命周期
+## Component Lifecycle
 
-### IUiComponent 接口
+### IUiComponent Interface
 
-所有 UI 组件实现 `IUiComponent` 接口，按以下顺序调用：
+All UI components implement the `IUiComponent` interface, called in the following order:
 
-1. **`updateLayout(const QSize&)`** - 基于窗口逻辑尺寸计算布局
-2. **`updateResourceContext(IconCache&, QOpenGLFunctions*, float dpr)`** - 更新纹理/GL 上下文（与 DPR 相关）
-3. **`append(Render::FrameData&) const`** - 生成绘制命令
-4. **`tick()`** - 推进动画，返回是否仍需重绘
+1. **`updateLayout(const QSize&)`** - Layout calculation based on window logical size
+2. **`updateResourceContext(IconCache&, QOpenGLFunctions*, float dpr)`** - Update texture/GL context (DPR-related)
+3. **`append(Render::FrameData&) const`** - Generate drawing commands
+4. **`tick()`** - Advance animations, return whether redraw is still needed
 
-### 主题变更流程
+### Theme Change Flow
 
-主题变更通过以下流程传播：
+Theme changes propagate through the following flow:
 
-1. **触发源**: 用户操作或系统主题变化
-2. **UiRoot 协调**: 调用 `propagateThemeChange(isDark)`
-3. **组件响应**: 各组件的 `onThemeChanged(bool)` 被调用
-4. **资源更新**: 组件更新调色板、图标缓存键等
-5. **重新渲染**: 下一帧使用新的主题资源
+1. **Trigger Source**: User action or system theme change
+2. **UiRoot Coordination**: Call `propagateThemeChange(isDark)`
+3. **Component Response**: Each component's `onThemeChanged(bool)` is called
+4. **Resource Update**: Components update color palettes, icon cache keys, etc.
+5. **Re-render**: Next frame uses new theme resources
 
-## 与 MainOpenGlWindow 集成
+## Integration with MainOpenGlWindow
 
-主窗口类负责：
+The main window class is responsible for:
 
-- **OpenGL 上下文管理**: 初始化渲染器与图形资源
-- **事件桥接**: 将 Qt 事件转发给 UiRoot
-- **主题管理**: 集成 ThemeManager，响应系统主题变化
-- **页面路由**: 管理不同页面间的导航与切换
+- **OpenGL Context Management**: Initialize renderer and graphics resources
+- **Event Bridging**: Forward Qt events to UiRoot
+- **Theme Management**: Integrate ThemeManager, respond to system theme changes
+- **Page Routing**: Manage navigation and switching between different pages
 
-### 典型集成模式
+### Typical Integration Pattern
 
 ```cpp
 class MainOpenGlWindow : public QOpenGLWidget {
@@ -128,32 +128,32 @@ private:
     void setupUI() {
         m_uiRoot = std::make_unique<UiRoot>();
         m_shellHost = UI::bindingHost([this]() {
-            return createAppShell();  // 构建应用外壳
+            return createAppShell();  // Build application shell
         });
         m_uiRoot->setContent(m_shellHost.get());
     }
 };
 ```
 
-## 优势与设计目标
+## Advantages & Design Goals
 
-### 声明式编程的优势
+### Advantages of Declarative Programming
 
-- **可读性**: 代码结构直观反映 UI 层次结构
-- **可维护性**: 状态变化自动触发 UI 更新，减少手动同步
-- **可测试性**: 组件配置与业务逻辑分离，便于单元测试
-- **性能优化**: 依赖追踪避免不必要的重建
+- **Readability**: Code structure intuitively reflects UI hierarchy
+- **Maintainability**: State changes automatically trigger UI updates, reducing manual synchronization
+- **Testability**: Component configuration is separated from business logic, facilitating unit testing
+- **Performance Optimization**: Dependency tracking avoids unnecessary rebuilds
 
-### 架构设计目标
+### Architecture Design Goals
 
-- **分离关注点**: 表现层专注 UI 渲染，业务逻辑在领域层处理
-- **可扩展性**: 新组件可轻松集成到现有体系
-- **跨平台一致性**: 抽象平台差异，提供统一的编程接口
-- **性能导向**: 批量渲染与状态缓存优化性能表现
+- **Separation of Concerns**: Presentation layer focuses on UI rendering, business logic handled in domain layer
+- **Extensibility**: New components can easily integrate into the existing system
+- **Cross-Platform Consistency**: Abstract platform differences, provide unified programming interface
+- **Performance-Oriented**: Batch rendering and state caching optimize performance
 
-## 相关文档
+## Related Documentation
 
-- [UI 基础部件与容器](ui/components.md) - 具体组件的使用方法
-- [Binding 与响应式重建](binding.md) - 数据绑定机制详解
-- [声明式 TopBar 组件](ui/topbar/declarative-topbar.md) - TopBar 组件示例
-- [渲染与图形系统](../infrastructure/gfx.md) - 底层渲染实现
+- [UI Framework Overview](ui-framework/overview.md) - Component architecture, lifecycle, containers, and widget systems
+- [Binding & Reactive Rebuild](binding.md) - binding/observe/requestRebuild patterns and best practices
+- [TopBar Component](components/top-bar.md) - Window controls, theme switching, system integration, and declarative API
+- [Graphics & Rendering System](../infrastructure/gfx.md) - RenderData, IconCache, coordinate systems, and OpenGL rendering pipeline

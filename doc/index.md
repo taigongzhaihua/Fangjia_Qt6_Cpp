@@ -29,6 +29,9 @@ This documentation is organized by system to provide developers with comprehensi
 
 ## Presentation Layer
 
+### Architecture & Design
+- **[Presentation Architecture](presentation/architecture.md)** - Declarative system overview, core components (UiRoot, BindingHost, RebuildHost), and architectural design principles
+
 ### UI Framework
 - **[UI Framework Overview](presentation/ui-framework/overview.md)** - Component architecture, lifecycle, containers, and widget systems
 - **[Layout System](presentation/ui-framework/layouts.md)** - UiPanel, UiGrid, UiContainer, size policies, and responsive design
