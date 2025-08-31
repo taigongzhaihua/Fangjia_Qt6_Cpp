@@ -367,3 +367,5 @@ build/
 test_wheel_logic
 validate_fix.sh
 VIEWPORT_FIX_EXPLANATION.cpp
+*.o
+test_*
