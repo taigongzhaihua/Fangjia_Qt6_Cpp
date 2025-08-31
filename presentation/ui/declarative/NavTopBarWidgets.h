@@ -182,6 +182,30 @@ namespace UI {
 			return self<TopBar>();
 		}
 
+		/// 功能：设置最小化按钮回调函数
+		/// 参数：callback - 最小化按钮点击时的回调函数
+		/// 返回：当前TopBar实例（支持链式调用）
+		std::shared_ptr<TopBar> onMinimize(std::function<void()> callback) {
+			m_onMinimize = std::move(callback);
+			return self<TopBar>();
+		}
+
+		/// 功能：设置最大化/还原按钮回调函数
+		/// 参数：callback - 最大化/还原按钮点击时的回调函数
+		/// 返回：当前TopBar实例（支持链式调用）
+		std::shared_ptr<TopBar> onMaxRestore(std::function<void()> callback) {
+			m_onMaxRestore = std::move(callback);
+			return self<TopBar>();
+		}
+
+		/// 功能：设置关闭按钮回调函数
+		/// 参数：callback - 关闭按钮点击时的回调函数
+		/// 返回：当前TopBar实例（支持链式调用）
+		std::shared_ptr<TopBar> onClose(std::function<void()> callback) {
+			m_onClose = std::move(callback);
+			return self<TopBar>();
+		}
+
 		std::unique_ptr<IUiComponent> build() const override;
 
 	private:
@@ -198,6 +222,9 @@ namespace UI {
 		UiTopBar::Palette m_palette;
 		bool m_hasCustomPalette{ false };
 		std::function<void()> m_themeToggleCallback;
+		std::function<void()> m_onMinimize;
+		std::function<void()> m_onMaxRestore;
+		std::function<void()> m_onClose;
 	};
 
 } // namespace UI

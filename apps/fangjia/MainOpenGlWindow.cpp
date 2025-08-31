@@ -169,8 +169,8 @@ void MainOpenGlWindow::initializeGL()
 		qDebug() << "Initializing pages...";
 		initializePages();
 
-		qDebug() << "Initializing top bar...";
-		initializeTopBar();
+		// qDebug() << "Initializing top bar...";
+		// initializeTopBar(); // 不再需要：现在使用声明式TopBar
 
 		qDebug() << "Initializing declarative shell...";
 		initializeDeclarativeShell();
@@ -243,29 +243,11 @@ void MainOpenGlWindow::mouseReleaseEvent(QMouseEvent* e)
 	if (e->button() == Qt::LeftButton)
 	{
 		const bool handled = m_uiRoot.onMouseRelease(e->pos());
-		bool actionsTaken = false;
 
 		if (handled)
 		{
-			// 处理顶栏按钮点击
-			if (bool theme = false, follow = false; m_topBar.takeActions(theme, follow))
-			{
-				if (theme) onThemeToggle();
-				if (follow) onFollowSystemToggle();
-				actionsTaken = true;
-			}
-
-			if (bool min = false, max = false, close = false; m_topBar.takeSystemActions(min, max, close))
-			{
-				if (close) this->close();
-				if (min) showMinimized();
-				if (max)
-				{
-					if (visibility() == Maximized) showNormal();
-					else showMaximized();
-				}
-				actionsTaken = true;
-			}
+			// 声明式TopBar现在通过回调处理系统按钮，无需手动检查
+			// 旧的 m_topBar.takeActions() 和 m_topBar.takeSystemActions() 调用已移除
 
 			if (!m_animTimer.isActive())
 			{
@@ -277,7 +259,7 @@ void MainOpenGlWindow::mouseReleaseEvent(QMouseEvent* e)
 		// Always schedule a redraw on left-button release to ensure VM-driven rebuilds are rendered
 		update();
 
-		if (handled || actionsTaken)
+		if (handled)
 		{
 			e->accept();
 			return;
@@ -485,8 +467,12 @@ void MainOpenGlWindow::setupThemeListeners()
 		connect(m_themeMgr.get(), &ThemeManager::modeChanged, this,
 			[this](const ThemeManager::ThemeMode mode)
 			{
-				const bool follow = (mode == ThemeManager::ThemeMode::FollowSystem);
-				m_topBar.setFollowSystem(follow, true);
+				// 声明式TopBar会在Shell重建时自动获取最新的followSystem状态
+				// 触发Shell重建以更新TopBar的followSystem状态
+				if (m_shellRebuildHost)
+				{
+					m_shellRebuildHost->requestRebuild();
+				}
 				updateLayout();
 				update();
 			});
@@ -624,10 +610,26 @@ void MainOpenGlWindow::initializeDeclarativeShell()
 	// 创建包装整个Shell的BindingHost，这样可以在动画期间重建整个布局
 	m_shellHost = bindingHost([this]() -> WidgetPtr
 		{
+			// 确定跟随系统状态
+			const bool followSystem = m_themeMgr && m_themeMgr->mode() == ThemeManager::ThemeMode::FollowSystem;
+			
 			// Shell构建器：每次重建时都创建新的AppShell布局
 			return appShell()
 				->nav(wrap(&m_nav))
-				->topBar(wrap(&m_topBar))
+				->topBar(UI::topBar()
+					->followSystem(followSystem, false) // false = 无动画，与原始配置一致
+					->cornerRadius(8.0f)
+					->svgTheme(":/icons/sun.svg", ":/icons/moon.svg")
+					->svgFollow(":/icons/follow_on.svg", ":/icons/follow_off.svg")
+					->svgSystem(":/icons/sys_min.svg", ":/icons/sys_max.svg", ":/icons/sys_close.svg")
+					->onThemeToggle([this]() { onThemeToggle(); })
+					->onMinimize([this]() { showMinimized(); })
+					->onMaxRestore([this]() { 
+						if (visibility() == Maximized) showNormal();
+						else showMaximized();
+					})
+					->onClose([this]() { close(); })
+				)
 				->content([this]() -> WidgetPtr
 					{
 						// 内容构建器：总是返回当前页面宿主

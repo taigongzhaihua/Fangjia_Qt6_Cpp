@@ -74,7 +74,12 @@ public:
 	/// Windows平台窗口Chrome命中测试辅助
 	/// 返回：UI组件的边界矩形，用于自定义标题栏区域判定
 	QRect navBounds() const { return m_nav.bounds(); }
-	QRect topBarBounds() const { return m_topBar.bounds(); }
+	QRect topBarBounds() const { 
+		// 计算TopBar区域：右上角，从NavRail右侧到窗口右边，高度为固定的52像素
+		const int navWidth = m_nav.currentWidth();
+		const int topBarHeight = 52; // 与initializeDeclarativeShell中的topBarHeight一致
+		return QRect(navWidth, 0, std::max(0, width() - navWidth), topBarHeight);
+	}
 
 protected:
 	/// OpenGL生命周期回调
