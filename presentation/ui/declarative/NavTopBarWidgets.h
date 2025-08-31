@@ -206,6 +206,14 @@ namespace UI {
 			return self<TopBar>();
 		}
 
+		/// 功能：设置跟随系统按钮回调函数
+		/// 参数：callback - 跟随系统按钮点击时的回调函数
+		/// 返回：当前TopBar实例（支持链式调用）
+		std::shared_ptr<TopBar> onFollowToggle(std::function<void()> callback) {
+			m_onFollowToggle = std::move(callback);
+			return self<TopBar>();
+		}
+
 		std::unique_ptr<IUiComponent> build() const override;
 
 	private:
@@ -225,6 +233,7 @@ namespace UI {
 		std::function<void()> m_onMinimize;
 		std::function<void()> m_onMaxRestore;
 		std::function<void()> m_onClose;
+		std::function<void()> m_onFollowToggle;
 	};
 
 } // namespace UI

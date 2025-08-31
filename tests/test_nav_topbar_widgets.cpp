@@ -31,6 +31,9 @@ namespace {
 
 	// 测试TopBar声明式API
 	void testTopBarAPI() {
+		// 验证onFollowToggle回调是否正确配置
+		bool followToggleCallbackInvoked = false;
+		
 		// 创建TopBar并链式配置
 		auto bar = UI::topBar()
 			->followSystem(true, false)
@@ -40,13 +43,17 @@ namespace {
 			->svgSystem(":/icons/min.svg", ":/icons/max.svg", ":/icons/close.svg")
 			->onThemeToggle([]() {
 				std::cout << "Theme toggle callback triggered" << std::endl;
+			})
+			->onFollowToggle([&followToggleCallbackInvoked]() {
+				std::cout << "Follow toggle callback triggered" << std::endl;
+				followToggleCallbackInvoked = true;
 			});
 
 		// 验证能够构建组件
 		auto component = bar->build();
 		assert(component != nullptr);
 
-		std::cout << "TopBar API test passed" << std::endl;
+		std::cout << "TopBar API test passed (including onFollowToggle)" << std::endl;
 	}
 
 	// 测试装饰器集成

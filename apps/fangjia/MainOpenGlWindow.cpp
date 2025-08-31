@@ -630,6 +630,7 @@ void MainOpenGlWindow::initializeDeclarativeShell()
 					->svgFollow(":/icons/follow_on.svg", ":/icons/follow_off.svg")
 					->svgSystem(":/icons/sys_min.svg", ":/icons/sys_max.svg", ":/icons/sys_close.svg")
 					->onThemeToggle([this]() { onThemeToggle(); })
+					->onFollowToggle([this]() { onFollowSystemToggle(); })
 					->onMinimize([this]() { showMinimized(); })
 					->onMaxRestore([this]() { 
 						if (visibility() == Maximized) showNormal();
