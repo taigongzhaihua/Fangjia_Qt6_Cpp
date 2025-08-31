@@ -80,6 +80,7 @@ private:
 	// 尺寸求解
 	std::vector<int> computeColumnWidths(int contentW) const;
 	std::vector<int> computeRowHeights(int contentH, const std::vector<int>& colW) const;
+	std::vector<int> computeRowHeightsIntrinsic(const std::vector<int>& colW) const;
 
 	// 子项测量工具
 	QSize measureChildNatural(IUiComponent* c) const;

@@ -447,6 +447,138 @@ std::vector<int> UiGrid::computeRowHeights(const int contentH, const std::vector
 	return out;
 }
 
+std::vector<int> UiGrid::computeRowHeightsIntrinsic(const std::vector<int>& colW) const {
+	const int rN = static_cast<int>(m_rows.size());
+	if (rN == 0) return {};
+
+	// 初始化高度向量（Pixel使用固定值，Auto/Star计算内容高度）
+	std::vector<int> height(rN, 0);
+	std::vector<int> starMin(rN, 0);  // Star轨道的最小内容高度
+	std::vector<float> starWeight(rN, 0.0f);
+
+	for (int r = 0; r < rN; ++r) {
+		const auto& def = m_rows[r];
+		if (def.type == TrackDef::Type::Pixel) {
+			height[r] = static_cast<int>(std::round(std::max(0.0f, def.value)));
+		}
+		else if (def.type == TrackDef::Type::Star) {
+			starWeight[r] = std::max(0.0f, def.value <= 0.0f ? 1.0f : def.value);
+		}
+	}
+
+	// 跨列计算辅助（复用现有逻辑）
+	const auto spanWidth = [&](const int col, const int colSpan) -> int {
+		const int c0 = std::max(0, col);
+		const int c1 = std::min(static_cast<int>(colW.size()), c0 + std::max(1, colSpan));
+		int w = 0;
+		for (int c = c0; c < c1; ++c) {
+			w += colW[c];
+		}
+		w += std::max(0, c1 - c0 - 1) * m_colSpacing;
+		return w;
+	};
+
+	// Pass 1：单行跨度（rowSpan==1）填充 Auto/Star 的最小高度（按列宽约束测量）
+	for (const auto& ch : m_children) {
+		if (!ch.visible || !ch.component) continue;
+		if (ch.row < 0 || ch.row >= rN) continue;
+		if (ch.rowSpan != 1) continue;
+
+		const int maxW = spanWidth(ch.col, ch.colSpan);
+		const QSize d = measureChildWidthBound(ch.component, maxW);
+
+		const auto& def = m_rows[ch.row];
+		if (def.type == TrackDef::Type::Auto) {
+			height[ch.row] = std::max(height[ch.row], d.height());
+		}
+		else if (def.type == TrackDef::Type::Star) {
+			// 对于Star行，使用max()聚合所有单跨度子项的最小内容高度
+			// 确保starMin反映该Star轨道上所有子项的真实最小尺寸要求
+			starMin[ch.row] = std::max(starMin[ch.row], d.height());
+		}
+		// Pixel: 不增长
+	}
+
+	// Pass 2：跨行项 —— 将缺口分摊到 Star/Auto（不动 Pixel）
+	for (const auto& ch : m_children) {
+		if (!ch.visible || !ch.component) continue;
+		if (ch.row < 0 || ch.row >= rN) continue;
+
+		const int r0 = ch.row;
+		const int r1 = std::min(rN, r0 + std::max(1, ch.rowSpan)) - 1;
+		if (r1 < r0) continue;
+
+		const int maxW = spanWidth(ch.col, ch.colSpan);
+		const QSize d = measureChildWidthBound(ch.component, maxW);
+
+		// 当前累计高度 + 行间距
+		int sum = 0;
+		float sumStarW = 0.0f;
+		int autoCount = 0;
+
+		for (int r = r0; r <= r1; ++r) {
+			const auto& def = m_rows[r];
+			if (def.type == TrackDef::Type::Pixel) {
+				sum += height[r];
+			}
+			else if (def.type == TrackDef::Type::Auto) {
+				sum += height[r];
+				autoCount++;
+			}
+			else { // Star
+				sum += starMin[r];
+				sumStarW += starWeight[r];
+			}
+		}
+		sum += std::max(0, (r1 - r0)) * m_rowSpacing;
+
+		const int need = d.height() - sum;
+		if (need <= 0) continue;
+
+		if (sumStarW > 0.0f) {
+			int distributed = 0;
+			for (int r = r0; r <= r1; ++r) {
+				if (m_rows[r].type == TrackDef::Type::Star) {
+					const float w = (starWeight[r] <= 0.0f ? 1.0f : starWeight[r]);
+					const int add = static_cast<int>(std::floor(static_cast<float>(need) * (w / sumStarW)));
+					starMin[r] += add;
+					distributed += add;
+				}
+			}
+			int rem = need - distributed;
+			for (int r = r1; r >= r0 && rem > 0; --r) {
+				if (m_rows[r].type == TrackDef::Type::Star) { starMin[r] += 1; --rem; }
+			}
+		}
+		else if (autoCount > 0) {
+			const int each = need / autoCount;
+			int rem = need - each * autoCount;
+			for (int r = r0; r <= r1; ++r) {
+				if (m_rows[r].type == TrackDef::Type::Auto) {
+					height[r] += each + (rem > 0 ? 1 : 0);
+					if (rem > 0) --rem;
+				}
+			}
+		}
+		else {
+			// 仅 Pixel：不增长（WPF 语义）
+		}
+	}
+
+	// For intrinsic sizing, return content-based heights without space distribution
+	// Star rows use their minimum content height, not expanded/compressed
+	std::vector<int> out(rN, 0);
+	for (int r = 0; r < rN; ++r) {
+		if (m_rows[r].type == TrackDef::Type::Star) {
+			out[r] = starMin[r];
+		} else {
+			out[r] = height[r];
+		}
+	}
+
+	return out;
+}
+
 // ====================== ILayoutable ======================
 QSize UiGrid::measure(const SizeConstraints& cs) {
 	// 估算可用宽高（无上限时给个合理默认，用于推导 Star 分配）
@@ -486,14 +618,22 @@ QSize UiGrid::measure(const SizeConstraints& cs) {
 	const std::vector<int> colW = computeColumnWidths(contentW);
 
 	// 行高基于列宽再测一轮
-	const int contentH = std::max(0, maxH - padH);
-	const std::vector<int> rowH = computeRowHeights(contentH, colW);
+	const bool unboundedH = (cs.maxH >= std::numeric_limits<int>::max() / 4);
+	
+	int totalW = padW + std::accumulate(colW.begin(), colW.end(), 0) + std::max(0, (int)colW.size() - 1) * m_colSpacing;
+	int outW = std::clamp(totalW, cs.minW, cs.maxW);
+	int outH = 0;
 
-	const int totalW = padW + std::accumulate(colW.begin(), colW.end(), 0) + std::max(0, (int)colW.size() - 1) * m_colSpacing;
-	const int totalH = padH + std::accumulate(rowH.begin(), rowH.end(), 0) + std::max(0, (int)rowH.size() - 1) * m_rowSpacing;
-
-	const int outW = std::clamp(totalW, cs.minW, cs.maxW);
-	const int outH = std::clamp(totalH, cs.minH, cs.maxH);
+	if (unboundedH) {
+		const std::vector<int> rowH = computeRowHeightsIntrinsic(colW);
+		const int totalH = padH + std::accumulate(rowH.begin(), rowH.end(), 0) + std::max(0, (int)rowH.size() - 1) * m_rowSpacing;
+		outH = std::clamp(totalH, cs.minH, cs.maxH);
+	} else {
+		const int contentH = std::max(0, maxH - padH);
+		const std::vector<int> rowH = computeRowHeights(contentH, colW);
+		const int totalH = padH + std::accumulate(rowH.begin(), rowH.end(), 0) + std::max(0, (int)rowH.size() - 1) * m_rowSpacing;
+		outH = std::clamp(totalH, cs.minH, cs.maxH);
+	}
 	return { outW, outH };
 }
 

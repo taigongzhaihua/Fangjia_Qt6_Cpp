@@ -42,36 +42,34 @@ void UiScrollView::setViewportRect(const QRect& r) {
 
 QSize UiScrollView::measure(const SizeConstraints& cs) {
 	if (!m_child) {
-		return {
-			std::clamp(0, cs.minW, cs.maxW),
-					std::clamp(0, cs.minH, cs.maxH)
-		};
+		return { std::clamp(0, cs.minW, cs.maxW), std::clamp(0, cs.minH, cs.maxH) };
 	}
 
-	// 为了得到内容高度，使用 widthBounded 方式测量子组件
-	QSize childSize;
+	QSize childSizeForViewport;
 	if (auto* layoutable = dynamic_cast<ILayoutable*>(m_child)) {
-		// 给子组件提供宽度约束（减去滚动条宽度）
-		SizeConstraints childCs = cs;
+		SizeConstraints childCs = cs;         // bounded by parent for viewport
 		childCs.maxW = std::max(0, cs.maxW - SCROLLBAR_WIDTH);
-		childSize = layoutable->measure(childCs);
-	}
-	else {
-		childSize = m_child->bounds().size();
+		childSizeForViewport = layoutable->measure(childCs);
+	} else {
+		childSizeForViewport = m_child->bounds().size();
 	}
 
-	// 缓存内容高度
-	m_contentHeight = childSize.height();
-
-	// 返回容器期望尺寸（宽度可能需要包含滚动条）
-	int desiredWidth = childSize.width();
-	if (m_contentHeight > cs.maxH) {
-		desiredWidth += SCROLLBAR_WIDTH; // 需要滚动条时加上其宽度
+	// intrinsic content height: width-bounded, vertical unbounded
+	if (auto* layoutable = dynamic_cast<ILayoutable*>(m_child)) {
+		const int widthForContent = std::max(0, cs.maxW - SCROLLBAR_WIDTH);
+		const SizeConstraints contentCs = SizeConstraints::widthBounded(widthForContent);
+		const QSize intrinsic = layoutable->measure(contentCs);
+		m_contentHeight = intrinsic.height();
+	} else {
+		m_contentHeight = m_child->bounds().height();
 	}
+
+	int desiredWidth = childSizeForViewport.width();
+	if (m_contentHeight > cs.maxH) desiredWidth += SCROLLBAR_WIDTH;
 
 	return {
 		std::clamp(desiredWidth, cs.minW, cs.maxW),
-				std::clamp(childSize.height(), cs.minH, cs.maxH)
+		std::clamp(childSizeForViewport.height(), cs.minH, cs.maxH)
 	};
 }
 
