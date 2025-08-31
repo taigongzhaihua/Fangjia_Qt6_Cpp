@@ -1,415 +1,468 @@
-**简体中文** | [English](../../doc.zh-cn/platform/windows.md)
+**English** | [简体中文](../../doc.zh-cn/platform/windows.md)
 
-# Windows 平台集成
+# Windows Platform Integration
 
-本文档介绍 Fangjia Qt6 C++ 框架在 Windows 平台上的特定集成功能，包括 WinWindowChrome 窗口装饰和 HitTest 区域处理。
+This document introduces the Windows platform-specific integration features in the Fangjia Qt6 C++ framework, including WinWindowChrome window decoration and HitTest area handling.
 
-## WinWindowChrome - 自定义窗口装饰
+## WinWindowChrome - Custom Window Decoration
 
-### 功能概述
+`WinWindowChrome` provides custom window decoration functionality for the Windows platform, replacing the default system title bar:
 
-`WinWindowChrome` 为 Windows 平台提供自定义窗口装饰功能，替代默认的系统标题栏：
+### Core Features
 
-- **自定义标题栏**: 完全控制标题栏的外观与交互
-- **窗口控制按钮**: 自绘的最小化、最大化、关闭按钮
-- **拖拽区域**: 定义可拖拽移动窗口的区域
-- **调整尺寸**: 支持边缘拖拽调整窗口大小
-- **主题集成**: 与应用主题系统无缝集成
+- **Custom Title Bar**: Complete replacement of system title bar with custom UI
+- **Hit Test Management**: Precise control over window interaction areas
+- **DPI Awareness**: Automatic scaling for high-DPI displays
+- **Theme Integration**: Seamless integration with application theme system
+- **Performance Optimization**: Efficient rendering without compromising system integration
+
+### Architecture Overview
 
 ```cpp
 class WinWindowChrome {
 public:
-    // 初始化窗口装饰
-    static void setupWindow(HWND hwnd, bool customFrame = true);
+    // Initialize window chrome for the target window
+    void setupForWindow(QWindow* window);
     
-    // 处理 Windows 消息
-    static LRESULT handleMessage(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam);
+    // Configure hit test areas
+    void setTitleBarHeight(int height);
+    void addDraggableArea(const QRect& area);
+    void addButtonArea(const QRect& area, WindowButton button);
     
-    // 设置标题栏高度
-    static void setTitleBarHeight(HWND hwnd, int height);
+    // Theme integration
+    void setDarkMode(bool dark);
+    void updateColors(const WindowColors& colors);
     
-    // 定义窗口控制按钮区域
-    static void setControlButtonsArea(HWND hwnd, const QRect& area);
+    // Event handling
+    bool handleNativeEvent(const QByteArray& eventType, void* message, qintptr* result);
+    
+private:
+    void updateHitTestAreas();
+    void handleHitTest(const QPoint& pos, qintptr* result);
+    void applyWindowEffects();
 };
 ```
 
-### 窗口创建与初始化
+### Hit Test Area Management
 
 ```cpp
-class MainOpenGlWindow : public QOpenGLWidget {
-protected:
-    void showEvent(QShowEvent* event) override {
-        QOpenGLWidget::showEvent(event);
-        
-        // 在 Windows 平台启用自定义窗口装饰
-#ifdef Q_OS_WIN
-        auto hwnd = reinterpret_cast<HWND>(winId());
-        WinWindowChrome::setupWindow(hwnd, true);
-        WinWindowChrome::setTitleBarHeight(hwnd, 40);  // 40px 标题栏
-        
-        // 定义窗口控制按钮区域（右上角 150px 宽度）
-        auto windowSize = size();
-        QRect controlArea(windowSize.width() - 150, 0, 150, 40);
-        WinWindowChrome::setControlButtonsArea(hwnd, controlArea);
-#endif
-    }
+enum class HitTestArea {
+    Client,         // Normal client area
+    TitleBar,       // Draggable title bar area
+    MinButton,      // Minimize button
+    MaxButton,      // Maximize/restore button
+    CloseButton,    // Close button
+    Border,         // Resizable border
+    Corner          // Resize corner
+};
+
+class HitTestManager {
+public:
+    void defineArea(const QRect& rect, HitTestArea area);
+    void clearAreas();
+    HitTestArea getAreaAt(const QPoint& pos) const;
+    
+    // Predefined layouts
+    void setupStandardTitleBar(int height, int buttonWidth);
+    void setupCustomLayout(const TitleBarLayout& layout);
+    
+private:
+    std::vector<std::pair<QRect, HitTestArea>> m_areas;
 };
 ```
 
-### Windows 消息处理
+## Integration with Qt6 Window System
+
+### Window Setup
 
 ```cpp
-bool MainOpenGlWindow::nativeEvent(const QByteArray& eventType, void* message, qintptr* result) {
-#ifdef Q_OS_WIN
-    if (eventType == "windows_generic_MSG") {
-        MSG* msg = static_cast<MSG*>(message);
-        
-        // 委托给 WinWindowChrome 处理窗口装饰相关消息
-        LRESULT chromeResult = WinWindowChrome::handleMessage(
-            msg->hwnd, msg->message, msg->wParam, msg->lParam
-        );
-        
-        if (chromeResult != 0) {
-            *result = chromeResult;
-            return true;  // 消息已处理
-        }
-    }
-#endif
+void setupWindowChrome(QWindow* window) {
+    auto chrome = std::make_unique<WinWindowChrome>();
     
-    return QOpenGLWidget::nativeEvent(eventType, message, result);
+    // Basic window configuration
+    chrome->setupForWindow(window);
+    chrome->setTitleBarHeight(40);
+    
+    // Define hit test areas
+    chrome->addDraggableArea(QRect(0, 0, window->width() - 138, 40));  // Title area
+    chrome->addButtonArea(QRect(window->width() - 138, 0, 46, 40), WindowButton::Minimize);
+    chrome->addButtonArea(QRect(window->width() - 92, 0, 46, 40), WindowButton::Maximize);
+    chrome->addButtonArea(QRect(window->width() - 46, 0, 46, 40), WindowButton::Close);
+    
+    // Apply theme
+    chrome->setDarkMode(isDarkTheme());
+    
+    // Store chrome instance
+    window->setProperty("chrome", QVariant::fromValue(chrome.release()));
 }
 ```
 
-## HitTest 区域处理
-
-### HitTest 概念
-
-HitTest 确定鼠标指针在窗口中的功能区域：
-
-- **HTCLIENT**: 客户区域（应用内容）
-- **HTCAPTION**: 标题栏（可拖拽移动）
-- **HTSYSMENU**: 系统菜单区域
-- **HTMINBUTTON**: 最小化按钮
-- **HTMAXBUTTON**: 最大化按钮  
-- **HTCLOSE**: 关闭按钮
-- **HTLEFT/RIGHT/TOP/BOTTOM**: 边缘（可调整尺寸）
-
-### 区域映射实现
+### Event Integration
 
 ```cpp
-class HitTestManager {
+class MainWindow : public QOpenGLWindow {
+protected:
+    bool nativeEvent(const QByteArray& eventType, void* message, qintptr* result) override {
+        if (auto* chrome = getWindowChrome()) {
+            if (chrome->handleNativeEvent(eventType, message, result)) {
+                return true;
+            }
+        }
+        return QOpenGLWindow::nativeEvent(eventType, message, result);
+    }
+    
+    void resizeEvent(QResizeEvent* event) override {
+        QOpenGLWindow::resizeEvent(event);
+        
+        // Update hit test areas when window size changes
+        if (auto* chrome = getWindowChrome()) {
+            updateHitTestAreas(chrome, event->size());
+        }
+    }
+    
 private:
-    struct HitTestRegion {
-        QRect bounds;
-        LRESULT hitTest;
-        bool enabled = true;
+    WinWindowChrome* getWindowChrome() {
+        return property("chrome").value<WinWindowChrome*>();
+    }
+    
+    void updateHitTestAreas(WinWindowChrome* chrome, const QSize& size) {
+        chrome->clearAreas();
+        chrome->addDraggableArea(QRect(0, 0, size.width() - 138, 40));
+        chrome->addButtonArea(QRect(size.width() - 138, 0, 46, 40), WindowButton::Minimize);
+        chrome->addButtonArea(QRect(size.width() - 92, 0, 46, 40), WindowButton::Maximize);
+        chrome->addButtonArea(QRect(size.width() - 46, 0, 46, 40), WindowButton::Close);
+    }
+};
+```
+
+## DPI Awareness
+
+### High-DPI Support
+
+```cpp
+class DPIManager {
+public:
+    static float getWindowDPI(QWindow* window) {
+        return window->devicePixelRatio();
+    }
+    
+    static QRect scaledRect(const QRect& logicalRect, float dpi) {
+        return QRect(
+            std::lround(logicalRect.x() * dpi),
+            std::lround(logicalRect.y() * dpi),
+            std::lround(logicalRect.width() * dpi),
+            std::lround(logicalRect.height() * dpi)
+        );
+    }
+    
+    static QSize scaledSize(const QSize& logicalSize, float dpi) {
+        return QSize(
+            std::lround(logicalSize.width() * dpi),
+            std::lround(logicalSize.height() * dpi)
+        );
+    }
+};
+
+void updateForDPI(WinWindowChrome* chrome, float dpi) {
+    // Scale title bar height
+    int titleBarHeight = std::lround(40 * dpi);
+    chrome->setTitleBarHeight(titleBarHeight);
+    
+    // Scale button dimensions
+    int buttonWidth = std::lround(46 * dpi);
+    
+    // Update hit test areas with DPI-scaled coordinates
+    // ... (implementation details)
+}
+```
+
+### Per-Monitor DPI Awareness
+
+```cpp
+class PerMonitorDPIHandler {
+public:
+    void handleDPIChanged(QWindow* window, float newDPI) {
+        auto* chrome = getWindowChrome(window);
+        if (!chrome) return;
+        
+        // Update chrome for new DPI
+        updateForDPI(chrome, newDPI);
+        
+        // Notify UI components to update their resources
+        emit dpiChanged(newDPI);
+        
+        // Trigger layout recalculation
+        window->requestUpdate();
+    }
+    
+    void setupDPIMonitoring(QWindow* window) {
+        // Windows 10/11 per-monitor DPI change notifications
+        connect(window, &QWindow::screenChanged, this, [this, window]() {
+            float newDPI = window->devicePixelRatio();
+            handleDPIChanged(window, newDPI);
+        });
+    }
+};
+```
+
+## Theme Integration
+
+### Windows-Specific Theme Support
+
+```cpp
+class WindowsThemeIntegration {
+public:
+    struct WindowColors {
+        QColor titleBarActive;
+        QColor titleBarInactive;
+        QColor buttonHover;
+        QColor buttonPressed;
+        QColor closeButtonHover;
+        QColor closeButtonPressed;
+        QColor text;
+        QColor border;
     };
     
-    std::vector<HitTestRegion> m_regions;
-    QRect m_windowBounds;
-    int m_borderWidth = 4;
-    
-public:
-    // 设置标题栏区域
-    void setTitleBarArea(const QRect& area) {
-        addRegion(area, HTCAPTION);
-    }
-    
-    // 设置窗口控制按钮
-    void setMinimizeButton(const QRect& area) {
-        addRegion(area, HTMINBUTTON);
-    }
-    
-    void setMaximizeButton(const QRect& area) {
-        addRegion(area, HTMAXBUTTON);
-    }
-    
-    void setCloseButton(const QRect& area) {
-        addRegion(area, HTCLOSE);
-    }
-    
-    // 执行 HitTest
-    LRESULT hitTest(const QPoint& point) const;
-    
-private:
-    void addRegion(const QRect& bounds, LRESULT hitTest) {
-        m_regions.push_back({bounds, hitTest, true});
-    }
-};
-```
-
-### 动态区域更新
-
-```cpp
-void MainOpenGlWindow::updateHitTestRegions() {
-    auto windowSize = size();
-    
-    // 标题栏区域（排除窗口控制按钮）
-    QRect titleBarArea(0, 0, windowSize.width() - 150, 40);
-    m_hitTestManager->setTitleBarArea(titleBarArea);
-    
-    // 窗口控制按钮（每个 50px 宽）
-    int buttonY = 0;
-    int buttonHeight = 40;
-    int buttonWidth = 50;
-    int startX = windowSize.width() - 150;
-    
-    m_hitTestManager->setMinimizeButton(QRect(startX, buttonY, buttonWidth, buttonHeight));
-    m_hitTestManager->setMaximizeButton(QRect(startX + 50, buttonY, buttonWidth, buttonHeight));
-    m_hitTestManager->setCloseButton(QRect(startX + 100, buttonY, buttonWidth, buttonHeight));
-    
-    // 边缘调整区域
-    int borderWidth = 4;
-    m_hitTestManager->setBorderWidth(borderWidth);
-}
-
-void MainOpenGlWindow::resizeEvent(QResizeEvent* event) {
-    QOpenGLWidget::resizeEvent(event);
-    updateHitTestRegions();  // 窗口尺寸变化时更新区域
-}
-```
-
-## 主题集成
-
-### 窗口装饰主题化
-
-```cpp
-class ThemedWindowChrome {
-private:
-    bool m_isDarkTheme = false;
-    QColor m_titleBarColor;
-    QColor m_buttonHoverColor;
-    QColor m_buttonPressedColor;
-    
-public:
-    void setTheme(bool isDark) {
-        m_isDarkTheme = isDark;
+    static WindowColors getSystemColors(bool darkMode) {
+        WindowColors colors;
         
-        if (isDark) {
-            m_titleBarColor = QColor(32, 32, 32);
-            m_buttonHoverColor = QColor(64, 64, 64);
-            m_buttonPressedColor = QColor(48, 48, 48);
+        if (darkMode) {
+            colors.titleBarActive = QColor(32, 32, 32);
+            colors.titleBarInactive = QColor(43, 43, 43);
+            colors.buttonHover = QColor(64, 64, 64);
+            colors.buttonPressed = QColor(80, 80, 80);
+            colors.closeButtonHover = QColor(196, 43, 28);
+            colors.closeButtonPressed = QColor(153, 27, 18);
+            colors.text = QColor(255, 255, 255);
+            colors.border = QColor(54, 54, 54);
         } else {
-            m_titleBarColor = QColor(248, 248, 248);
-            m_buttonHoverColor = QColor(228, 228, 228);
-            m_buttonPressedColor = QColor(208, 208, 208);
+            colors.titleBarActive = QColor(255, 255, 255);
+            colors.titleBarInactive = QColor(240, 240, 240);
+            colors.buttonHover = QColor(229, 229, 229);
+            colors.buttonPressed = QColor(204, 204, 204);
+            colors.closeButtonHover = QColor(232, 17, 35);
+            colors.closeButtonPressed = QColor(186, 13, 28);
+            colors.text = QColor(0, 0, 0);
+            colors.border = QColor(204, 204, 204);
         }
         
-        updateWindowAppearance();
+        return colors;
+    }
+    
+    static bool isSystemDarkMode() {
+        // Query Windows registry for system theme preference
+        QSettings settings("HKEY_CURRENT_USER\\Software\\Microsoft\\Windows\\CurrentVersion\\Themes\\Personalize",
+                          QSettings::NativeFormat);
+        return settings.value("AppsUseLightTheme", 1).toInt() == 0;
+    }
+};
+```
+
+### Dynamic Theme Updates
+
+```cpp
+void updateWindowChrome(WinWindowChrome* chrome, bool darkMode) {
+    // Get appropriate colors for current theme
+    auto colors = WindowsThemeIntegration::getSystemColors(darkMode);
+    
+    // Apply colors to window chrome
+    chrome->setDarkMode(darkMode);
+    chrome->updateColors(colors);
+    
+    // Update window frame if needed
+    chrome->applyWindowEffects();
+}
+
+class ThemeChangeMonitor : public QObject {
+    Q_OBJECT
+    
+public:
+    void startMonitoring() {
+        // Monitor Windows theme changes
+        m_settingsWatcher = std::make_unique<QFileSystemWatcher>();
+        m_settingsWatcher->addPath(getThemeRegistryPath());
+        
+        connect(m_settingsWatcher.get(), &QFileSystemWatcher::fileChanged,
+                this, &ThemeChangeMonitor::onSystemThemeChanged);
+    }
+    
+signals:
+    void systemThemeChanged(bool isDark);
+    
+private slots:
+    void onSystemThemeChanged() {
+        bool isDark = WindowsThemeIntegration::isSystemDarkMode();
+        emit systemThemeChanged(isDark);
     }
     
 private:
-    void updateWindowAppearance() {
-        // 更新系统窗口外观（Windows 10/11）
-        updateDwmAttributes();
-        
-        // 触发重绘
-        InvalidateRect(m_hwnd, nullptr, FALSE);
-    }
+    std::unique_ptr<QFileSystemWatcher> m_settingsWatcher;
     
-    void updateDwmAttributes() {
-        // 设置窗口暗色模式（Windows 10 build 18985+）
-        BOOL darkMode = m_isDarkTheme ? TRUE : FALSE;
-        DwmSetWindowAttribute(m_hwnd, DWMWA_USE_IMMERSIVE_DARK_MODE, 
-                             &darkMode, sizeof(darkMode));
-        
-        // 设置标题栏颜色（Windows 11）
-        COLORREF titleBarColor = RGB(m_titleBarColor.red(), 
-                                    m_titleBarColor.green(), 
-                                    m_titleBarColor.blue());
-        DwmSetWindowAttribute(m_hwnd, DWMWA_CAPTION_COLOR, 
-                             &titleBarColor, sizeof(titleBarColor));
+    QString getThemeRegistryPath() {
+        // Return path to monitor for registry changes
+        // Implementation depends on Windows version
+        return QString();
     }
 };
 ```
 
-### 与应用主题同步
+## Performance Considerations
+
+### Efficient Hit Testing
 
 ```cpp
-void MainOpenGlWindow::onThemeChanged(bool isDark) {
-    // 更新窗口装饰主题
-    m_windowChrome->setTheme(isDark);
-    
-    // 更新应用内容主题
-    if (m_uiRoot) {
-        m_uiRoot->propagateThemeChange(isDark);
-    }
-    
-    // 触发重绘
-    update();
-}
-```
-
-## 性能优化
-
-### 消息处理优化
-
-```cpp
-LRESULT WinWindowChrome::handleMessage(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
-    switch (msg) {
-    case WM_NCHITTEST:
-        // 高频消息，需要快速处理
-        return handleHitTest(hwnd, lParam);
-        
-    case WM_NCPAINT:
-        // 非客户区绘制，返回 0 禁用默认绘制
-        return 0;
-        
-    case WM_NCCALCSIZE:
-        // 计算客户区尺寸
-        if (wParam == TRUE) {
-            return handleCalcSize(reinterpret_cast<NCCALCSIZE_PARAMS*>(lParam));
-        }
-        break;
-        
-    case WM_GETMINMAXINFO:
-        // 设置窗口最小/最大尺寸
-        return handleMinMaxInfo(reinterpret_cast<MINMAXINFO*>(lParam));
-    }
-    
-    return DefWindowProc(hwnd, msg, wParam, lParam);
-}
-```
-
-### HitTest 性能优化
-
-```cpp
-LRESULT HitTestManager::hitTest(const QPoint& point) const {
-    // 首先检查边缘调整区域（最高优先级）
-    if (point.x() < m_borderWidth) return HTLEFT;
-    if (point.x() > m_windowBounds.width() - m_borderWidth) return HTRIGHT;
-    if (point.y() < m_borderWidth) return HTTOP;
-    if (point.y() > m_windowBounds.height() - m_borderWidth) return HTBOTTOM;
-    
-    // 使用空间分割优化区域查找
-    for (const auto& region : m_regions) {
-        if (region.enabled && region.bounds.contains(point)) {
-            return region.hitTest;
-        }
-    }
-    
-    return HTCLIENT;  // 默认为客户区域
-}
-```
-
-## 兼容性处理
-
-### Windows 版本适配
-
-```cpp
-class WindowsVersionDetector {
+class OptimizedHitTester {
 public:
-    static bool isWindows11OrLater() {
-        OSVERSIONINFOEX osvi = {};
-        osvi.dwOSVersionInfoSize = sizeof(osvi);
-        
-        // Windows 11 = 10.0.22000+
-        return (osvi.dwMajorVersion > 10) || 
-               (osvi.dwMajorVersion == 10 && osvi.dwBuildNumber >= 22000);
+    void rebuild(const std::vector<std::pair<QRect, HitTestArea>>& areas) {
+        // Build spatial index for faster lookups
+        m_quadTree.clear();
+        for (const auto& [rect, area] : areas) {
+            m_quadTree.insert(rect, area);
+        }
     }
     
-    static bool supportsImmersiveDarkMode() {
-        OSVERSIONINFOEX osvi = {};
-        osvi.dwOSVersionInfoSize = sizeof(osvi);
-        
-        // Windows 10 build 18985+
-        return (osvi.dwMajorVersion > 10) || 
-               (osvi.dwMajorVersion == 10 && osvi.dwBuildNumber >= 18985);
+    HitTestArea testPoint(const QPoint& point) {
+        return m_quadTree.query(point);
     }
+    
+private:
+    SpatialIndex<HitTestArea> m_quadTree;
 };
+```
 
-void WinWindowChrome::setupWindow(HWND hwnd, bool customFrame) {
-    if (customFrame) {
-        // 移除默认窗口装饰
-        SetWindowLong(hwnd, GWL_STYLE, 
-                     GetWindowLong(hwnd, GWL_STYLE) & ~(WS_CAPTION | WS_THICKFRAME));
+### Minimal Window Updates
+
+```cpp
+class WindowUpdateOptimizer {
+public:
+    void scheduleUpdate(QWindow* window, const QRect& region) {
+        auto& pending = m_pendingUpdates[window];
+        pending = pending.united(region);
         
-        // Windows 11 特定设置
-        if (WindowsVersionDetector::isWindows11OrLater()) {
-            setupWindows11Features(hwnd);
-        }
-        
-        // 暗色模式支持
-        if (WindowsVersionDetector::supportsImmersiveDarkMode()) {
-            enableImmersiveDarkMode(hwnd);
+        if (!m_updateTimer.isActive()) {
+            m_updateTimer.start(16); // ~60 FPS
         }
     }
-}
-```
-
-### DPI 感知处理
-
-```cpp
-void WinWindowChrome::handleDpiChange(HWND hwnd, int newDpi) {
-    // 更新 DPI 相关的尺寸
-    float dpiScale = newDpi / 96.0f;
     
-    int newTitleBarHeight = static_cast<int>(40 * dpiScale);
-    int newButtonWidth = static_cast<int>(50 * dpiScale);
-    int newBorderWidth = static_cast<int>(4 * dpiScale);
-    
-    // 更新窗口装饰尺寸
-    setTitleBarHeight(hwnd, newTitleBarHeight);
-    updateControlButtonSizes(hwnd, newButtonWidth);
-    updateBorderWidth(hwnd, newBorderWidth);
-    
-    // 重新计算窗口布局
-    SetWindowPos(hwnd, nullptr, 0, 0, 0, 0, 
-                SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_FRAMECHANGED);
-}
-```
-
-## 常见问题与解决方案
-
-### 标题栏闪烁问题
-
-```cpp
-// 问题：主题切换时标题栏出现闪烁
-// 解决：使用双缓冲绘制
-void ThemedWindowChrome::paintTitleBar(HDC hdc, const QRect& area) {
-    // 创建内存 DC 进行离屏绘制
-    HDC memDC = CreateCompatibleDC(hdc);
-    HBITMAP memBitmap = CreateCompatibleBitmap(hdc, area.width(), area.height());
-    HBITMAP oldBitmap = static_cast<HBITMAP>(SelectObject(memDC, memBitmap));
-    
-    // 在内存 DC 中绘制标题栏
-    drawTitleBarContent(memDC, area);
-    
-    // 一次性复制到屏幕
-    BitBlt(hdc, area.left(), area.top(), area.width(), area.height(),
-           memDC, 0, 0, SRCCOPY);
-    
-    // 清理资源
-    SelectObject(memDC, oldBitmap);
-    DeleteObject(memBitmap);
-    DeleteDC(memDC);
-}
-```
-
-### 窗口拖拽卡顿
-
-```cpp
-// 问题：窗口拖拽时出现卡顿
-// 解决：优化 WM_NCHITTEST 处理
-LRESULT WinWindowChrome::handleHitTest(HWND hwnd, LPARAM lParam) {
-    // 使用缓存减少重复计算
-    static QPoint lastPoint;
-    static LRESULT lastResult;
-    
-    QPoint currentPoint(GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam));
-    
-    if (currentPoint == lastPoint) {
-        return lastResult;  // 返回缓存结果
+private slots:
+    void processPendingUpdates() {
+        for (auto it = m_pendingUpdates.begin(); it != m_pendingUpdates.end(); ++it) {
+            QWindow* window = it.key();
+            const QRect& region = it.value();
+            
+            // Trigger minimal repaint
+            window->requestUpdate();
+        }
+        
+        m_pendingUpdates.clear();
     }
     
-    lastPoint = currentPoint;
-    lastResult = performHitTest(hwnd, currentPoint);
-    return lastResult;
+private:
+    QHash<QWindow*, QRect> m_pendingUpdates;
+    QTimer m_updateTimer;
+};
+```
+
+## Common Integration Patterns
+
+### Basic Window Chrome Setup
+
+```cpp
+auto setupBasicChrome(QWindow* window) {
+    auto chrome = std::make_unique<WinWindowChrome>();
+    chrome->setupForWindow(window);
+    chrome->setTitleBarHeight(32);
+    
+    // Standard three-button layout
+    int windowWidth = window->width();
+    chrome->addDraggableArea(QRect(0, 0, windowWidth - 96, 32));
+    chrome->addButtonArea(QRect(windowWidth - 96, 0, 32, 32), WindowButton::Minimize);
+    chrome->addButtonArea(QRect(windowWidth - 64, 0, 32, 32), WindowButton::Maximize);
+    chrome->addButtonArea(QRect(windowWidth - 32, 0, 32, 32), WindowButton::Close);
+    
+    return chrome;
 }
 ```
 
-## 相关文档
+### Advanced Custom Chrome
 
-- [表现层架构概览](../presentation/architecture.md) - UI 系统与窗口装饰的集成
-- [渲染与图形系统](../infrastructure/gfx.md) - 自定义绘制在窗口装饰中的应用
-- [App Shell 与应用组装](../application/app-shell.md) - 应用外壳与窗口装饰的协调
+```cpp
+class AdvancedWindowChrome {
+public:
+    void setupCustomLayout(QWindow* window) {
+        m_chrome = std::make_unique<WinWindowChrome>();
+        m_chrome->setupForWindow(window);
+        
+        // Custom title bar with logo and controls
+        setupCustomTitleBar(window->size());
+        
+        // Custom resize borders
+        setupResizeBorders(window->size());
+        
+        // Theme integration
+        connectThemeSignals();
+    }
+    
+private:
+    void setupCustomTitleBar(const QSize& windowSize) {
+        const int titleHeight = 48;
+        const int logoWidth = 120;
+        const int buttonWidth = 46;
+        const int buttonCount = 3;
+        
+        // Logo area (non-draggable)
+        m_chrome->addClientArea(QRect(8, 8, logoWidth, titleHeight - 16));
+        
+        // Title area (draggable)
+        int titleStart = logoWidth + 16;
+        int titleWidth = windowSize.width() - titleStart - (buttonWidth * buttonCount) - 8;
+        m_chrome->addDraggableArea(QRect(titleStart, 0, titleWidth, titleHeight));
+        
+        // Window control buttons
+        int buttonStart = windowSize.width() - (buttonWidth * buttonCount);
+        m_chrome->addButtonArea(QRect(buttonStart, 0, buttonWidth, titleHeight), WindowButton::Minimize);
+        m_chrome->addButtonArea(QRect(buttonStart + buttonWidth, 0, buttonWidth, titleHeight), WindowButton::Maximize);
+        m_chrome->addButtonArea(QRect(buttonStart + buttonWidth * 2, 0, buttonWidth, titleHeight), WindowButton::Close);
+    }
+    
+    void setupResizeBorders(const QSize& windowSize) {
+        const int borderWidth = 4;
+        
+        // Top border
+        m_chrome->addBorderArea(QRect(0, 0, windowSize.width(), borderWidth), BorderSide::Top);
+        
+        // Bottom border
+        m_chrome->addBorderArea(QRect(0, windowSize.height() - borderWidth, windowSize.width(), borderWidth), BorderSide::Bottom);
+        
+        // Left border
+        m_chrome->addBorderArea(QRect(0, 0, borderWidth, windowSize.height()), BorderSide::Left);
+        
+        // Right border
+        m_chrome->addBorderArea(QRect(windowSize.width() - borderWidth, 0, borderWidth, windowSize.height()), BorderSide::Right);
+        
+        // Corners (larger hit areas for easier resizing)
+        const int cornerSize = 16;
+        m_chrome->addCornerArea(QRect(0, 0, cornerSize, cornerSize), Corner::TopLeft);
+        m_chrome->addCornerArea(QRect(windowSize.width() - cornerSize, 0, cornerSize, cornerSize), Corner::TopRight);
+        m_chrome->addCornerArea(QRect(0, windowSize.height() - cornerSize, cornerSize, cornerSize), Corner::BottomLeft);
+        m_chrome->addCornerArea(QRect(windowSize.width() - cornerSize, windowSize.height() - cornerSize, cornerSize, cornerSize), Corner::BottomRight);
+    }
+    
+    void connectThemeSignals() {
+        // Connect to application theme manager
+        connect(ThemeManager::instance(), &ThemeManager::themeChanged,
+                this, [this](bool isDark) {
+                    auto colors = WindowsThemeIntegration::getSystemColors(isDark);
+                    m_chrome->updateColors(colors);
+                });
+    }
+    
+    std::unique_ptr<WinWindowChrome> m_chrome;
+};
+```
+
+## Related Documentation
+
+- [Graphics & Rendering System](../infrastructure/gfx.md) - Rendering integration with custom window chrome
+- [Presentation Architecture Overview](../presentation/architecture.md) - How window chrome integrates with UI components
+- [TopBar Component](../presentation/components/top-bar.md) - Custom title bar implementation
