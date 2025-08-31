@@ -33,20 +33,25 @@ namespace UI {
 			if (!m_builder) return;
 			m_child = m_builder();
 			// 重建后立即同步上下文与视口
+			// 注意：操作顺序很重要，避免主题闪烁
 			if (m_child) {
+				// 1. 首先设置视口（布局计算可能需要）
 				if (m_hasViewport) {
 					if (auto* c = dynamic_cast<IUiContent*>(m_child.get())) {
 						c->setViewportRect(m_viewport);
 					}
 				}
+				// 2. 在更新资源上下文之前应用主题，确保调色板和图标选择使用正确的主题状态
+				if (m_hasTheme) {
+					m_child->onThemeChanged(m_isDark);
+				}
+				// 3. 更新资源上下文（现在组件已有正确的主题状态）
 				if (m_hasCtx) {
 					m_child->updateResourceContext(*m_cache, m_gl, m_dpr);
 				}
+				// 4. 最后更新布局（通常不依赖资源上下文）
 				if (m_hasWinSize) {
 					m_child->updateLayout(m_winSize);
-				}
-				if (m_hasTheme) {
-					m_child->onThemeChanged(m_isDark);
 				}
 			}
 		}

@@ -1,6 +1,9 @@
 #include <QtTest>
 #include <QSignalSpy>
 #include <QObject>
+#include <vector>
+#include <string>
+#include <algorithm>
 #include "framework/declarative/RebuildHost.h"
 #include "framework/declarative/Binding.h"
 #include "framework/base/UiComponent.hpp"
@@ -346,6 +349,106 @@ private slots:
         
         QRect boundsAfterArrange = host.bounds();
         QCOMPARE(boundsAfterArrange, arrangeRect);
+    }
+
+    void testThemeOrderingFix()
+    {
+        qDebug() << "=== Testing Theme Ordering Fix ===";
+        
+        // Mock component that tracks call order to verify theme fix
+        class ThemeOrderTrackingComponent : public IUiComponent {
+        public:
+            mutable std::vector<std::string> callOrder;
+            bool m_isDark = false; // Default theme state
+            bool m_themeCorrectDuringResourceUpdate = false;
+            
+            void onThemeChanged(bool isDark) override {
+                callOrder.push_back("onThemeChanged");
+                m_isDark = isDark;
+                qDebug() << "ThemeOrderTrackingComponent::onThemeChanged(" << (isDark ? "dark" : "light") << ")";
+            }
+            
+            void updateResourceContext(IconCache& cache, QOpenGLFunctions* gl, float dpr) override {
+                callOrder.push_back("updateResourceContext");
+                // Record whether theme was correct during resource update
+                // For light theme test, m_isDark should be false here
+                m_themeCorrectDuringResourceUpdate = !m_isDark; // Expecting light theme
+                qDebug() << "ThemeOrderTrackingComponent::updateResourceContext() - isDark=" << m_isDark 
+                         << " (correct=" << (m_themeCorrectDuringResourceUpdate ? "true" : "false") << ")";
+            }
+            
+            void updateLayout(const QSize&) override {
+                callOrder.push_back("updateLayout");
+                qDebug() << "ThemeOrderTrackingComponent::updateLayout()";
+            }
+            
+            bool onMousePress(const QPoint&) override { return false; }
+            bool onMouseMove(const QPoint&) override { return false; }
+            bool onMouseRelease(const QPoint&) override { return false; }
+            bool tick() override { return false; }
+            QRect bounds() const override { return QRect(0, 0, 100, 50); }
+            
+            bool wasThemeCorrectDuringResourceUpdate() const { 
+                return m_themeCorrectDuringResourceUpdate; 
+            }
+        };
+        
+        UI::RebuildHost host;
+        IconCache cache;
+        QOpenGLFunctions gl;
+        
+        // Set up host context (simulating light theme)
+        host.setViewportRect(QRect(0, 0, 800, 600));
+        host.updateResourceContext(cache, &gl, 1.0f);
+        host.updateLayout(QSize(800, 600));
+        host.onThemeChanged(false); // Light theme
+        
+        // Set builder to create theme-tracking component
+        ThemeOrderTrackingComponent* componentPtr = nullptr;
+        host.setBuilder([&componentPtr]() -> std::unique_ptr<IUiComponent> {
+            auto component = std::make_unique<ThemeOrderTrackingComponent>();
+            componentPtr = component.get();
+            return std::move(component);
+        });
+        
+        // Clear any initial calls from setBuilder
+        if (componentPtr) {
+            componentPtr->callOrder.clear();
+        }
+        
+        // Trigger rebuild (simulating nav interaction that causes theme flicker)
+        qDebug() << "Triggering requestRebuild()...";
+        host.requestRebuild();
+        
+        // Verify the fix worked
+        QVERIFY(componentPtr != nullptr);
+        
+        // Verify call order: onThemeChanged should come before updateResourceContext
+        const auto& callOrder = componentPtr->callOrder;
+        QVERIFY(!callOrder.empty());
+        
+        qDebug() << "Call order:";
+        for (size_t i = 0; i < callOrder.size(); ++i) {
+            qDebug() << "  " << (i+1) << ". " << callOrder[i].c_str();
+        }
+        
+        // Find positions of key calls
+        auto themePos = std::find(callOrder.begin(), callOrder.end(), "onThemeChanged");
+        auto resourcePos = std::find(callOrder.begin(), callOrder.end(), "updateResourceContext");
+        
+        // Both calls should be present
+        QVERIFY(themePos != callOrder.end());
+        QVERIFY(resourcePos != callOrder.end());
+        
+        // onThemeChanged should come before updateResourceContext (the fix)
+        bool themeBeforeResource = (themePos < resourcePos);
+        QVERIFY(themeBeforeResource);
+        
+        // Verify component had correct theme during resource update
+        QVERIFY(componentPtr->wasThemeCorrectDuringResourceUpdate());
+        
+        qDebug() << "✅ Theme ordering fix verified - onThemeChanged called before updateResourceContext";
+        qDebug() << "✅ Component had correct theme state during resource context update";
     }
 };
 
