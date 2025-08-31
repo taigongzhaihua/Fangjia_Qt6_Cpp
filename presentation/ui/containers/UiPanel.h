@@ -1,5 +1,6 @@
 #pragma once
 #include "ILayoutable.hpp"  // 新增
+#include "IFocusContainer.hpp"  // 新增
 #include "UiComponent.hpp"
 #include "UiContent.hpp"
 
@@ -17,7 +18,7 @@
 #include <vector>
 
 // 顺序容器：按“子项实际尺寸”依次排布
-class UiPanel : public IUiComponent, public IUiContent, public ILayoutable { // 新增 ILayoutable
+class UiPanel : public IUiComponent, public IUiContent, public ILayoutable, public IFocusContainer { // 新增 IFocusContainer
 public:
 	enum class Orientation :uint8_t { Horizontal, Vertical };
 	enum class CrossAlign :uint8_t { Start, Center, End, Stretch };
@@ -60,6 +61,9 @@ public:
 
 	QRect bounds() const override { return m_viewport; }
 	void onThemeChanged(bool isDark) override;
+
+	// IFocusContainer
+	void enumerateFocusables(std::vector<IFocusable*>& out) const override;
 
 private:
 	QRect contentRect() const;

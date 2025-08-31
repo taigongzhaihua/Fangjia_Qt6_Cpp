@@ -1,5 +1,6 @@
 #pragma once
 #include "ILayoutable.hpp"
+#include "IFocusContainer.hpp"
 #include "UiComponent.hpp"
 #include "UiContent.hpp"
 
@@ -12,7 +13,7 @@
 #include <vector>
 
 // WPF 风格网格：行列定义 + 任意单元格定位 + 跨行列 + Star 占比
-class UiGrid : public IUiComponent, public IUiContent, public ILayoutable {
+class UiGrid : public IUiComponent, public IUiContent, public ILayoutable, public IFocusContainer {
 public:
 	enum class Align : uint8_t { Start, Center, End, Stretch };
 
@@ -69,6 +70,9 @@ public:
 
 	QRect bounds() const override { return m_viewport; }
 	void onThemeChanged(bool isDark) override;
+
+	// IFocusContainer
+	void enumerateFocusables(std::vector<IFocusable*>& out) const override;
 
 private:
 	QRect contentRect() const;

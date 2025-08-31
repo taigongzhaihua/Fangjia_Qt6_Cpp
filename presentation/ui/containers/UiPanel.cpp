@@ -2,6 +2,8 @@
 #include <algorithm>
 
 #include "ILayoutable.hpp"
+#include "IFocusable.hpp"
+#include "IFocusContainer.hpp"
 #include <limits>
 #include <qopenglfunctions.h>
 #include <qpoint.h>
@@ -347,4 +349,23 @@ bool UiPanel::tick()
 void UiPanel::onThemeChanged(const bool isDark)
 {
 	for (const auto& ch : m_children) if (ch.component) ch.component->onThemeChanged(isDark);
+}
+
+void UiPanel::enumerateFocusables(std::vector<IFocusable*>& out) const
+{
+	for (const auto& child : m_children) {
+		if (!child.visible || !child.component) continue;
+		
+		// 如果子组件本身可以获得焦点，添加它
+		if (auto* focusable = dynamic_cast<IFocusable*>(child.component)) {
+			if (focusable->canFocus()) {
+				out.push_back(focusable);
+			}
+		}
+		
+		// 如果子组件是容器，递归枚举其可焦点子组件
+		if (auto* container = dynamic_cast<IFocusContainer*>(child.component)) {
+			container->enumerateFocusables(out);
+		}
+	}
 }

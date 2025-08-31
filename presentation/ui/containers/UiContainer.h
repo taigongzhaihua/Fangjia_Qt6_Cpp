@@ -1,5 +1,6 @@
 #pragma once
 #include "ILayoutable.hpp"
+#include "IFocusContainer.hpp"
 #include "UiComponent.hpp"
 #include "UiContent.hpp"
 
@@ -8,7 +9,7 @@
 #include <qsize.h>
 #include <RenderData.hpp>
 
-class UiContainer final : public IUiComponent, public IUiContent, public ILayoutable {
+class UiContainer final : public IUiComponent, public IUiContent, public ILayoutable, public IFocusContainer {
 public:
 	enum class Align { Start, Center, End, Stretch };
 
@@ -40,6 +41,9 @@ public:
 	bool tick() override;
 	QRect bounds() const override { return m_viewport; }
 	void onThemeChanged(bool isDark) override;
+
+	// IFocusContainer
+	void enumerateFocusables(std::vector<IFocusable*>& out) const override;
 
 private:
 	QRect placeChildRect(const QRect& area, const QSize& desired) const;

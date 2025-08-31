@@ -8,6 +8,7 @@
 
 #pragma once
 #include "IconCache.h"
+#include "IFocusContainer.hpp"
 #include "RenderData.hpp"
 #include "UiComponent.hpp"
 
@@ -37,7 +38,7 @@
  /// │ 内容组件            │
  /// │                     │
  /// └─────────────────────┘
-class UiPage : public IUiComponent
+class UiPage : public IUiComponent, public IFocusContainer
 {
 public:
 	/// 页面色彩方案配置
@@ -101,6 +102,9 @@ public:
 	/// 参数：isDark — 是否为暗色主题
 	/// 说明：更新页面色彩方案并传播给内容组件
 	void onThemeChanged(bool isDark) override;
+
+	// IFocusContainer
+	void enumerateFocusables(std::vector<IFocusable*>& out) const override;
 
 	/// 功能：设置暗色主题状态
 	/// 参数：dark — 是否启用暗色主题

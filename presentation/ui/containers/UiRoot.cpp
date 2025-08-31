@@ -3,6 +3,7 @@
 #include "UiComponent.hpp"
 #include "UiContent.hpp"
 #include "ILayoutable.hpp"
+#include "IFocusContainer.hpp"
 #include "UiRoot.h"
 
 #include <qopenglfunctions.h>
@@ -15,20 +16,26 @@
 void UiRoot::add(IUiComponent* c)
 {
 	if (!c) return;
-	if (std::ranges::find(m_children, c) == m_children.end())
+	if (std::ranges::find(m_children, c) == m_children.end()) {
 		m_children.push_back(c);
+		m_focusOrderDirty = true; // 标记焦点顺序需要重建
+	}
 }
 
 void UiRoot::remove(IUiComponent* c)
 {
 	std::erase(m_children, c);
 	if (m_pointerCapture == c) m_pointerCapture = nullptr;
+	if (m_focusedComponent == c) m_focusedComponent = nullptr;
+	m_focusOrderDirty = true; // 标记焦点顺序需要重建
 }
 
 void UiRoot::clear()
 {
 	m_children.clear();
 	m_pointerCapture = nullptr;
+	m_focusedComponent = nullptr;
+	m_focusOrderDirty = true; // 标记焦点顺序需要重建
 }
 
 void UiRoot::updateLayout(const QSize& windowSize) const
@@ -148,6 +155,16 @@ void UiRoot::propagateThemeChange(const bool isDark) const
 
 bool UiRoot::onKeyPress(int key, Qt::KeyboardModifiers modifiers)
 {
+	// 处理Tab键导航
+	if (key == Qt::Key_Tab) {
+		if (modifiers & Qt::ShiftModifier) {
+			focusPrevious();
+		} else {
+			focusNext();
+		}
+		return true;
+	}
+	
 	// 只有有焦点的组件才能响应键盘输入
 	if (m_focusedComponent) {
 		// 尝试转换为IKeyInput接口
@@ -200,4 +217,114 @@ void UiRoot::clearFocus()
 		}
 		m_focusedComponent = nullptr;
 	}
+}
+
+void UiRoot::focusNext()
+{
+	rebuildFocusOrder();
+	
+	if (m_focusOrder.empty()) {
+		clearFocus();
+		return;
+	}
+	
+	// 如果当前没有焦点，设置焦点到第一个组件
+	if (!m_focusedComponent) {
+		if (auto* comp = dynamic_cast<IUiComponent*>(m_focusOrder[0])) {
+			setFocus(comp);
+		}
+		return;
+	}
+	
+	// 查找当前焦点组件在列表中的位置
+	const int currentIndex = findFocusIndex(m_focusedComponent);
+	if (currentIndex >= 0) {
+		// 移动到下一个组件（循环到开头）
+		const int nextIndex = (currentIndex + 1) % static_cast<int>(m_focusOrder.size());
+		if (auto* comp = dynamic_cast<IUiComponent*>(m_focusOrder[nextIndex])) {
+			setFocus(comp);
+		}
+	} else {
+		// 当前组件不在列表中，设置焦点到第一个组件
+		if (auto* comp = dynamic_cast<IUiComponent*>(m_focusOrder[0])) {
+			setFocus(comp);
+		}
+	}
+}
+
+void UiRoot::focusPrevious()
+{
+	rebuildFocusOrder();
+	
+	if (m_focusOrder.empty()) {
+		clearFocus();
+		return;
+	}
+	
+	// 如果当前没有焦点，设置焦点到最后一个组件
+	if (!m_focusedComponent) {
+		if (auto* comp = dynamic_cast<IUiComponent*>(m_focusOrder.back())) {
+			setFocus(comp);
+		}
+		return;
+	}
+	
+	// 查找当前焦点组件在列表中的位置
+	const int currentIndex = findFocusIndex(m_focusedComponent);
+	if (currentIndex >= 0) {
+		// 移动到上一个组件（循环到末尾）
+		const int prevIndex = (currentIndex - 1 + static_cast<int>(m_focusOrder.size())) % static_cast<int>(m_focusOrder.size());
+		if (auto* comp = dynamic_cast<IUiComponent*>(m_focusOrder[prevIndex])) {
+			setFocus(comp);
+		}
+	} else {
+		// 当前组件不在列表中，设置焦点到最后一个组件
+		if (auto* comp = dynamic_cast<IUiComponent*>(m_focusOrder.back())) {
+			setFocus(comp);
+		}
+	}
+}
+
+void UiRoot::rebuildFocusOrder()
+{
+	if (!m_focusOrderDirty) {
+		return;
+	}
+	
+	m_focusOrder.clear();
+	
+	// 遍历所有子组件，收集可焦点组件
+	for (auto* child : m_children) {
+		if (!child) continue;
+		
+		// 如果子组件本身可以获得焦点，添加它
+		if (auto* focusable = dynamic_cast<IFocusable*>(child)) {
+			if (focusable->canFocus()) {
+				m_focusOrder.push_back(focusable);
+			}
+		}
+		
+		// 如果子组件是容器，递归枚举其可焦点子组件
+		if (auto* container = dynamic_cast<IFocusContainer*>(child)) {
+			container->enumerateFocusables(m_focusOrder);
+		}
+	}
+	
+	m_focusOrderDirty = false;
+}
+
+int UiRoot::findFocusIndex(IUiComponent* component) const
+{
+	if (!component) return -1;
+	
+	auto* focusable = dynamic_cast<IFocusable*>(component);
+	if (!focusable) return -1;
+	
+	for (int i = 0; i < static_cast<int>(m_focusOrder.size()); ++i) {
+		if (m_focusOrder[i] == focusable) {
+			return i;
+		}
+	}
+	
+	return -1;
 }

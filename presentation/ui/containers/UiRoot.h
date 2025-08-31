@@ -11,6 +11,7 @@
 #include "RenderData.hpp"
 #include "UiComponent.hpp"
 #include "IFocusable.hpp"
+#include "IFocusContainer.hpp"
 #include "IKeyInput.hpp"
 
 #include <qopenglfunctions.h>
@@ -114,6 +115,24 @@ public:
 	/// 功能：清除所有组件的焦点
 	void clearFocus();
 
+	/// 功能：导航到下一个可焦点组件（Tab键）
+	/// 说明：按Tab键导航顺序移动焦点到下一个可获得焦点的组件
+	void focusNext();
+	
+	/// 功能：导航到上一个可焦点组件（Shift+Tab键）
+	/// 说明：按Tab键导航顺序移动焦点到上一个可获得焦点的组件
+	void focusPrevious();
+
+private:
+	/// 功能：重建焦点遍历列表
+	/// 说明：遍历所有子组件和容器，构建可焦点组件的有序列表
+	void rebuildFocusOrder();
+	
+	/// 功能：在焦点列表中查找指定组件的索引
+	/// 参数：component — 要查找的组件
+	/// 返回：组件在焦点列表中的索引，-1表示未找到
+	int findFocusIndex(IUiComponent* component) const;
+
 private:
 	std::vector<IUiComponent*> m_children; // 顶级组件列表（不拥有所有权）
 
@@ -122,4 +141,8 @@ private:
 	
 	// 焦点管理：当前拥有焦点的组件
 	IUiComponent* m_focusedComponent{ nullptr };
+	
+	// 焦点遍历：所有可获得焦点的组件列表（按Tab键导航顺序）
+	mutable std::vector<IFocusable*> m_focusOrder;
+	mutable bool m_focusOrderDirty{ true };
 };

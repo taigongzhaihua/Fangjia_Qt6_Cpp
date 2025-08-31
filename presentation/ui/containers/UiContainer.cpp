@@ -1,6 +1,8 @@
 #include "UiContainer.h"
 #include <algorithm>
 #include <ILayoutable.hpp>
+#include "IFocusable.hpp"
+#include "IFocusContainer.hpp"
 #include <qpoint.h>
 #include <qrect.h>
 #include <qsize.h>
@@ -147,4 +149,21 @@ bool UiContainer::tick()
 void UiContainer::onThemeChanged(const bool isDark)
 {
 	if (m_child) m_child->onThemeChanged(isDark);
+}
+
+void UiContainer::enumerateFocusables(std::vector<IFocusable*>& out) const
+{
+	if (!m_child) return;
+	
+	// 如果子组件本身可以获得焦点，添加它
+	if (auto* focusable = dynamic_cast<IFocusable*>(m_child)) {
+		if (focusable->canFocus()) {
+			out.push_back(focusable);
+		}
+	}
+	
+	// 如果子组件是容器，递归枚举其可焦点子组件
+	if (auto* container = dynamic_cast<IFocusContainer*>(m_child)) {
+		container->enumerateFocusables(out);
+	}
 }
