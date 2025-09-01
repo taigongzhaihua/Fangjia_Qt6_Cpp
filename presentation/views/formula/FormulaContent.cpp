@@ -46,9 +46,9 @@ std::unique_ptr<IUiComponent> FormulaContent::build() const
         ->rows({1_fr})
         ->rowSpacing(0)
         ->colSpacing(0)
-        ->add(treeWidget, 0, 0, 1, 1, Grid::Stretch, Grid::Stretch)
-        ->add(splitter, 0, 1, 1, 1, Grid::Stretch, Grid::Stretch)
-        ->add(detailsPanel, 0, 2, 1, 1, Grid::Stretch, Grid::Stretch)
+        ->add(treeWidget, 0, 0, 1, 1, Grid::CellAlign::Stretch, Grid::CellAlign::Stretch)
+        ->add(splitter, 0, 1, 1, 1, Grid::CellAlign::Stretch, Grid::CellAlign::Stretch)
+        ->add(detailsPanel, 0, 2, 1, 1, Grid::CellAlign::Stretch, Grid::CellAlign::Stretch)
         ->build();
 }
 
@@ -160,17 +160,20 @@ UI::WidgetPtr FormulaContent::buildDetailsContent() const
     }
 
     // 构建方剂详情内容
-    auto content = panel({
-        // 标题
+    WidgetList contentWidgets;
+    
+    // 标题
+    contentWidgets.push_back(
         text(formula->name)
             ->themeColor(QColor(32, 38, 46), QColor(240, 245, 250))
             ->fontSize(20)
-            ->fontWeight(QFont::Bold),
-            
-        spacer(16),
-        
-        // 出处
-        !formula->source.isEmpty() ? panel({
+            ->fontWeight(QFont::Bold)
+    );
+    contentWidgets.push_back(spacer(16));
+    
+    // 出处
+    if (!formula->source.isEmpty()) {
+        contentWidgets.push_back(panel({
             text("出处")
                 ->themeColor(QColor(60, 70, 80), QColor(180, 190, 200))
                 ->fontSize(12)
@@ -180,12 +183,13 @@ UI::WidgetPtr FormulaContent::buildDetailsContent() const
                 ->themeColor(QColor(80, 90, 100), QColor(160, 170, 180))
                 ->fontSize(14)
                 ->wrap(true)
-        })->vertical() : nullptr,
-        
-        spacer(12),
-        
-        // 组成
-        !formula->composition.isEmpty() ? panel({
+        })->vertical());
+        contentWidgets.push_back(spacer(12));
+    }
+    
+    // 组成
+    if (!formula->composition.isEmpty()) {
+        contentWidgets.push_back(panel({
             text("组成")
                 ->themeColor(QColor(60, 70, 80), QColor(180, 190, 200))
                 ->fontSize(12)
@@ -195,12 +199,13 @@ UI::WidgetPtr FormulaContent::buildDetailsContent() const
                 ->themeColor(QColor(80, 90, 100), QColor(160, 170, 180))
                 ->fontSize(14)
                 ->wrap(true)
-        })->vertical() : nullptr,
-        
-        spacer(12),
-        
-        // 用法
-        !formula->usage.isEmpty() ? panel({
+        })->vertical());
+        contentWidgets.push_back(spacer(12));
+    }
+    
+    // 用法
+    if (!formula->usage.isEmpty()) {
+        contentWidgets.push_back(panel({
             text("用法")
                 ->themeColor(QColor(60, 70, 80), QColor(180, 190, 200))
                 ->fontSize(12)
@@ -210,12 +215,13 @@ UI::WidgetPtr FormulaContent::buildDetailsContent() const
                 ->themeColor(QColor(80, 90, 100), QColor(160, 170, 180))
                 ->fontSize(14)
                 ->wrap(true)
-        })->vertical() : nullptr,
-        
-        spacer(12),
-        
-        // 功效
-        !formula->function.isEmpty() ? panel({
+        })->vertical());
+        contentWidgets.push_back(spacer(12));
+    }
+    
+    // 功效
+    if (!formula->function.isEmpty()) {
+        contentWidgets.push_back(panel({
             text("功效")
                 ->themeColor(QColor(60, 70, 80), QColor(180, 190, 200))
                 ->fontSize(12)
@@ -225,12 +231,13 @@ UI::WidgetPtr FormulaContent::buildDetailsContent() const
                 ->themeColor(QColor(80, 90, 100), QColor(160, 170, 180))
                 ->fontSize(14)
                 ->wrap(true)
-        })->vertical() : nullptr,
-        
-        spacer(12),
-        
-        // 主治
-        !formula->indication.isEmpty() ? panel({
+        })->vertical());
+        contentWidgets.push_back(spacer(12));
+    }
+    
+    // 主治
+    if (!formula->indication.isEmpty()) {
+        contentWidgets.push_back(panel({
             text("主治")
                 ->themeColor(QColor(60, 70, 80), QColor(180, 190, 200))
                 ->fontSize(12)
@@ -240,12 +247,13 @@ UI::WidgetPtr FormulaContent::buildDetailsContent() const
                 ->themeColor(QColor(80, 90, 100), QColor(160, 170, 180))
                 ->fontSize(14)
                 ->wrap(true)
-        })->vertical() : nullptr,
-        
-        spacer(12),
-        
-        // 备注
-        !formula->note.isEmpty() ? panel({
+        })->vertical());
+        contentWidgets.push_back(spacer(12));
+    }
+    
+    // 备注
+    if (!formula->note.isEmpty()) {
+        contentWidgets.push_back(panel({
             text("备注")
                 ->themeColor(QColor(60, 70, 80), QColor(180, 190, 200))
                 ->fontSize(12)
@@ -255,9 +263,10 @@ UI::WidgetPtr FormulaContent::buildDetailsContent() const
                 ->themeColor(QColor(80, 90, 100), QColor(160, 170, 180))
                 ->fontSize(14)
                 ->wrap(true)
-        })->vertical() : nullptr
-        
-    })->vertical()->padding(16);
+        })->vertical());
+    }
+
+    auto content = panel(contentWidgets)->vertical()->padding(16);
 
     // 包装在ScrollView中
     return scrollView(content);
