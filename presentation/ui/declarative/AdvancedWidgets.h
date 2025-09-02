@@ -108,4 +108,43 @@ namespace UI
 		std::vector<T> m_items;
 		ItemBuilder m_builder;
 	};
+
+	// 声明式 ListBox：包装 UiListBox 提供单选列表控件
+	class ListBox : public Widget
+	{
+	public:
+		ListBox() = default;
+
+		// 设置项目列表
+		std::shared_ptr<ListBox> items(const std::vector<QString>& items) {
+			m_items = items;
+			return self<ListBox>();
+		}
+
+		// 设置项目高度
+		std::shared_ptr<ListBox> itemHeight(int height) {
+			m_itemHeight = height;
+			return self<ListBox>();
+		}
+
+		// 设置选中索引
+		std::shared_ptr<ListBox> selectedIndex(int index) {
+			m_selectedIndex = index;
+			return self<ListBox>();
+		}
+
+		// 设置激活回调
+		std::shared_ptr<ListBox> onActivated(std::function<void(int)> callback) {
+			m_onActivated = std::move(callback);
+			return self<ListBox>();
+		}
+
+		std::unique_ptr<IUiComponent> build() const override;
+
+	private:
+		std::vector<QString> m_items;
+		int m_itemHeight{ 36 };
+		int m_selectedIndex{ -1 };
+		std::function<void(int)> m_onActivated;
+	};
 } // namespace UI
