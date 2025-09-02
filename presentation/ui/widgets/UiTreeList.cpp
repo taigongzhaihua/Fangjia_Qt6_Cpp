@@ -5,6 +5,7 @@
 #include <IconCache.h>
 #include <qbytearray.h>
 #include <qcolor.h>
+#include <qcontainerfwd.h>
 #include <qfont.h>
 #include <qopenglfunctions.h>
 #include <qpoint.h>
@@ -14,8 +15,11 @@
 #include <qstringliteral.h>
 #include <RenderData.hpp>
 #include <RenderUtils.hpp>
+#include <UiComponent.hpp>
 
-UiTreeList::UiTreeList() {}
+UiTreeList::UiTreeList()
+{
+}
 
 void UiTreeList::reloadData()
 {
@@ -37,55 +41,62 @@ void UiTreeList::updateResourceContext(IconCache& cache, QOpenGLFunctions* gl, c
 void UiTreeList::updateVisibleNodes()
 {
 	m_visibleNodes.clear();
-	
+
 	// Support both traditional Model* and functional ModelFns
-	auto getRoots = [&]() -> QVector<int> {
-		if (m_model) return m_model->rootIndices();
-		if (m_modelFns.rootIndices) return m_modelFns.rootIndices();
-		return {};
-	};
-	
-	auto getChildren = [&](int nodeId) -> QVector<int> {
-		if (m_model) return m_model->childIndices(nodeId);
-		if (m_modelFns.childIndices) return m_modelFns.childIndices(nodeId);
-		return {};
-	};
-	
-	auto getNodeInfo = [&](int nodeId) -> NodeInfo {
-		if (m_model) return m_model->nodeInfo(nodeId);
-		if (m_modelFns.nodeInfo) return m_modelFns.nodeInfo(nodeId);
-		return {};
-	};
+	auto getRoots = [&]() -> QVector<int>
+		{
+			if (m_model) return m_model->rootIndices();
+			if (m_modelFns.rootIndices) return m_modelFns.rootIndices();
+			return {};
+		};
+
+	auto getChildren = [&](int nodeId) -> QVector<int>
+		{
+			if (m_model) return m_model->childIndices(nodeId);
+			if (m_modelFns.childIndices) return m_modelFns.childIndices(nodeId);
+			return {};
+		};
+
+	auto getNodeInfo = [&](int nodeId) -> NodeInfo
+		{
+			if (m_model) return m_model->nodeInfo(nodeId);
+			if (m_modelFns.nodeInfo) return m_modelFns.nodeInfo(nodeId);
+			return {};
+		};
 
 	const auto roots = getRoots();
 
-	std::function<void(int, int)> addVisibleChildren = [&](const int nodeId, const int depth) {
-		for (const auto children = getChildren(nodeId); const int childId : children) {
-			const auto info = getNodeInfo(childId);
+	std::function<void(int, int)> addVisibleChildren = [&](const int nodeId, const int depth)
+		{
+			for (const auto children = getChildren(nodeId); const int childId : children)
+			{
+				const auto info = getNodeInfo(childId);
 
-			// 添加节点
-			VisibleNode vn;
-			vn.index = childId;
-			vn.depth = depth;
+				// 添加节点
+				VisibleNode vn;
+				vn.index = childId;
+				vn.depth = depth;
 
-			const int y = static_cast<int>(m_visibleNodes.size()) * m_itemHeight - m_scrollY;
-			vn.rect = QRect(
-				m_viewport.left(),
-				m_viewport.top() + y,
-				m_viewport.width(),
-				m_itemHeight
-			);
-			m_visibleNodes.push_back(vn);
+				const int y = static_cast<int>(m_visibleNodes.size()) * m_itemHeight - m_scrollY;
+				vn.rect = QRect(
+					m_viewport.left(),
+					m_viewport.top() + y,
+					m_viewport.width(),
+					m_itemHeight
+				);
+				m_visibleNodes.push_back(vn);
 
-			// 如果展开，递归添加子节点
-			if (info.expanded) {
-				addVisibleChildren(childId, depth + 1);
+				// 如果展开，递归添加子节点
+				if (info.expanded)
+				{
+					addVisibleChildren(childId, depth + 1);
+				}
 			}
-		}
 		};
 
 	// 根层
-	for (const int rootId : roots) {
+	for (const int rootId : roots)
+	{
 		const auto info = getNodeInfo(rootId);
 
 		VisibleNode vn;
@@ -101,7 +112,8 @@ void UiTreeList::updateVisibleNodes()
 		);
 		m_visibleNodes.push_back(vn);
 
-		if (info.expanded) {
+		if (info.expanded)
+		{
 			addVisibleChildren(rootId, 1);
 		}
 	}
@@ -130,28 +142,32 @@ QRect UiTreeList::expandIconRect(const QRect& nodeRect, int /*depth*/) const
 void UiTreeList::append(Render::FrameData& fd) const
 {
 	if (!m_cache || !m_gl) return;
-	
+
 	// Helper functions for both Model* and ModelFns
-	auto getSelectedId = [&]() -> int {
-		if (m_model) return m_model->selectedId();
-		if (m_modelFns.selectedId) return m_modelFns.selectedId();
-		return -1;
-	};
-	
-	auto getChildren = [&](int nodeId) -> QVector<int> {
-		if (m_model) return m_model->childIndices(nodeId);
-		if (m_modelFns.childIndices) return m_modelFns.childIndices(nodeId);
-		return {};
-	};
-	
-	auto getNodeInfo = [&](int nodeId) -> NodeInfo {
-		if (m_model) return m_model->nodeInfo(nodeId);
-		if (m_modelFns.nodeInfo) return m_modelFns.nodeInfo(nodeId);
-		return {};
-	};
+	auto getSelectedId = [&]() -> int
+		{
+			if (m_model) return m_model->selectedId();
+			if (m_modelFns.selectedId) return m_modelFns.selectedId();
+			return -1;
+		};
+
+	auto getChildren = [&](int nodeId) -> QVector<int>
+		{
+			if (m_model) return m_model->childIndices(nodeId);
+			if (m_modelFns.childIndices) return m_modelFns.childIndices(nodeId);
+			return {};
+		};
+
+	auto getNodeInfo = [&](int nodeId) -> NodeInfo
+		{
+			if (m_model) return m_model->nodeInfo(nodeId);
+			if (m_modelFns.nodeInfo) return m_modelFns.nodeInfo(nodeId);
+			return {};
+		};
 
 	// 背景
-	if (m_pal.bg.alpha() > 0 && m_viewport.isValid()) {
+	if (m_pal.bg.alpha() > 0 && m_viewport.isValid())
+	{
 		fd.roundedRects.push_back(Render::RoundedRectCmd{
 			.rect = QRectF(m_viewport),
 			.radiusPx = 0.0f,
@@ -164,7 +180,8 @@ void UiTreeList::append(Render::FrameData& fd) const
 
 	const int selectedId = getSelectedId();
 
-	for (size_t i = 0; i < m_visibleNodes.size(); ++i) {
+	for (size_t i = 0; i < m_visibleNodes.size(); ++i)
+	{
 		const auto& vn = m_visibleNodes[i];
 		if (!vn.rect.intersects(m_viewport)) continue;
 
@@ -172,7 +189,8 @@ void UiTreeList::append(Render::FrameData& fd) const
 
 		// 统一的圆角矩形背景（选中/悬停/按下）——与 Nav 胶囊风格一致
 		const QRectF inner = QRectF(vn.rect).adjusted(5, 3, -5, -3);
-		if (vn.index == selectedId) {
+		if (vn.index == selectedId)
+		{
 			fd.roundedRects.push_back(Render::RoundedRectCmd{
 				.rect = inner,
 				.radiusPx = 6.0f,
@@ -190,7 +208,8 @@ void UiTreeList::append(Render::FrameData& fd) const
 				.clipRect = QRectF(m_viewport)
 				});
 		}
-		else if (static_cast<int>(i) == m_pressed) {
+		else if (static_cast<int>(i) == m_pressed)
+		{
 			fd.roundedRects.push_back(Render::RoundedRectCmd{
 				.rect = inner,
 				.radiusPx = 6.0f,
@@ -198,7 +217,8 @@ void UiTreeList::append(Render::FrameData& fd) const
 				.clipRect = QRectF(m_viewport)
 				});
 		}
-		else if (static_cast<int>(i) == m_hover) {
+		else if (static_cast<int>(i) == m_hover)
+		{
 			fd.roundedRects.push_back(Render::RoundedRectCmd{
 				.rect = inner,
 				.radiusPx = 6.0f,
@@ -208,13 +228,16 @@ void UiTreeList::append(Render::FrameData& fd) const
 		}
 
 		// 展开/折叠图标（右侧）：有子节点才绘制
-		if (!getChildren(vn.index).isEmpty()) {
+		if (!getChildren(vn.index).isEmpty())
+		{
 			const QRect iconRect = expandIconRect(vn.rect, vn.depth);
 			const int logical = 16;
 			const int px = std::lround(static_cast<float>(logical) * m_dpr);
-			const QString path = info.expanded ? QStringLiteral(":/icons/tree_arrow_up.svg")
+			const QString path = info.expanded
+				? QStringLiteral(":/icons/tree_arrow_up.svg")
 				: QStringLiteral(":/icons/tree_arrow_down.svg");
-			const QString key = RenderUtils::makeIconCacheKey(info.expanded ? QStringLiteral("tree_arrow_up")
+			const QString key = RenderUtils::makeIconCacheKey(info.expanded
+				? QStringLiteral("tree_arrow_up")
 				: QStringLiteral("tree_arrow_down"), px);
 			QByteArray svg = RenderUtils::loadSvgCached(path);
 			const int tex = m_cache->ensureSvgPx(key, svg, QSize(px, px), m_gl);
@@ -258,12 +281,13 @@ void UiTreeList::append(Render::FrameData& fd) const
 			.dstRect = textDst,
 			.textureId = tex,
 			.srcRectPx = QRectF(0, 0, ts.width(), ts.height()),
-			.tint = QColor(255,255,255,255),
+			.tint = QColor(255, 255, 255, 255),
 			.clipRect = QRectF(m_viewport) // 新增：所有项裁剪到列表 viewport
 			});
 
 		// 分隔线
-		if (info.level == 0 && i < m_visibleNodes.size() - 1) {
+		if (info.level == 0 && i < m_visibleNodes.size() - 1)
+		{
 			fd.roundedRects.push_back(Render::RoundedRectCmd{
 				.rect = QRectF(vn.rect.left() + 8, vn.rect.bottom() - 1, vn.rect.width() - 16, 1),
 				.radiusPx = 0.0f,
@@ -277,8 +301,10 @@ void UiTreeList::append(Render::FrameData& fd) const
 bool UiTreeList::onMousePress(const QPoint& pos)
 {
 	if (!m_viewport.contains(pos)) return false;
-	for (size_t i = 0; i < m_visibleNodes.size(); ++i) {
-		if (m_visibleNodes[i].rect.contains(pos)) {
+	for (size_t i = 0; i < m_visibleNodes.size(); ++i)
+	{
+		if (m_visibleNodes[i].rect.contains(pos))
+		{
 			m_pressed = static_cast<int>(i);
 			return true;
 		}
@@ -289,9 +315,12 @@ bool UiTreeList::onMousePress(const QPoint& pos)
 bool UiTreeList::onMouseMove(const QPoint& pos)
 {
 	int hov = -1;
-	if (m_viewport.contains(pos)) {
-		for (size_t i = 0; i < m_visibleNodes.size(); ++i) {
-			if (m_visibleNodes[i].rect.contains(pos)) {
+	if (m_viewport.contains(pos))
+	{
+		for (size_t i = 0; i < m_visibleNodes.size(); ++i)
+		{
+			if (m_visibleNodes[i].rect.contains(pos))
+			{
 				hov = static_cast<int>(i);
 				break;
 			}
@@ -307,40 +336,49 @@ bool UiTreeList::onMouseRelease(const QPoint& pos)
 	const int wasPressed = m_pressed;
 	m_pressed = -1;
 
-	if (!m_viewport.contains(pos) || (!m_model && !m_modelFns.nodeInfo)) {
+	if (!m_viewport.contains(pos) || (!m_model && !m_modelFns.nodeInfo))
+	{
 		return (wasPressed >= 0);
 	}
-	
-	// Helper functions for both Model* and ModelFns
-	auto getChildren = [&](int nodeId) -> QVector<int> {
-		if (m_model) return m_model->childIndices(nodeId);
-		if (m_modelFns.childIndices) return m_modelFns.childIndices(nodeId);
-		return {};
-	};
-	
-	auto getNodeInfo = [&](int nodeId) -> NodeInfo {
-		if (m_model) return m_model->nodeInfo(nodeId);
-		if (m_modelFns.nodeInfo) return m_modelFns.nodeInfo(nodeId);
-		return {};
-	};
-	
-	auto setExpanded = [&](int nodeId, bool expanded) {
-		if (m_model) m_model->setExpanded(nodeId, expanded);
-		else if (m_modelFns.setExpanded) m_modelFns.setExpanded(nodeId, expanded);
-	};
-	
-	auto setSelectedId = [&](int nodeId) {
-		if (m_model) m_model->setSelectedId(nodeId);
-		else if (m_modelFns.setSelectedId) m_modelFns.setSelectedId(nodeId);
-	};
 
-	if (wasPressed >= 0 && wasPressed < static_cast<int>(m_visibleNodes.size())) {
+	// Helper functions for both Model* and ModelFns
+	auto getChildren = [&](int nodeId) -> QVector<int>
+		{
+			if (m_model) return m_model->childIndices(nodeId);
+			if (m_modelFns.childIndices) return m_modelFns.childIndices(nodeId);
+			return {};
+		};
+
+	auto getNodeInfo = [&](int nodeId) -> NodeInfo
+		{
+			if (m_model) return m_model->nodeInfo(nodeId);
+			if (m_modelFns.nodeInfo) return m_modelFns.nodeInfo(nodeId);
+			return {};
+		};
+
+	auto setExpanded = [&](int nodeId, bool expanded)
+		{
+			if (m_model) m_model->setExpanded(nodeId, expanded);
+			else if (m_modelFns.setExpanded) m_modelFns.setExpanded(nodeId, expanded);
+		};
+
+	auto setSelectedId = [&](int nodeId)
+		{
+			if (m_model) m_model->setSelectedId(nodeId);
+			else if (m_modelFns.setSelectedId) m_modelFns.setSelectedId(nodeId);
+		};
+
+	if (wasPressed >= 0 && wasPressed < static_cast<int>(m_visibleNodes.size()))
+	{
 		const auto& vn = m_visibleNodes[wasPressed];
-		if (vn.rect.contains(pos)) {
+		if (vn.rect.contains(pos))
+		{
 			// 检查是否点击展开/折叠
-			if (!getChildren(vn.index).isEmpty()) {
+			if (!getChildren(vn.index).isEmpty())
+			{
 				const QRect iconRect = expandIconRect(vn.rect, vn.depth);
-				if (iconRect.adjusted(-4, -4, 4, 4).contains(pos)) {
+				if (iconRect.adjusted(-4, -4, 4, 4).contains(pos))
+				{
 					const bool isExpanded = getNodeInfo(vn.index).expanded;
 					setExpanded(vn.index, !isExpanded);
 					reloadData();
@@ -359,14 +397,16 @@ bool UiTreeList::onMouseRelease(const QPoint& pos)
 bool UiTreeList::onWheel(const QPoint& pos, const QPoint& angleDelta)
 {
 	// 检查位置是否在当前组件边界内
-	if (!bounds().contains(pos)) {
+	if (!bounds().contains(pos))
+	{
 		return false;
 	}
 
 	// 计算滚动步长：基于 angleDelta.y()，默认 48px/刻度（120单位）
 	constexpr int wheelStep = 48;
 	const int deltaY = angleDelta.y();
-	if (deltaY == 0) {
+	if (deltaY == 0)
+	{
 		return false;
 	}
 
@@ -390,4 +430,35 @@ bool UiTreeList::tick()
 {
 	// 当前没有内部动画
 	return false;
+}
+
+void UiTreeList::onThemeChanged(bool isDark)
+{
+	IUiComponent::onThemeChanged(isDark);
+	setPalette(
+		isDark
+		? Palette{
+			.bg = QColor(30, 30, 30, 0),
+			.itemHover = QColor(255, 255, 255, 14),
+			.itemPressed = QColor(255, 255, 255, 26),
+			.itemSelected = QColor(0, 122, 255, 32),
+			.expandIcon = QColor(150, 150, 150, 200),
+			.textPrimary = QColor(220, 220, 220, 255),
+			.textSecondary = QColor(150, 160, 170, 200),
+			.separator = QColor(255, 255, 255, 12),
+			.indicator = QColor(0, 122, 255, 220)
+		}
+		: Palette{
+			.bg = QColor(255, 255, 255, 0),
+			.itemHover = QColor(0, 0, 0, 14),
+			.itemPressed = QColor(0, 0, 0, 26),
+			.itemSelected = QColor(0, 122, 255, 32),
+			.expandIcon = QColor(100, 100, 100, 200),
+			.textPrimary = QColor(32, 38, 46, 255),
+			.textSecondary = QColor(100, 110, 120, 200),
+			.separator = QColor(0, 0, 0, 20),
+			.indicator = QColor(0, 102, 204, 220)
+		}
+	);
+
 }

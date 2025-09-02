@@ -68,7 +68,7 @@ public:
 
 	// 注入通用模型
 	void setModel(Model* m) { m_model = m; reloadData(); }
-	
+
 	// 注入函数式模型（避免适配器类）
 	void setModelFns(const ModelFns& fns) { m_modelFns = fns; m_model = nullptr; reloadData(); }
 
@@ -96,6 +96,8 @@ public:
 	bool onWheel(const QPoint& pos, const QPoint& angleDelta) override;
 	bool tick() override; // 新增：实现动画推进（当前返回 false）
 	QRect bounds() const override { return m_viewport; }
+
+	void onThemeChanged(bool isDark) override;
 
 private:
 	// 计算可见的节点列表（考虑展开状态）
