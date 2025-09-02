@@ -8,6 +8,7 @@
 #include "HomePage.h"
 #include "SettingsPage.h"
 #include "ThemeManager.h"
+#include "DatabaseBootstrapper.h"
 
 #ifdef Q_OS_WIN
 #include "WinWindowChrome.h"
@@ -70,6 +71,9 @@ MainOpenGlWindow::MainOpenGlWindow(
 	try
 	{
 		qDebug() << "MainOpenGlWindow constructor start";
+
+		// Bootstrap the database during app initialization
+		Data::DatabaseBootstrapper::initialize();
 
 		// 设置动画定时器
 		connect(&m_animTimer, &QTimer::timeout, this, &MainOpenGlWindow::onAnimationTick);
