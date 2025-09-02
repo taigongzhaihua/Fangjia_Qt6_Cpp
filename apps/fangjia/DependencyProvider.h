@@ -13,6 +13,11 @@ namespace domain::usecases
 	class SetRecentTabUseCase;
 }
 
+namespace domain::services
+{
+	class IFormulaService;
+}
+
 /// Minimal service locator for dependency injection during Stage 3 refactor
 /// This is a temporary solution to avoid wide constructor changes
 /// TODO: Replace with proper DI container in future phases
@@ -28,6 +33,7 @@ public:
 	void setSetThemeModeUseCase(std::shared_ptr<domain::usecases::SetThemeModeUseCase> useCase);
 	void setGetRecentTabUseCase(std::shared_ptr<domain::usecases::GetRecentTabUseCase> useCase);
 	void setSetRecentTabUseCase(std::shared_ptr<domain::usecases::SetRecentTabUseCase> useCase);
+	void setFormulaService(std::shared_ptr<domain::services::IFormulaService> service);
 
 	// Getters (used by ViewModels)
 	std::shared_ptr<domain::usecases::GetSettingsUseCase> getGetSettingsUseCase() const;
@@ -37,6 +43,7 @@ public:
 	std::shared_ptr<domain::usecases::SetThemeModeUseCase> getSetThemeModeUseCase() const;
 	std::shared_ptr<domain::usecases::GetRecentTabUseCase> getGetRecentTabUseCase() const;
 	std::shared_ptr<domain::usecases::SetRecentTabUseCase> getSetRecentTabUseCase() const;
+	std::shared_ptr<domain::services::IFormulaService> getFormulaService() const;
 
 private:
 	std::shared_ptr<domain::usecases::GetSettingsUseCase> m_getSettingsUseCase;
@@ -46,4 +53,5 @@ private:
 	std::shared_ptr<domain::usecases::SetThemeModeUseCase> m_setThemeModeUseCase;
 	std::shared_ptr<domain::usecases::GetRecentTabUseCase> m_getRecentTabUseCase;
 	std::shared_ptr<domain::usecases::SetRecentTabUseCase> m_setRecentTabUseCase;
+	std::shared_ptr<domain::services::IFormulaService> m_formulaService;
 };
