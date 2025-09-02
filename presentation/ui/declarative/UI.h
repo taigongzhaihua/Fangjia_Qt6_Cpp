@@ -27,6 +27,9 @@ namespace UI {
 
 	inline auto tabView() { return make_widget<TabView>(); }
 
+	// ListBox
+	inline auto listBox() { return make_widget<ListBox>(); }
+
 	// ScrollView
 	inline auto scrollView(WidgetPtr child = nullptr) { 
 		return make_widget<ScrollView>()->child(child); 

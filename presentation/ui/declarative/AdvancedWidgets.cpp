@@ -1,5 +1,6 @@
 #include "AdvancedWidgets.h"
 #include "Decorators.h"   // 新增
+#include "UiListBox.h"    // 新增
 #include <algorithm>
 #include <memory>
 #include <UiComponent.hpp>
@@ -41,6 +42,23 @@ namespace UI {
 		p.onHover = m_decorations.onHover;
 
 		return std::make_unique<DecoratedBox>(std::move(inner), std::move(p));
+	}
+
+	std::unique_ptr<IUiComponent> ListBox::build() const
+	{
+		auto listBox = std::make_unique<UiListBox>();
+		
+		// 应用配置
+		listBox->setItems(m_items);
+		listBox->setItemHeight(m_itemHeight);
+		listBox->setSelectedIndex(m_selectedIndex);
+		
+		if (m_onActivated) {
+			listBox->setOnActivated(m_onActivated);
+		}
+
+		// 应用声明式装饰器（padding, margin, background等）
+		return decorate(std::move(listBox));
 	}
 
 } // namespace UI
