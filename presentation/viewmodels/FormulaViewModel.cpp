@@ -1,12 +1,15 @@
 #include "FormulaViewModel.h"
 #include "services/FormulaService.h"
 #include "entities/Formula.h"
+#include "ServiceRegistry.h"
 #include <QHash>
 #include <QDebug>
 
 FormulaViewModel::FormulaViewModel(QObject* parent)
 	: QObject(parent)
 {
+	// Resolve Formula service via ServiceRegistry when no service is explicitly injected
+	m_formulaService = domain::ServiceRegistry::instance().getFormulaService();
 }
 
 FormulaViewModel::FormulaViewModel(std::shared_ptr<domain::services::IFormulaService> service, QObject* parent)

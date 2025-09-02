@@ -48,6 +48,11 @@ void DependencyProvider::setSetRecentTabUseCase(std::shared_ptr<domain::usecases
     m_setRecentTabUseCase = std::move(useCase);
 }
 
+void DependencyProvider::setFormulaService(std::shared_ptr<domain::services::IFormulaService> service)
+{
+    m_formulaService = std::move(service);
+}
+
 std::shared_ptr<domain::usecases::GetSettingsUseCase> DependencyProvider::getGetSettingsUseCase() const
 {
     return m_getSettingsUseCase;
@@ -81,4 +86,9 @@ std::shared_ptr<domain::usecases::GetRecentTabUseCase> DependencyProvider::getGe
 std::shared_ptr<domain::usecases::SetRecentTabUseCase> DependencyProvider::getSetRecentTabUseCase() const
 {
     return m_setRecentTabUseCase;
+}
+
+std::shared_ptr<domain::services::IFormulaService> DependencyProvider::getFormulaService() const
+{
+    return m_formulaService;
 }

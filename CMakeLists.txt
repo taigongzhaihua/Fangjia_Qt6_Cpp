@@ -19,6 +19,22 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 find_package(Qt6 REQUIRED COMPONENTS Core Gui OpenGL Widgets Svg Sql)
 
 # ========================================
+# 外部依赖 - 依赖注入库
+# ========================================
+
+include(FetchContent)
+
+# Fetch boost-ext/di (header-only dependency injection library)
+FetchContent_Declare(
+    boost_di
+    GIT_REPOSITORY https://github.com/boost-ext/di.git
+    GIT_TAG v1.3.0
+    GIT_SHALLOW TRUE
+)
+
+FetchContent_MakeAvailable(boost_di)
+
+# ========================================
 # 模块化目标构建
 # ========================================
 
@@ -76,6 +92,7 @@ target_include_directories(fj_data PUBLIC
     data/sources/local
     data/repositories
     domain
+    ${boost_di_SOURCE_DIR}/include
 )
 
 # Presentation Layer - Binding interfaces (new)
@@ -137,6 +154,7 @@ target_link_libraries(fj_presentation_vm PUBLIC
 target_include_directories(fj_presentation_vm PUBLIC 
     presentation/viewmodels
     domain
+    ${boost_di_SOURCE_DIR}/include
 )
 
 # Presentation Layer - Pages and Views
@@ -171,10 +189,15 @@ file(GLOB FJ_DOMAIN_SOURCES
     "domain/services/*.h"
     "domain/usecases/*.cpp"
     "domain/usecases/*.h"
+    "domain/ServiceRegistry.cpp"
+    "domain/ServiceRegistry.h"
 )
 
 add_library(fj_domain STATIC ${FJ_DOMAIN_SOURCES})
-target_include_directories(fj_domain PUBLIC domain)
+target_include_directories(fj_domain PUBLIC 
+    domain
+    ${boost_di_SOURCE_DIR}/include
+)
 
 # Application - Main executable
 file(GLOB APP_SOURCES
@@ -213,6 +236,9 @@ target_link_libraries(FangJia PRIVATE ${APP_LIBS})
 target_include_directories(FangJia PRIVATE 
     apps/fangjia
     data/sources/local
+    data/repositories
+    domain
+    ${boost_di_SOURCE_DIR}/include
 )
 
 # ========================================

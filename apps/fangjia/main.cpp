@@ -10,6 +10,7 @@
 #include "MainOpenGlWindow.h"
 #include "ThemeManager.h"
 #include "SettingsRepository.h"
+#include "CompositionRoot.h"
 #include "usecases/GetSettingsUseCase.h"
 #include "usecases/UpdateSettingsUseCase.h"
 #include "usecases/ToggleThemeUseCase.h"
@@ -86,6 +87,11 @@ int main(int argc, char* argv[])
 		deps.setSetThemeModeUseCase(setThemeModeUseCase);
 		deps.setGetRecentTabUseCase(getRecentTabUseCase);
 		deps.setSetRecentTabUseCase(setRecentTabUseCase);
+
+		// === Formula Domain Layer Composition ===
+		// 创建Formula服务通过DI容器
+		auto formulaService = CompositionRoot::getFormulaService();
+		deps.setFormulaService(formulaService);
 
 		// 创建主题管理器（使用依赖注入的新构造函数）
 		const auto themeManager = std::make_shared<ThemeManager>(getThemeModeUseCase, setThemeModeUseCase);
