@@ -6,7 +6,6 @@
 #include "usecases/SetRecentTabUseCase.h"
 #include "UI.h"
 #include "FormulaContent.h"
-#include "FormulaViewModel.h"
 #include "tab_interface.h"
 #include <BasicWidgets.h>
 #include <ComponentWrapper.h>
@@ -24,8 +23,7 @@ class DataPage::Impl
 {
 public:
 	std::unique_ptr<DataViewModel> dataViewModel;
-	std::unique_ptr<FormulaViewModel> formulaViewModel;
-	std::shared_ptr<FormulaContent> formulaContent;  // Changed to shared_ptr for UI system
+	std::unique_ptr<FormulaContent> formulaContent;  // FormulaContent now owns the VM
 	std::unique_ptr<IUiComponent> builtComponent;
 	bool isDark = false;
 
@@ -41,12 +39,8 @@ public:
 		// Create DataViewModel with domain use cases
 		dataViewModel = std::make_unique<DataViewModel>(getRecentTabUseCase, setRecentTabUseCase);
 
-		// 创建并拥有方剂视图模型
-		formulaViewModel = std::make_unique<FormulaViewModel>();
-		formulaViewModel->loadSampleData(); // 加载示例数据
-		
-		// 创建方剂内容组件（非拥有ViewModel）
-		formulaContent = std::make_shared<FormulaContent>(formulaViewModel.get());
+		// 创建方剂内容组件（现在拥有自己的ViewModel）
+		formulaContent = std::make_unique<FormulaContent>();
 	}
 
 	WidgetPtr buildUI() const
@@ -59,7 +53,7 @@ public:
 			->animationDuration(220)
 			->contents({
 			// 仅为前几个 Tab 提供示例内容，其他 Tab 可按需补充
-			formulaContent,  // FormulaContent widget
+			wrap(formulaContent.get()),  // FormulaContent via declarative wrap
 			container(
 				text("中药功能开发中")
 				->fontSize(16)
@@ -101,8 +95,10 @@ void DataPage::applyPageTheme(const bool isDark)
 {
 	m_impl->isDark = isDark;
 
-	// FormulaContent handles theme automatically through declarative widgets
-	// No manual theme application needed
+	// Apply theme to FormulaContent
+	if (m_impl->formulaContent) {
+		m_impl->formulaContent->setDarkTheme(isDark);
+	}
 }
 
 void DataPage::onAppear()
