@@ -161,7 +161,12 @@ void UiListBox::updateResourceContext(IconCache& cache, QOpenGLFunctions* gl, co
 void UiListBox::append(Render::FrameData& fd) const
 {
 	// 绘制背景
-	fd.fillRect(m_viewport, m_pal.bg);
+	fd.roundedRects.push_back(Render::RoundedRectCmd{
+		.rect = QRectF(m_viewport),
+		.radiusPx = 0.0f,
+		.color = m_pal.bg,
+		.clipRect = QRectF(m_viewport)
+	});
 
 	// 获取当前项目列表
 	std::vector<QString> currentItems;
@@ -190,25 +195,72 @@ void UiListBox::append(Render::FrameData& fd) const
 		}
 		
 		if (itemBg != m_pal.bg) {
-			fd.fillRect(itemRect, itemBg);
+			fd.roundedRects.push_back(Render::RoundedRectCmd{
+				.rect = QRectF(itemRect),
+				.radiusPx = 0.0f,
+				.color = itemBg,
+				.clipRect = QRectF(m_viewport)
+			});
 		}
 
 		// 绘制选中指示器
 		if (index == m_selectedIndex) {
 			const QRect indicatorRect(itemRect.left(), itemRect.top(), 3, itemRect.height());
-			fd.fillRect(indicatorRect, m_pal.indicator);
+			fd.roundedRects.push_back(Render::RoundedRectCmd{
+				.rect = QRectF(indicatorRect),
+				.radiusPx = 0.0f,
+				.color = m_pal.indicator,
+				.clipRect = QRectF(m_viewport)
+			});
 		}
 
 		// 绘制文本
 		const QString& itemText = currentItems[index];
 		const QRect textRect = itemRect.adjusted(12, 0, -8, 0); // 左边距12px，右边距8px
 		
-		fd.drawText(textRect, Qt::AlignLeft | Qt::AlignVCenter, itemText, m_pal.textPrimary);
+		// Guard on m_cache && m_gl before creating textures
+		if (m_cache && m_gl && !itemText.isEmpty()) {
+			// Use QFont with logical size derived from item height and device pixel ratio
+			QFont font;
+			const int logicalFontSize = std::max(10, m_itemHeight - 22); // default 14 for itemHeight 36
+			const int fontPx = std::lround(static_cast<float>(logicalFontSize) * m_dpr);
+			font.setPixelSize(fontPx);
+			
+			// Generate cache key with text, font size, and color
+			const QString cacheKey = RenderUtils::makeTextCacheKey(itemText, fontPx, m_pal.textPrimary);
+			
+			// Create text texture
+			const int textTex = m_cache->ensureTextPx(cacheKey, font, itemText, m_pal.textPrimary, m_gl);
+			const QSize texSize = m_cache->textureSizePx(textTex);
+			
+			// Compute logical size from texture size
+			const float wLogical = static_cast<float>(texSize.width()) / m_dpr;
+			const float hLogical = static_cast<float>(texSize.height()) / m_dpr;
+			
+			// Place text left-aligned vertically centered within textRect
+			const float textX = static_cast<float>(textRect.left());
+			const float textY = static_cast<float>(textRect.center().y()) - hLogical * 0.5f;
+			const QRectF textDst(textX, textY, wLogical, hLogical);
+			
+			// Push ImageCmd with proper clipping
+			fd.images.push_back(Render::ImageCmd{
+				.dstRect = textDst,
+				.textureId = textTex,
+				.srcRectPx = QRectF(0, 0, texSize.width(), texSize.height()),
+				.tint = QColor(255, 255, 255, 255), // White tint since texture is pre-colored
+				.clipRect = QRectF(textRect)
+			});
+		}
 
 		// 绘制分隔线（除了最后一项）
 		if (index < static_cast<int>(currentItems.size()) - 1) {
 			const QRect separatorRect(itemRect.left() + 8, itemRect.bottom() - 1, itemRect.width() - 16, 1);
-			fd.fillRect(separatorRect, m_pal.separator);
+			fd.roundedRects.push_back(Render::RoundedRectCmd{
+				.rect = QRectF(separatorRect),
+				.radiusPx = 0.0f,
+				.color = m_pal.separator,
+				.clipRect = QRectF(m_viewport)
+			});
 		}
 	}
 }
