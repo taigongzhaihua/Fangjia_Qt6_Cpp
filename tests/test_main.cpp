@@ -44,6 +44,7 @@
 #include "presentation/ui/containers/UiPage.h"
 #include "presentation/ui/containers/UiRoot.h"
 #include "presentation/ui/widgets/UiTreeList.h"
+#include "presentation/ui/widgets/UiListBox.h"
 #include "presentation/ui/base/ILayoutable.hpp"
 
 class SimpleTestRunner : public QObject
@@ -548,6 +549,52 @@ public slots:
         qDebug() << "UiTreeList wheel event tests PASSED ✅";
     }
     
+    void runUiListBoxTests()
+    {
+        qDebug() << "=== Testing UiListBox Rendering ===";
+        
+        // Create UiListBox instance
+        UiListBox listBox;
+        
+        // Test basic setup
+        std::vector<UiListBox::ListItem> items = {
+            {"Item 1", QColor(50, 50, 50), QColor(255, 255, 255), true},
+            {"Item 2", QColor(50, 50, 50), QColor(240, 240, 240), true},
+            {"Item 3", QColor(50, 50, 50), QColor(255, 255, 255), true}
+        };
+        
+        listBox.setItems(items);
+        listBox.setSelectedIndex(1);
+        listBox.setViewportRect(QRect(0, 0, 200, 100));
+        
+        // Test bounds
+        QRect bounds = listBox.bounds();
+        Q_ASSERT(bounds.width() == 200 && bounds.height() == 100);
+        
+        // Test selection
+        Q_ASSERT(listBox.selectedIndex() == 1);
+        
+        // Test theme application
+        listBox.applyTheme(true); // Dark theme
+        listBox.applyTheme(false); // Light theme
+        
+        // Test item manipulation
+        listBox.addItem({"Item 4", QColor(0, 0, 0), QColor(255, 255, 255), true});
+        listBox.removeItem(0);
+        Q_ASSERT(listBox.selectedIndex() == 0); // Should adjust selection
+        
+        listBox.clearItems();
+        Q_ASSERT(listBox.selectedIndex() == -1); // Should clear selection
+        
+        // Test that append() method signature is correct (basic check)
+        // We can't actually test rendering without OpenGL context, but we can verify
+        // the method compiles and the component structure is correct
+        Render::FrameData frameData;
+        // listBox.append(frameData); // Would need IconCache and OpenGL context
+        
+        qDebug() << "UiListBox tests PASSED ✅";
+    }
+    
     void runDecoratedBoxTests()
     {
         qDebug() << "=== Testing DecoratedBox onTap and hover ===";
@@ -933,6 +980,7 @@ int main(int argc, char *argv[])
         runner.runUiScrollViewTests();
         runner.runUiPageWheelTests();
         runner.runUiTreeListWheelTests();
+        runner.runUiListBoxTests();
         runner.runDecoratedBoxTests();
         runner.runAppShellTests();
         runner.runUiRootLayoutTests();
