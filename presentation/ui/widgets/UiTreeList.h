@@ -16,7 +16,7 @@
 class UiTreeList : public IUiComponent, public IUiContent
 {
 public:
-	// 通用模型接口：由上层（如 UiFormulaView 内部的 VM 适配器）实现
+	// 通用模型接口：由上层（如 FormulaContent 内部的函数式绑定）实现
 	struct NodeInfo {
 		QString label;
 		int     level{ 0 };
