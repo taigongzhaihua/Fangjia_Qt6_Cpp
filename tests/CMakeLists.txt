@@ -18,7 +18,12 @@ target_include_directories(FangJia_Tests PRIVATE
     ${CMAKE_SOURCE_DIR}
     ${CMAKE_SOURCE_DIR}/src
     ${CMAKE_SOURCE_DIR}/data/sources/local
+    ${CMAKE_SOURCE_DIR}/data/repositories
     ${CMAKE_SOURCE_DIR}/domain
+    ${CMAKE_SOURCE_DIR}/presentation/viewmodels
+    ${CMAKE_SOURCE_DIR}/presentation/ui/base
+    ${CMAKE_SOURCE_DIR}/presentation/ui/declarative
+    ${CMAKE_SOURCE_DIR}/presentation/binding
     ${CMAKE_SOURCE_DIR}/tests
 )
 

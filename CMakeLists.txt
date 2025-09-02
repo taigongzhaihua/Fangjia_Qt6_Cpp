@@ -16,7 +16,7 @@ set(CMAKE_CXX_STANDARD 23)    # 使用C++23标准
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 # 查找Qt6依赖组件
-find_package(Qt6 REQUIRED COMPONENTS Core Gui OpenGL Widgets Svg)
+find_package(Qt6 REQUIRED COMPONENTS Core Gui OpenGL Widgets Svg Sql)
 
 # ========================================
 # 模块化目标构建
@@ -69,11 +69,13 @@ target_link_libraries(fj_data PUBLIC
     fj_domain
     Qt6::Core
     Qt6::Widgets
+    Qt6::Sql
 )
 target_include_directories(fj_data PUBLIC 
     data/sources
     data/sources/local
     data/repositories
+    domain
 )
 
 # Presentation Layer - Binding interfaces (new)
@@ -134,6 +136,7 @@ target_link_libraries(fj_presentation_vm PUBLIC
 )
 target_include_directories(fj_presentation_vm PUBLIC 
     presentation/viewmodels
+    domain
 )
 
 # Presentation Layer - Pages and Views
@@ -156,12 +159,16 @@ target_include_directories(fj_presentation_pages PUBLIC
     presentation/views
     presentation/views/formula
     data/sources/local
+    data/repositories
+    domain
 )
 
 # Domain Layer - Core business logic and abstractions (Pure C++)
 file(GLOB FJ_DOMAIN_SOURCES
     "domain/entities/*.h"
     "domain/repositories/*.h" 
+    "domain/services/*.cpp"
+    "domain/services/*.h"
     "domain/usecases/*.cpp"
     "domain/usecases/*.h"
 )
