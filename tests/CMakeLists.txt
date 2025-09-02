@@ -7,6 +7,7 @@ find_package(Qt6 REQUIRED COMPONENTS Test Core Gui OpenGL Widgets)
 # 收集所有测试源文件
 set(TEST_SOURCES
     test_main.cpp
+    ${CMAKE_SOURCE_DIR}/apps/fangjia/CompositionRoot.cpp
 )
 
 # 创建测试可执行文件
@@ -24,7 +25,9 @@ target_include_directories(FangJia_Tests PRIVATE
     ${CMAKE_SOURCE_DIR}/presentation/ui/base
     ${CMAKE_SOURCE_DIR}/presentation/ui/declarative
     ${CMAKE_SOURCE_DIR}/presentation/binding
+    ${CMAKE_SOURCE_DIR}/apps/fangjia
     ${CMAKE_SOURCE_DIR}/tests
+    ${boost_di_SOURCE_DIR}/include
 )
 
 # 链接库

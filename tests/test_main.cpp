@@ -16,6 +16,10 @@
 // Core test for FormulaViewModel
 #include "presentation/viewmodels/FormulaViewModel.h"
 
+// Dependency Injection tests
+#include "../apps/fangjia/CompositionRoot.h"
+#include "ServiceRegistry.h"
+
 // Formula Service Integration test includes
 #include "FormulaRepository.h"
 #include "services/FormulaService.h"
@@ -801,6 +805,108 @@ public slots:
         
         qDebug() << "RebuildHost bounds() fix PASSED ✅";
     }
+    
+    void runDependencyInjectionTests()
+    {
+        qDebug() << "=== Testing Dependency Injection Integration ===";
+        
+        // Test 1: CompositionRoot can create service 
+        {
+            auto service = CompositionRoot::getFormulaService();
+            if (!service) {
+                qCritical() << "Failed: CompositionRoot could not create service";
+                return;
+            }
+            qDebug() << "✓ CompositionRoot creates service via DI";
+        }
+        
+        // Test 2: ServiceRegistry integration
+        {
+            auto service = CompositionRoot::getFormulaService();
+            if (!service) {
+                qCritical() << "Failed: CompositionRoot could not create service";
+                return;
+            }
+            
+            auto registryService = domain::ServiceRegistry::instance().getFormulaService();
+            if (!registryService) {
+                qCritical() << "Failed: ServiceRegistry did not have service";
+                return;
+            }
+            
+            if (service.get() != registryService.get()) {
+                qCritical() << "Failed: Service instances are not the same";
+                return;
+            }
+            qDebug() << "✓ ServiceRegistry properly configured by CompositionRoot";
+        }
+        
+        // Test 3: FormulaViewModel backward compatibility
+        {
+            // Ensure ServiceRegistry is configured
+            CompositionRoot::getFormulaService();
+            
+            // Test default constructor (backward compatibility)
+            FormulaViewModel formulaVm;
+            QSignalSpy spy(&formulaVm, &FormulaViewModel::dataChanged);
+            
+            formulaVm.loadData();
+            
+            if (formulaVm.nodeCount() <= 0) {
+                qCritical() << "Failed: FormulaViewModel has no nodes after loadData";
+                return;
+            }
+            
+            if (formulaVm.nodes().isEmpty()) {
+                qCritical() << "Failed: FormulaViewModel nodes are empty";
+                return;
+            }
+            
+            if (spy.count() < 1) {
+                qCritical() << "Failed: dataChanged signal not emitted, got:" << spy.count();
+                return;
+            }
+            
+            // Verify hierarchical structure exists
+            const auto& nodes = formulaVm.nodes();
+            bool hasCategory = false, hasSubCategory = false, hasFormula = false;
+            
+            for (const auto& node : nodes) {
+                if (node.level == 0) hasCategory = true;
+                else if (node.level == 1) hasSubCategory = true;
+                else if (node.level == 2) hasFormula = true;
+            }
+            
+            if (!hasCategory || !hasSubCategory || !hasFormula) {
+                qCritical() << "Failed: Missing hierarchical structure. Category:" << hasCategory 
+                           << "SubCategory:" << hasSubCategory << "Formula:" << hasFormula;
+                return;
+            }
+            qDebug() << "✓ FormulaViewModel default constructor works with DI";
+        }
+        
+        // Test 4: Explicit service injection still works
+        {
+            auto service = CompositionRoot::getFormulaService();
+            FormulaViewModel formulaVm(service);
+            QSignalSpy spy(&formulaVm, &FormulaViewModel::dataChanged);
+            
+            formulaVm.loadData();
+            
+            if (formulaVm.nodeCount() <= 0) {
+                qCritical() << "Failed: Explicit injection ViewModel has no nodes";
+                return;
+            }
+            
+            if (spy.count() < 1) {
+                qCritical() << "Failed: Explicit injection dataChanged signal not emitted";
+                return;
+            }
+            qDebug() << "✓ Explicit service injection still works";
+        }
+        
+        qDebug() << "Dependency Injection Integration tests PASSED ✅";
+    }
 };
 
 int main(int argc, char *argv[])
@@ -831,6 +937,7 @@ int main(int argc, char *argv[])
         runner.runAppShellTests();
         runner.runUiRootLayoutTests();
         runner.runRebuildHostBoundsTests();
+        runner.runDependencyInjectionTests();
         
         // Run domain tests
         tests::runDomainTests();
