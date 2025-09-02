@@ -8,6 +8,8 @@
 #include "FormulaContent.h"
 #include "FormulaViewModel.h"
 #include "tab_interface.h"
+#include "FormulaRepository.h"
+#include "services/FormulaService.h"
 #include <BasicWidgets.h>
 #include <ComponentWrapper.h>
 #include <Layouts.h>
@@ -41,9 +43,13 @@ public:
 		// Create DataViewModel with domain use cases
 		dataViewModel = std::make_unique<DataViewModel>(getRecentTabUseCase, setRecentTabUseCase);
 
-		// 创建并拥有方剂视图模型
-		formulaViewModel = std::make_unique<FormulaViewModel>();
-		formulaViewModel->loadSampleData(); // 加载示例数据
+		// Create Formula service chain: Repository → Service → ViewModel
+		auto formulaRepository = std::make_shared<data::repositories::FormulaRepository>();
+		auto formulaService = std::make_shared<domain::services::FormulaService>(formulaRepository);
+		
+		// Create FormulaViewModel with service injection
+		formulaViewModel = std::make_unique<FormulaViewModel>(formulaService);
+		formulaViewModel->loadData(); // Load data (from service or fallback to sample)
 		
 		// 创建方剂内容组件（非拥有ViewModel）
 		formulaContent = std::make_shared<FormulaContent>(formulaViewModel.get());

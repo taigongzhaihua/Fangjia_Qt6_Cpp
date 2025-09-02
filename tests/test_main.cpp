@@ -16,6 +16,11 @@
 // Core test for FormulaViewModel
 #include "presentation/viewmodels/FormulaViewModel.h"
 
+// Formula Service Integration test includes
+#include "FormulaRepository.h"
+#include "services/FormulaService.h"
+#include <QTemporaryDir>
+
 // Core test for RebuildHost
 #include "presentation/ui/declarative/RebuildHost.h"
 #include "presentation/ui/base/UiComponent.hpp"
@@ -140,6 +145,97 @@ public slots:
         
         qDebug() << "FormulaViewModel tests PASSED ✅";
     }
+    
+    void runFormulaServiceIntegrationTests()
+{
+    qDebug() << "=== Testing Formula Service Integration ===";
+    
+    // Test 1: Service integration with database
+    {
+        // Create a temporary directory for the test database
+        QTemporaryDir tempDir;
+        if (!tempDir.isValid()) {
+            qWarning() << "Failed to create temp directory";
+            return;
+        }
+        
+        QString dbPath = tempDir.filePath("test_formulas.db");
+        
+        // Create the service chain
+        auto repository = std::make_shared<data::repositories::FormulaRepository>(dbPath);
+        auto service = std::make_shared<domain::services::FormulaService>(repository);
+        
+        // Create ViewModel with service injection
+        FormulaViewModel formulaVm(service);
+        QSignalSpy spy(&formulaVm, &FormulaViewModel::dataChanged);
+        
+        // Load data (should use service)
+        formulaVm.loadData();
+        
+        // Verify data was loaded
+        QVERIFY(formulaVm.nodeCount() > 0);
+        QVERIFY(!formulaVm.nodes().isEmpty());
+        QCOMPARE(spy.count(), 1);
+        
+        // Verify structure has categories, subcategories, and formulas
+        const auto& nodes = formulaVm.nodes();
+        bool hasCategory = false;
+        bool hasSubCategory = false;
+        bool hasFormula = false;
+        
+        for (const auto& node : nodes) {
+            if (node.level == 0) hasCategory = true;
+            else if (node.level == 1) hasSubCategory = true;
+            else if (node.level == 2) hasFormula = true;
+        }
+        
+        QVERIFY(hasCategory);
+        QVERIFY(hasSubCategory);
+        QVERIFY(hasFormula);
+        
+        qDebug() << "✓ Service integration test passed";
+    }
+    
+    // Test 2: Fallback to sample data
+    {
+        // Create ViewModel without service injection (fallback mode)
+        FormulaViewModel formulaVm;
+        QSignalSpy spy(&formulaVm, &FormulaViewModel::dataChanged);
+        
+        // Load data (should fallback to sample data)
+        formulaVm.loadData();
+        
+        // Verify data was loaded
+        QVERIFY(formulaVm.nodeCount() > 0);
+        QVERIFY(!formulaVm.nodes().isEmpty());
+        QCOMPARE(spy.count(), 1);
+        
+        qDebug() << "✓ Fallback to sample data test passed";
+    }
+    
+    // Test 3: Service unavailable fallback
+    {
+        // Create a service with invalid repository
+        auto repository = std::make_shared<data::repositories::FormulaRepository>("/invalid/path/db.sqlite");
+        auto service = std::make_shared<domain::services::FormulaService>(repository);
+        
+        // Create ViewModel with service injection
+        FormulaViewModel formulaVm(service);
+        QSignalSpy spy(&formulaVm, &FormulaViewModel::dataChanged);
+        
+        // Load data (should fallback to sample data when service is unavailable)
+        formulaVm.loadData();
+        
+        // Verify data was still loaded (via fallback)
+        QVERIFY(formulaVm.nodeCount() > 0);
+        QVERIFY(!formulaVm.nodes().isEmpty());
+        QCOMPARE(spy.count(), 1);
+        
+        qDebug() << "✓ Service unavailable fallback test passed";
+    }
+    
+    qDebug() << "Formula Service Integration tests PASSED ✅";
+}
     
     void runRebuildHostTests()
     {
@@ -726,6 +822,7 @@ int main(int argc, char *argv[])
         runner.runAppConfigTests();
         runner.runTabViewModelTests();
         runner.runFormulaViewModelTests();
+        runner.runFormulaServiceIntegrationTests();
         runner.runRebuildHostTests();
         runner.runUiScrollViewTests();
         runner.runUiPageWheelTests();

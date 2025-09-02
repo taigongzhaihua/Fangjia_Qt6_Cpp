@@ -136,6 +136,7 @@ target_link_libraries(fj_presentation_vm PUBLIC
 )
 target_include_directories(fj_presentation_vm PUBLIC 
     presentation/viewmodels
+    domain
 )
 
 # Presentation Layer - Pages and Views
@@ -158,6 +159,8 @@ target_include_directories(fj_presentation_pages PUBLIC
     presentation/views
     presentation/views/formula
     data/sources/local
+    data/repositories
+    domain
 )
 
 # Domain Layer - Core business logic and abstractions (Pure C++)

@@ -1,7 +1,16 @@
 #include "FormulaViewModel.h"
+#include "services/FormulaService.h"
+#include "entities/Formula.h"
+#include <QHash>
+#include <QDebug>
 
 FormulaViewModel::FormulaViewModel(QObject* parent)
 	: QObject(parent)
+{
+}
+
+FormulaViewModel::FormulaViewModel(std::shared_ptr<domain::services::IFormulaService> service, QObject* parent)
+	: QObject(parent), m_formulaService(std::move(service))
 {
 }
 
@@ -174,4 +183,85 @@ const FormulaViewModel::FormulaDetail* FormulaViewModel::selectedFormula() const
 		return m_nodes[m_selectedIdx].detail;
 	}
 	return nullptr;
+}
+
+void FormulaViewModel::loadData()
+{
+	// Try service first, fallback to sample data
+	if (m_formulaService && m_formulaService->isDataAvailable()) {
+		loadDataFromService();
+	} else {
+		loadSampleData();
+	}
+}
+
+void FormulaViewModel::loadDataFromService()
+{
+	clearData();
+	
+	if (!m_formulaService || !m_formulaService->isDataAvailable()) {
+		return;
+	}
+	
+	try {
+		// Load the formula tree from service
+		auto domainNodes = m_formulaService->getFormulaTree();
+		
+		// Build parent index mapping for hierarchical structure
+		QHash<QString, int> idToIndex;
+		
+		// First pass: create all nodes and map IDs to indices
+		for (const auto& domainNode : domainNodes) {
+			TreeNode node;
+			node.id = QString::fromStdString(domainNode.id);
+			node.label = QString::fromStdString(domainNode.label);
+			node.level = domainNode.level;
+			node.expanded = false;
+			node.parentIndex = -1; // Will be set in second pass
+			node.detail = nullptr;
+			
+			// Convert domain detail to ViewModel detail for formulas
+			if (domainNode.hasDetail) {
+				node.detail = convertDomainDetail(domainNode.detail);
+			}
+			
+			idToIndex[node.id] = m_nodes.size();
+			m_nodes.append(node);
+		}
+		
+		// Second pass: set parent indices
+		for (int i = 0; i < domainNodes.size(); ++i) {
+			const auto& domainNode = domainNodes[i];
+			if (!domainNode.parentId.empty()) {
+				QString parentId = QString::fromStdString(domainNode.parentId);
+				if (idToIndex.contains(parentId)) {
+					m_nodes[i].parentIndex = idToIndex[parentId];
+				}
+			}
+		}
+		
+		emit dataChanged();
+		
+	} catch (const std::exception& e) {
+		qWarning() << "[FormulaViewModel] Failed to load data from service:" << e.what();
+		// Fallback to sample data on error
+		loadSampleData();
+	}
+}
+
+FormulaViewModel::FormulaDetail* FormulaViewModel::convertDomainDetail(const domain::entities::FormulaDetail& domainDetail)
+{
+	if (!domainDetail.hasDetail) {
+		return nullptr;
+	}
+	
+	return new FormulaDetail{
+		.name = QString::fromStdString(domainDetail.name),
+		.source = QString::fromStdString(domainDetail.source),
+		.composition = QString::fromStdString(domainDetail.composition),
+		.usage = QString::fromStdString(domainDetail.usage),
+		.function = QString::fromStdString(domainDetail.function),
+		.indication = QString::fromStdString(domainDetail.indication),
+		.note = QString::fromStdString(domainDetail.note)
+	};
 }

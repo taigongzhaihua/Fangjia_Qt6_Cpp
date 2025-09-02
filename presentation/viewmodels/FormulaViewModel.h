@@ -11,6 +11,16 @@
 #include <qstring.h>
 #include <qvector.h>
 #include <qtmetamacros.h>
+#include <memory>
+
+// Forward declarations
+namespace domain::services {
+    class IFormulaService;
+}
+
+namespace domain::entities {
+    struct FormulaDetail;
+}
 
 /// 方剂数据视图模型：管理中医方剂的分层数据结构和交互状态
 /// 
@@ -50,11 +60,21 @@ public:
     };
 
     explicit FormulaViewModel(QObject* parent = nullptr);
+    
+    /// Constructor with service injection
+    /// Parameters: service - Formula service for data access, parent - QObject parent
+    /// Note: If service is null or unavailable, falls back to sample data
+    explicit FormulaViewModel(std::shared_ptr<domain::services::IFormulaService> service, QObject* parent = nullptr);
+    
     ~FormulaViewModel() override;
 
     /// 功能：加载示例方剂数据
     /// 说明：构建完整的方剂分类体系，包含经典方剂的详细信息
     void loadSampleData();
+    
+    /// 功能：加载数据（优先从服务，回退到示例数据）
+    /// 说明：如果注入了服务且可用，从服务加载；否则加载示例数据
+    void loadData();
     
     /// 功能：清空所有数据
     /// 说明：释放方剂详情内存并清空节点列表
@@ -98,8 +118,15 @@ private:
     void addCategory(const QString& id, const QString& label);
     void addSubCategory(const QString& id, const QString& label, int parentIdx);
     void addFormula(const QString& id, const QString& label, int parentIdx, FormulaDetail* detail);
+    
+    /// Load data from injected service
+    void loadDataFromService();
+    
+    /// Convert domain entity to ViewModel structure
+    FormulaDetail* convertDomainDetail(const domain::entities::FormulaDetail& domainDetail);
 
 private:
     QVector<TreeNode> m_nodes;
     int m_selectedIdx{ -1 };
+    std::shared_ptr<domain::services::IFormulaService> m_formulaService;
 };
