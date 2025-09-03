@@ -73,18 +73,11 @@ private:
 
     /// Boost.DI service resolution
     template<typename T>
-    std::shared_ptr<T> getFromBoostDI() const {
-        static_assert(is_boost_di_managed_v<T>, "Service must be managed by Boost.DI");
-        auto injector = CompositionRoot::createInjector();
-        return injector.template create<std::shared_ptr<T>>();
-    }
+    std::shared_ptr<T> getFromBoostDI() const;
 
     /// Legacy service locator resolution
     template<typename T>
-    std::shared_ptr<T> getFromLegacyProvider() const {
-        static_assert(!is_boost_di_managed_v<T>, "Service should not be managed by Boost.DI");
-        return resolveLegacyService<T>();
-    }
+    std::shared_ptr<T> getFromLegacyProvider() const;
 
     /// Template specializations for legacy service resolution
     template<typename T>
