@@ -73,7 +73,8 @@ bool DependencyMigrationTool::migrateService(const std::string& serviceName)
     std::cout << "Manual steps required:" << std::endl;
     std::cout << "1. Add Boost.DI binding in CompositionRoot::configureInjector()" << std::endl;
     std::cout << "2. Update service instantiation to use Boost.DI" << std::endl;
-    std::cout << "3. Remove from DependencyProvider" << std::endl;
+    std::cout << "3. Update template specializations in UnifiedDependencyProvider" << std::endl;
+    std::cout << "Note: DependencyProvider has been removed in Phase 4" << std::endl;
     
     return true;
 }
