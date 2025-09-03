@@ -4,6 +4,11 @@
 #include "repositories/ISettingsRepository.h"
 #include "usecases/GetSettingsUseCase.h"
 #include "usecases/UpdateSettingsUseCase.h"
+#include "usecases/GetThemeModeUseCase.h"
+#include "usecases/SetThemeModeUseCase.h"
+#include "usecases/ToggleThemeUseCase.h"
+#include "usecases/GetRecentTabUseCase.h"
+#include "usecases/SetRecentTabUseCase.h"
 #include "FormulaRepository.h"
 #include "SettingsRepository.h"
 #include "AppConfig.h"
@@ -30,7 +35,12 @@ auto CompositionRoot::configureInjector()
         di::bind<AppConfig>().to(appConfig),
         di::bind<domain::repositories::ISettingsRepository>().to<data::repositories::SettingsRepository>().in(di::singleton),
         di::bind<domain::usecases::GetSettingsUseCase>().in(di::singleton),
-        di::bind<domain::usecases::UpdateSettingsUseCase>().in(di::singleton)
+        di::bind<domain::usecases::UpdateSettingsUseCase>().in(di::singleton),
+        di::bind<domain::usecases::GetThemeModeUseCase>().in(di::singleton),
+        di::bind<domain::usecases::SetThemeModeUseCase>().in(di::singleton),
+        di::bind<domain::usecases::ToggleThemeUseCase>().in(di::singleton),
+        di::bind<domain::usecases::GetRecentTabUseCase>().in(di::singleton),
+        di::bind<domain::usecases::SetRecentTabUseCase>().in(di::singleton)
     );
 }
 
@@ -66,4 +76,34 @@ std::shared_ptr<domain::usecases::UpdateSettingsUseCase> CompositionRoot::getUpd
 {
     auto injector = createInjector();
     return injector.template create<std::shared_ptr<domain::usecases::UpdateSettingsUseCase>>();
+}
+
+std::shared_ptr<domain::usecases::GetThemeModeUseCase> CompositionRoot::getGetThemeModeUseCase()
+{
+    auto injector = createInjector();
+    return injector.template create<std::shared_ptr<domain::usecases::GetThemeModeUseCase>>();
+}
+
+std::shared_ptr<domain::usecases::SetThemeModeUseCase> CompositionRoot::getSetThemeModeUseCase()
+{
+    auto injector = createInjector();
+    return injector.template create<std::shared_ptr<domain::usecases::SetThemeModeUseCase>>();
+}
+
+std::shared_ptr<domain::usecases::ToggleThemeUseCase> CompositionRoot::getToggleThemeUseCase()
+{
+    auto injector = createInjector();
+    return injector.template create<std::shared_ptr<domain::usecases::ToggleThemeUseCase>>();
+}
+
+std::shared_ptr<domain::usecases::GetRecentTabUseCase> CompositionRoot::getGetRecentTabUseCase()
+{
+    auto injector = createInjector();
+    return injector.template create<std::shared_ptr<domain::usecases::GetRecentTabUseCase>>();
+}
+
+std::shared_ptr<domain::usecases::SetRecentTabUseCase> CompositionRoot::getSetRecentTabUseCase()
+{
+    auto injector = createInjector();
+    return injector.template create<std::shared_ptr<domain::usecases::SetRecentTabUseCase>>();
 }
