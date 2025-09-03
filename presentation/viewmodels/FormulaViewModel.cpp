@@ -108,7 +108,10 @@ void FormulaViewModel::loadSampleData()
 	};
 	addFormula("dachengqi", "大承气汤", hanxiaIdx, dachengqiDetail);
 
-	emit dataChanged();
+	// Only emit signal if not destroying
+	if (!m_isDestroying) {
+		emit dataChanged();
+	}
 }
 
 void FormulaViewModel::addCategory(const QString& id, const QString& label)
@@ -198,6 +201,8 @@ void FormulaViewModel::setExpanded(const int idx, const bool expanded)
 const FormulaViewModel::FormulaDetail* FormulaViewModel::selectedFormula() const
 {
 	// Guard against access during or after destruction
+	// This prevents memory access violations when UI callbacks
+	// (e.g., from BindingHost) try to access destroyed objects
 	if (m_isDestroying) {
 		return nullptr;
 	}
@@ -263,7 +268,10 @@ void FormulaViewModel::loadDataFromService()
 			}
 		}
 		
-		emit dataChanged();
+		// Only emit signal if not destroying
+		if (!m_isDestroying) {
+			emit dataChanged();
+		}
 		
 	} catch (const std::exception& e) {
 		qWarning() << "[FormulaViewModel] Failed to load data from service:" << e.what();
