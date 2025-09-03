@@ -276,7 +276,19 @@ public:
 
 ### 迁移路径
 ```cpp
-// 阶段1：保持当前双重系统
+// 阶段1：保持当前双重系统 + 统一接口（已实现）
+// 统一依赖提供者桥接两套系统
+class UnifiedDependencyProvider {
+    template<typename T>
+    std::shared_ptr<T> get() const {
+        if constexpr (boost_di_managed<T>) {
+            return m_injector.create<std::shared_ptr<T>>();
+        } else {
+            return m_legacyProvider.get<T>();
+        }
+    }
+};
+
 // 阶段2：新功能优先使用 Boost.DI
 // 阶段3：逐步迁移 Settings 到 Boost.DI
 // 阶段4：移除 DependencyProvider
@@ -304,6 +316,28 @@ auto createUnifiedInjector() {
 2. **接口优先**: 先定义接口，再迁移实现
 3. **测试覆盖**: 确保迁移前后行为一致
 4. **向后兼容**: 保持旧代码可用直到完全迁移
+5. **统一接口**: 使用 UnifiedDependencyProvider 简化开发体验（✅ 已实现）
+
+## 统一依赖注入实现
+
+### Phase 1: 统一接口（已完成）
+项目现已实现 `UnifiedDependencyProvider`，提供统一的依赖访问接口：
+
+```cpp
+// 统一的服务获取方式
+auto& provider = UnifiedDependencyProvider::instance();
+auto formulaService = provider.get<IFormulaService>();        // Boost.DI
+auto settingsUseCase = provider.get<GetSettingsUseCase>();    // Legacy Provider
+
+// 编译时系统检测
+bool isBoostDI = provider.isBoostDIManaged<IFormulaService>(); // true
+
+// 迁移状态跟踪
+auto& tool = DependencyMigrationTool::instance();
+auto report = tool.generateMigrationReport();
+```
+
+详细信息请参考 [统一依赖注入系统文档](./unified-dependency-injection.md)。
 
 ## 性能考虑
 
