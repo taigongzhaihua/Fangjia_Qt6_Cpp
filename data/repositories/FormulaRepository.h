@@ -12,8 +12,8 @@ namespace data::repositories
 	/// Uses Qt SQL for database operations
 	class FormulaRepository : public domain::repositories::IFormulaRepository {
 	public:
-		/// Constructor
-		/// Parameters: dbPath - Path to SQLite database file, empty for default location
+		/// Constructor using shared database connection
+		/// Parameters: dbPath - Ignored, kept for compatibility. Uses SqliteDatabase::openDefault()
 		explicit FormulaRepository(const QString& dbPath = QString());
 		~FormulaRepository() override;
 

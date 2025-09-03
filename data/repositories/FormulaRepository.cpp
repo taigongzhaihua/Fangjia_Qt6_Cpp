@@ -22,6 +22,7 @@ namespace data::repositories
 	{
 		// Use the shared database connection from DatabaseBootstrapper
 		// rather than creating a separate connection
+		// Note: dbPath parameter is ignored for compatibility with existing code
 		QSqlDatabase db = SqliteDatabase::openDefault();
 		if (db.isValid() && db.isOpen()) {
 			m_database = std::make_unique<QSqlDatabase>(db);
