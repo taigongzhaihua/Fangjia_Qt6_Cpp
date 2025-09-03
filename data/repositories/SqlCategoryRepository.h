@@ -1,5 +1,5 @@
 #pragma once
-#include "domain/repositories/ICategoryRepository.h"
+#include "repositories/ICategoryRepository.h"
 #include <QSqlDatabase>
 
 class SqlCategoryRepository final : public ICategoryRepository {

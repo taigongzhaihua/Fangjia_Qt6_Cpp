@@ -1,5 +1,5 @@
 #pragma once
-#include "domain/entities/Drug.h"
+#include "entities/Drug.h"
 #include <qvector.h>
 #include <optional>
 

@@ -78,6 +78,8 @@ file(GLOB FJ_DATA_SOURCES
     "data/sources/local/*.h"
     "data/repositories/*.cpp"
     "data/repositories/*.h"
+    "data/utils/*.cpp"
+    "data/utils/*.h"
 )
 
 add_library(fj_data STATIC ${FJ_DATA_SOURCES})
@@ -91,6 +93,7 @@ target_include_directories(fj_data PUBLIC
     data/sources
     data/sources/local
     data/repositories
+    data/utils
     domain
     ${boost_di_SOURCE_DIR}/include
 )

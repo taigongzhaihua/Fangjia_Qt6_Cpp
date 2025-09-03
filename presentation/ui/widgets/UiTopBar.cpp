@@ -13,7 +13,7 @@
 #include <qrect.h>
 #include <qsize.h>
 #include <qstring.h>
-#include <RenderUtils.hpp>
+#include "RenderUtils.hpp"
 #include <utility>
 
 UiTopBar::UiTopBar()

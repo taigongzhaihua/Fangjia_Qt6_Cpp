@@ -24,8 +24,8 @@
 #include <qrect.h>
 #include <qsize.h>
 #include <qstring.h>
-#include <UiComponent.hpp>
-#include <UiContent.hpp>
+#include "UiComponent.hpp"
+#include "UiContent.hpp"
 #include <utility>
 #include <vector>
 

@@ -1,5 +1,5 @@
 #pragma once
-#include "domain/entities/Category.h"
+#include "entities/Category.h"
 #include <qvector.h>
 #include <optional>
 

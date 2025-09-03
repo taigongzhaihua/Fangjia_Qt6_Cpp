@@ -4,7 +4,7 @@
 #include "IFocusContainer.hpp"
 #include <algorithm>
 #include <cmath>
-#include <ILayoutable.hpp>
+#include "ILayoutable.hpp"
 #include <limits>
 #include <numeric>
 #include <qopenglfunctions.h>
@@ -12,10 +12,10 @@
 #include <qrect.h>
 #include <qsize.h>
 #include <ranges>
-#include <RenderData.hpp>
-#include <RenderUtils.hpp>
-#include <UiComponent.hpp>
-#include <UiContent.hpp>
+#include "RenderData.hpp"
+#include "RenderUtils.hpp"
+#include "UiComponent.hpp"
+#include "UiContent.hpp"
 #include <vector>
 
 void UiGrid::clearChildren() {

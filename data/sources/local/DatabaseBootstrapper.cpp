@@ -1,6 +1,6 @@
 #include "DatabaseBootstrapper.h"
 #include "SqliteDatabase.h"
-#include "utils/DatabasePopulator.h"
+#include "DatabasePopulator.h"
 #include <QSqlDatabase>
 #include <qdebug.h>
 

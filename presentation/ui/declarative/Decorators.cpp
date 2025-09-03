@@ -1,16 +1,16 @@
 #include "Decorators.h"
 #include <algorithm>
 #include <cmath>
-#include <ILayoutable.hpp>
+#include "ILayoutable.hpp"
 #include <memory>
 #include <qcolor.h>
 #include <qpoint.h>
 #include <qrect.h>
 #include <qsize.h>
-#include <RenderData.hpp>
-#include <RenderUtils.hpp>
-#include <UiComponent.hpp>
-#include <UiContent.hpp>
+#include "RenderData.hpp"
+#include "RenderUtils.hpp"
+#include "UiComponent.hpp"
+#include "UiContent.hpp"
 #include <utility>
 
 namespace UI

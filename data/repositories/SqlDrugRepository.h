@@ -1,5 +1,5 @@
 #pragma once
-#include "domain/repositories/IDrugRepository.h"
+#include "repositories/IDrugRepository.h"
 #include <QSqlDatabase>
 
 class SqlDrugRepository final : public IDrugRepository {
