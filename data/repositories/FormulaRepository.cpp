@@ -1,5 +1,5 @@
 #include "FormulaRepository.h"
-#include "sources/local/SqliteDatabase.h"
+#include "SqliteDatabase.h"
 #include <entities/Formula.h>
 #include <exception>
 #include <memory>

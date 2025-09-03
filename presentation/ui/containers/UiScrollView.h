@@ -9,7 +9,7 @@
 #include <qpoint.h>
 #include <qrect.h>
 #include <qsize.h>
-#include <RenderData.hpp>
+#include "RenderData.hpp"
 
 class IconCache;
 class QOpenGLFunctions;

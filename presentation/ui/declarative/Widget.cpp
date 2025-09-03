@@ -5,7 +5,7 @@
 #include <qcolor.h>
 #include <qmargins.h>
 #include <qsize.h>
-#include <UiComponent.hpp>
+#include "UiComponent.hpp"
 #include <utility>
 
 namespace UI {

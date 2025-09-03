@@ -7,7 +7,7 @@
 #include "UI.h"
 #include "Widget.h"
 #include <memory>
-#include <UiComponent.hpp>
+#include "UiComponent.hpp"
 
 namespace UI {
 

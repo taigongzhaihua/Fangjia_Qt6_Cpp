@@ -11,7 +11,7 @@
 #include <qopenglfunctions.h>
 #include <qrect.h>
 #include <qsize.h>
-#include <UiComponent.hpp>
+#include "UiComponent.hpp"
 #include <utility>
 #include <vector>
 

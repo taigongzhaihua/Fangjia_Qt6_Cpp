@@ -5,7 +5,7 @@
 #include <functional>
 #include <memory>
 #include <qmargins.h>
-#include <UiComponent.hpp>
+#include "UiComponent.hpp"
 #include <utility>
 #include <vector>
 

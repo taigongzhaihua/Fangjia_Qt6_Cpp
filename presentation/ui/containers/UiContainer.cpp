@@ -1,15 +1,15 @@
 #include "UiContainer.h"
 #include <algorithm>
-#include <ILayoutable.hpp>
+#include "ILayoutable.hpp"
 #include "IFocusable.hpp"
 #include "IFocusContainer.hpp"
 #include <qpoint.h>
 #include <qrect.h>
 #include <qsize.h>
-#include <RenderData.hpp>
-#include <RenderUtils.hpp>
-#include <UiComponent.hpp>
-#include <UiContent.hpp>
+#include "RenderData.hpp"
+#include "RenderUtils.hpp"
+#include "UiComponent.hpp"
+#include "UiContent.hpp"
 
 QSize UiContainer::measure(const SizeConstraints& cs)
 {

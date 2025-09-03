@@ -10,9 +10,9 @@
 #include <qpoint.h>
 #include <qrect.h>
 #include <qsize.h>
-#include <RenderData.hpp>
-#include <UiComponent.hpp>
-#include <UiContent.hpp>
+#include "RenderData.hpp"
+#include "UiComponent.hpp"
+#include "UiContent.hpp"
 #include <vector>
 
 UiBoxLayout::UiBoxLayout(Direction dir) : m_direction(dir) {}

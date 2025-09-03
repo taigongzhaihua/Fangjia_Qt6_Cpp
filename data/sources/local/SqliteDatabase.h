@@ -1,5 +1,5 @@
 #pragma once
-#include <qsqlDatabase.h>
+#include <qsqldatabase.h>
 #include <qstring.h>
 
 // Lightweight helper to open/create the app database and ensure schema.

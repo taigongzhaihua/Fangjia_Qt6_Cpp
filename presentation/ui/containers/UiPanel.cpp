@@ -10,10 +10,10 @@
 #include <qrect.h>
 #include <qsize.h>
 #include <ranges>
-#include <RenderData.hpp>
-#include <RenderUtils.hpp>
-#include <UiComponent.hpp>
-#include <UiContent.hpp>
+#include "RenderData.hpp"
+#include "RenderUtils.hpp"
+#include "UiComponent.hpp"
+#include "UiContent.hpp"
 #include <vector>
 
 UiPanel::UiPanel(Orientation o)
