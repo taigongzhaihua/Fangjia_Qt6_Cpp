@@ -574,6 +574,5 @@ auto createResponsiveShell() {
 ## 相关文档
 
 - [表现层架构概览](../presentation/architecture.md) - AppShell 在整体架构中的位置
-- [UI 基础部件与容器](../presentation/ui/components.md) - AppShell 内部使用的布局容器
-- [声明式 TopBar 组件](../presentation/ui/topbar/declarative-topbar.md) - TopBar 组件的具体配置
+- [TopBar 组件](../presentation/components/top-bar.md) - TopBar 组件的具体配置
 - [Binding 与响应式重建](../presentation/binding.md) - AppShell 中的响应式机制
