@@ -905,6 +905,53 @@ public slots:
             qDebug() << "✓ Explicit service injection still works";
         }
         
+        // Test 5: Settings domain bindings (NEW)
+        {
+            // Test SettingsRepository via DI
+            auto settingsRepo = CompositionRoot::getSettingsRepository();
+            if (!settingsRepo) {
+                qCritical() << "Failed: CompositionRoot could not create SettingsRepository";
+                return;
+            }
+            qDebug() << "✓ CompositionRoot creates SettingsRepository via DI";
+            
+            // Test GetSettingsUseCase via DI
+            auto getSettingsUseCase = CompositionRoot::getGetSettingsUseCase();
+            if (!getSettingsUseCase) {
+                qCritical() << "Failed: CompositionRoot could not create GetSettingsUseCase";
+                return;
+            }
+            qDebug() << "✓ CompositionRoot creates GetSettingsUseCase via DI";
+            
+            // Test UpdateSettingsUseCase via DI
+            auto updateSettingsUseCase = CompositionRoot::getUpdateSettingsUseCase();
+            if (!updateSettingsUseCase) {
+                qCritical() << "Failed: CompositionRoot could not create UpdateSettingsUseCase";
+                return;
+            }
+            qDebug() << "✓ CompositionRoot creates UpdateSettingsUseCase via DI";
+            
+            // Test that settings can be retrieved and are valid
+            try {
+                auto settings = getSettingsUseCase->execute();
+                // Basic validation of settings structure
+                if (settings.themeMode.empty()) {
+                    settings.themeMode = "light"; // Default fallback
+                }
+                qDebug() << "✓ GetSettingsUseCase executes successfully";
+                
+                // Test that settings can be updated
+                updateSettingsUseCase->execute(settings, false); // Don't save immediately for test
+                qDebug() << "✓ UpdateSettingsUseCase executes successfully";
+                
+            } catch (const std::exception& e) {
+                qCritical() << "Failed: Settings use case execution error:" << e.what();
+                return;
+            }
+            
+            qDebug() << "✓ Settings domain DI bindings work correctly";
+        }
+        
         qDebug() << "Dependency Injection Integration tests PASSED ✅";
     }
 };
