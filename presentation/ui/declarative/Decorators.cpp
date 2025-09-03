@@ -121,8 +121,12 @@ namespace UI
 	{
 		if (!m_p.visible) return;
 
-		// 裁剪到上级 viewport
+		// 普通内容裁剪到上级 viewport
 		const auto clip = QRectF(m_viewport);
+		
+		// 阴影使用扩展的裁剪区域，允许阴影延伸到控件边界之外
+		const float maxShadowExpand = m_p.useShadow ? (m_p.shadowBlurPx + m_p.shadowSpreadPx + std::abs(m_p.shadowOffset.x()) + std::abs(m_p.shadowOffset.y())) : 0.0f;
+		const auto shadowClip = clip.adjusted(-maxShadowExpand, -maxShadowExpand, maxShadowExpand, maxShadowExpand);
 
 		const QColor borderColor = effectiveBorderForState();
 		const QColor bgColor = effectiveBgForState();
@@ -139,10 +143,10 @@ namespace UI
 				// 应用阴影偏移
 				const QRect shadowRect = shadowBaseRect.translated(m_p.shadowOffset);
 				
-				// 计算分层数量：layers = clamp(round(max(blurPx, 1) / 2), 4, 16)
+				// 计算分层数量：增加层数以获得更平滑的渐变 layers = clamp(round(blurPx), 8, 64)
 				const int layers = std::clamp(
-					static_cast<int>(std::round(std::max(1.0f, m_p.shadowBlurPx) / 2.0f)),
-					4, 16
+					static_cast<int>(std::round(std::max(1.0f, m_p.shadowBlurPx))),
+					8, 64
 				);
 				
 				// 基础半径
@@ -166,20 +170,20 @@ namespace UI
 					// 扩展半径
 					const float layerRadius = baseRadius + expand;
 					
-					// alpha 衰减：alpha_i = baseAlpha * (1 - t)^2
-					const float falloff = (1.0f - t) * (1.0f - t);
+					// 改进的 alpha 衰减：使用指数衰减实现更平滑的渐变 alpha_i = baseAlpha * exp(-2.5 * t)
+					const float falloff = std::exp(-2.5f * t);
 					const float layerAlpha = baseAlpha * falloff;
 					
 					// 创建该层的颜色
 					QColor layerColor = m_p.shadowColor;
 					layerColor.setAlphaF(layerAlpha);
 					
-					// 添加圆角矩形命令
+					// 添加圆角矩形命令，使用扩展的阴影裁剪区域
 					fd.roundedRects.push_back(Render::RoundedRectCmd{
 						.rect = layerRect,
 						.radiusPx = layerRadius,
 						.color = withOpacity(layerColor, m_p.opacity),
-						.clipRect = clip
+						.clipRect = shadowClip
 					});
 				}
 			}
