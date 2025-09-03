@@ -36,9 +36,8 @@ namespace data::repositories
 
 	FormulaRepository::~FormulaRepository()
 	{
-		if (m_database) {
-			m_database->close();
-		}
+		// Don't close the shared database connection in destructor
+		// The connection is managed by SqliteDatabase::openDefault()
 	}
 
 	bool FormulaRepository::isAvailable() const
@@ -51,14 +50,20 @@ namespace data::repositories
 		std::vector<std::string> categories;
 
 		if (!isAvailable()) {
+			qWarning() << "[FormulaRepository] Repository not available for fetchFirstCategories";
 			return categories;
 		}
 
 		QSqlQuery query(*m_database);
-		query.prepare("SELECT DISTINCT FirstCategory FROM Category WHERE FirstCategory IS NOT NULL AND FirstCategory != '' ORDER BY FirstCategory");
+		const QString sql = "SELECT DISTINCT FirstCategory FROM Category WHERE FirstCategory IS NOT NULL AND FirstCategory != '' ORDER BY FirstCategory";
+		
+		if (!query.prepare(sql)) {
+			qWarning() << "[FormulaRepository] Failed to prepare first categories query:" << query.lastError().text();
+			return categories;
+		}
 
 		if (!query.exec()) {
-			qWarning() << "[FormulaRepository] Failed to fetch first categories:" << query.lastError().text();
+			qWarning() << "[FormulaRepository] Failed to load first categories:" << query.lastError().text();
 			return categories;
 		}
 
@@ -69,6 +74,7 @@ namespace data::repositories
 			}
 		}
 
+		qDebug() << "[FormulaRepository] Loaded" << categories.size() << "first categories";
 		return categories;
 	}
 
@@ -77,13 +83,18 @@ namespace data::repositories
 		std::vector<domain::entities::FormulaNode> nodes;
 
 		if (!isAvailable()) {
+			qWarning() << "[FormulaRepository] Repository not available for loadFormulaTree";
 			return nodes;
 		}
 
 		QSqlQuery query(*m_database);
 
 		// First, load first-level categories
-		query.prepare("SELECT DISTINCT FirstCategory FROM Category WHERE FirstCategory IS NOT NULL AND FirstCategory != '' ORDER BY FirstCategory");
+		const QString firstCategorySql = "SELECT DISTINCT FirstCategory FROM Category WHERE FirstCategory IS NOT NULL AND FirstCategory != '' ORDER BY FirstCategory";
+		if (!query.prepare(firstCategorySql)) {
+			qWarning() << "[FormulaRepository] Failed to prepare first categories query:" << query.lastError().text();
+			return nodes;
+		}
 		if (!query.exec()) {
 			qWarning() << "[FormulaRepository] Failed to load first categories:" << query.lastError().text();
 			return nodes;
