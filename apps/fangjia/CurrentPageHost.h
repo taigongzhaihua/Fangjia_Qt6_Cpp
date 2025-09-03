@@ -28,6 +28,12 @@ public:
     /// 参数：router — 页面路由器，提供当前活跃页面
     explicit CurrentPageHost(PageRouter& router) : m_router(router) {}
 
+    /// 析构函数：确保安全关闭
+    ~CurrentPageHost() {
+        // 标记为无效，防止在析构过程中访问引用
+        m_valid = false;
+    }
+
     // IUiContent接口实现
     void setViewportRect(const QRect& r) override;
 
@@ -48,4 +54,5 @@ public:
 private:
     PageRouter& m_router;
     QRect m_viewport;  // 当前分配的视口区域
+    bool m_valid{ true };  // 用于跟踪对象是否仍然有效
 };

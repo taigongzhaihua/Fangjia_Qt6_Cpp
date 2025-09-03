@@ -103,6 +103,12 @@ MainOpenGlWindow::~MainOpenGlWindow()
 			m_config->save();
 		}
 
+		// 清理绑定的UI组件，断开信号连接，避免在析构后继续调用
+		// 这必须在其他清理之前完成，因为这些组件可能持有对此对象的引用
+		m_shellHost.reset();
+		m_pageHost.reset();
+		m_shellRebuildHost = nullptr;
+
 #ifdef Q_OS_WIN
 		if (m_winChrome)
 		{
