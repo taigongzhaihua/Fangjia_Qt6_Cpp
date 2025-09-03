@@ -8,6 +8,8 @@
 
 ### 系统概览
 - **[架构概览](architecture/overview.md)** - 系统设计、组件生命周期、数据绑定和线程模型
+- **[系统集成设计](architecture/system-integration.md)** - 各层间交互模式、数据流转和集成策略
+- **[依赖注入设计](architecture/dependency-injection.md)** - DI 容器、服务定位器和依赖管理策略
 
 ## 构建与开发
 
@@ -26,6 +28,9 @@
 
 ### 数据层架构
 - **[数据管理概览](data/overview.md)** - ThemeManager、AppConfig、ViewModel 模式和响应式数据绑定
+
+### 领域层设计
+- **[领域层设计](domain/design.md)** - 实体、用例、服务和仓储模式，清洁架构实现
 
 ## 表现层
 
