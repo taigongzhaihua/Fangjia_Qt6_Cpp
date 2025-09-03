@@ -1,7 +1,7 @@
 #include "FormulaViewModel.h"
-#include "services/FormulaService.h"
-#include "entities/Formula.h"
-#include "ServiceRegistry.h"
+#include "domain/services/FormulaService.h"
+#include "domain/entities/Formula.h"
+#include "domain/ServiceRegistry.h"
 #include <QHash>
 #include <QDebug>
 
@@ -19,6 +19,7 @@ FormulaViewModel::FormulaViewModel(std::shared_ptr<domain::services::IFormulaSer
 
 FormulaViewModel::~FormulaViewModel()
 {
+	m_isDestroying = true;  // Set destruction flag before cleanup
 	clearData();
 }
 
@@ -31,7 +32,11 @@ void FormulaViewModel::clearData()
 	}
 	m_nodes.clear();
 	m_selectedIdx = -1;
-	emit dataChanged();
+	
+	// Only emit signal if not destroying to avoid callbacks on destroyed objects
+	if (!m_isDestroying) {
+		emit dataChanged();
+	}
 }
 
 void FormulaViewModel::loadSampleData()
@@ -103,7 +108,10 @@ void FormulaViewModel::loadSampleData()
 	};
 	addFormula("dachengqi", "大承气汤", hanxiaIdx, dachengqiDetail);
 
-	emit dataChanged();
+	// Only emit signal if not destroying
+	if (!m_isDestroying) {
+		emit dataChanged();
+	}
 }
 
 void FormulaViewModel::addCategory(const QString& id, const QString& label)
@@ -158,11 +166,16 @@ QVector<int> FormulaViewModel::childIndices(const int parentIdx) const
 
 void FormulaViewModel::setSelectedIndex(const int idx)
 {
+	// Guard against modification during destruction
+	if (m_isDestroying) return;
+	
 	if (idx < -1 || idx >= m_nodes.size()) return;
 	if (m_selectedIdx == idx) return;
 
 	m_selectedIdx = idx;
-	emit selectedChanged(m_selectedIdx);
+	if (!m_isDestroying) {  // Additional safety check before emitting signal
+		emit selectedChanged(m_selectedIdx);
+	}
 }
 
 void FormulaViewModel::toggleExpanded(const int idx)
@@ -173,15 +186,27 @@ void FormulaViewModel::toggleExpanded(const int idx)
 
 void FormulaViewModel::setExpanded(const int idx, const bool expanded)
 {
+	// Guard against modification during destruction
+	if (m_isDestroying) return;
+	
 	if (idx < 0 || idx >= m_nodes.size()) return;
 	if (m_nodes[idx].expanded == expanded) return;
 
 	m_nodes[idx].expanded = expanded;
-	emit nodeExpandChanged(idx, expanded);
+	if (!m_isDestroying) {  // Additional safety check before emitting signal
+		emit nodeExpandChanged(idx, expanded);
+	}
 }
 
 const FormulaViewModel::FormulaDetail* FormulaViewModel::selectedFormula() const
 {
+	// Guard against access during or after destruction
+	// This prevents memory access violations when UI callbacks
+	// (e.g., from BindingHost) try to access destroyed objects
+	if (m_isDestroying) {
+		return nullptr;
+	}
+	
 	if (m_selectedIdx >= 0 && m_selectedIdx < m_nodes.size()) {
 		return m_nodes[m_selectedIdx].detail;
 	}
@@ -243,7 +268,10 @@ void FormulaViewModel::loadDataFromService()
 			}
 		}
 		
-		emit dataChanged();
+		// Only emit signal if not destroying
+		if (!m_isDestroying) {
+			emit dataChanged();
+		}
 		
 	} catch (const std::exception& e) {
 		qWarning() << "[FormulaViewModel] Failed to load data from service:" << e.what();
