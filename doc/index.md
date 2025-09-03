@@ -8,6 +8,8 @@ This documentation is organized by system to provide developers with comprehensi
 
 ### System Overview
 - **[Architecture Overview](architecture/overview.md)** - System design, component lifecycle, data binding, and threading model
+- **[System Integration Design](architecture/system-integration.md)** - Inter-layer interaction patterns, data flow, and integration strategies
+- **[Dependency Injection Design](architecture/dependency-injection.md)** - DI container, service locator, and dependency management strategies
 
 ## Build & Development
 
@@ -26,6 +28,9 @@ This documentation is organized by system to provide developers with comprehensi
 
 ### Data Layer Architecture
 - **[Data Management Overview](data/overview.md)** - ThemeManager, AppConfig, ViewModel patterns, and reactive data binding
+
+### Domain Layer Design
+- **[Domain Layer Design](domain/design.md)** - Entities, use cases, services, and repository patterns, Clean Architecture implementation
 
 ## Presentation Layer
 

@@ -57,6 +57,9 @@ The framework provides reactive data binding through:
 - **Observer Pattern**: Components subscribe to model changes for automatic updates
 
 For detailed information on specific subsystems, see:
-- [UI Framework Overview](../presentation/ui-framework/overview.md)
-- [Graphics & Rendering](../infrastructure/gfx.md)
-- [Data Binding](../presentation/binding.md)
+- [System Integration Design](./system-integration.md) - Inter-layer interactions and integration patterns
+- [Dependency Injection Design](./dependency-injection.md) - DI container and dependency management strategies
+- [Domain Layer Design](../domain/design.md) - Domain layer architecture and business logic design
+- [UI Framework Overview](../presentation/ui-framework/overview.md) - Presentation layer components and declarative system
+- [Graphics & Rendering](../infrastructure/gfx.md) - Low-level rendering and graphics processing
+- [Data Binding](../presentation/binding.md) - Reactive data binding system
