@@ -129,4 +129,9 @@ private:
     QVector<TreeNode> m_nodes;
     int m_selectedIdx{ -1 };
     std::shared_ptr<domain::services::IFormulaService> m_formulaService;
+    
+    /// Flag to track object destruction state
+    /// This prevents memory access violations when callbacks try to access
+    /// the object during or after destruction (e.g., from BindingHost connections)
+    bool m_isDestroying{ false };
 };
