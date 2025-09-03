@@ -18,6 +18,14 @@ namespace UI {
 	std::shared_ptr<Widget> Widget::margin(const int l, const int t, const int r, const int b) { m_decorations.margin = QMargins(l, t, r, b); return self<Widget>(); }
 	std::shared_ptr<Widget> Widget::background(const QColor c, const float r) { m_decorations.backgroundColor = c; m_decorations.backgroundRadius = r; return self<Widget>(); }
 	std::shared_ptr<Widget> Widget::border(const QColor c, const float w, const float r) { m_decorations.borderColor = c; m_decorations.borderWidth = w; m_decorations.borderRadius = r; return self<Widget>(); }
+	std::shared_ptr<Widget> Widget::shadow(const QColor color, const float blurPx, const QPoint offset, const float spreadPx) {
+		m_decorations.useShadow = true;
+		m_decorations.shadowColor = color;
+		m_decorations.shadowBlurPx = blurPx;
+		m_decorations.shadowOffset = offset;
+		m_decorations.shadowSpreadPx = spreadPx;
+		return self<Widget>();
+	}
 	std::shared_ptr<Widget> Widget::size(const int w, const int h) { m_decorations.fixedSize = QSize(w, h); return self<Widget>(); }
 	std::shared_ptr<Widget> Widget::width(const int w) { m_decorations.fixedSize.setWidth(w); return self<Widget>(); }
 	std::shared_ptr<Widget> Widget::height(const int h) { m_decorations.fixedSize.setHeight(h); return self<Widget>(); }
@@ -39,7 +47,8 @@ namespace UI {
 			(m_decorations.opacity < 0.999f) ||
 			(!m_decorations.isVisible) ||
 			static_cast<bool>(m_decorations.onTap) || static_cast<bool>(m_decorations.onHover) ||
-			(m_decorations.borderColor.alpha() > 0);
+			(m_decorations.borderColor.alpha() > 0) ||
+			m_decorations.useShadow;  // 新增：阴影需求检查
 		if (!need) return inner;
 
 		DecoratedBox::Props p;
@@ -50,6 +59,14 @@ namespace UI {
 		p.border = m_decorations.borderColor;
 		p.borderW = m_decorations.borderWidth;
 		p.borderRadius = m_decorations.borderRadius;
+		
+		// 映射阴影属性
+		p.useShadow = m_decorations.useShadow;
+		p.shadowColor = m_decorations.shadowColor;
+		p.shadowBlurPx = m_decorations.shadowBlurPx;
+		p.shadowOffset = m_decorations.shadowOffset;
+		p.shadowSpreadPx = m_decorations.shadowSpreadPx;
+		
 		p.fixedSize = m_decorations.fixedSize;
 		p.visible = m_decorations.isVisible;
 		p.opacity = m_decorations.opacity;

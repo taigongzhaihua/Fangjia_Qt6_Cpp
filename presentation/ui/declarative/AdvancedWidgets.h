@@ -26,7 +26,7 @@ namespace UI
 
 		explicit Card(WidgetPtr child) : m_child(std::move(child)) {}
 
-		// 阴影占位（暂留，不影响绘制）
+		// 阴影高度控制（elevation 映射为实际阴影效果）
 		std::shared_ptr<Card> elevation(const float e) { m_elevation = e; return self<Card>(); }
 
 		// 配置亮/暗主题的背景（外部可分别设置）

@@ -127,7 +127,65 @@ namespace UI
 		const QColor borderColor = effectiveBorderForState();
 		const QColor bgColor = effectiveBgForState();
 
-		// 先画边框（若启用）
+		// 首先绘制阴影（在边框和背景之前）
+		if (m_p.useShadow && m_p.shadowBlurPx > 0.0f && m_p.shadowColor.alpha() > 0)
+		{
+			// 计算阴影的基础矩形（扣除边框厚度，类似背景矩形）
+			const int bw = static_cast<int>(std::round(std::max(0.0f, m_p.borderW)));
+			const QRect shadowBaseRect = m_drawRect.adjusted(bw, bw, -bw, -bw);
+			
+			if (shadowBaseRect.isValid())
+			{
+				// 应用阴影偏移
+				const QRect shadowRect = shadowBaseRect.translated(m_p.shadowOffset);
+				
+				// 计算分层数量：layers = clamp(round(max(blurPx, 1) / 2), 4, 16)
+				const int layers = std::clamp(
+					static_cast<int>(std::round(std::max(1.0f, m_p.shadowBlurPx) / 2.0f)),
+					4, 16
+				);
+				
+				// 基础半径
+				const float baseRadius = std::max(0.0f, m_p.bgRadius - static_cast<float>(bw));
+				
+				// 基础透明度
+				const float baseAlpha = static_cast<float>(m_p.shadowColor.alpha()) / 255.0f;
+				
+				// 绘制多层阴影以模拟模糊效果
+				for (int i = 1; i <= layers; ++i)
+				{
+					// t ∈ (0, 1]，第 i 层的参数化位置
+					const float t = static_cast<float>(i) / static_cast<float>(layers);
+					
+					// 计算扩展：expand = spreadPx + t * blurPx
+					const float expand = m_p.shadowSpreadPx + t * m_p.shadowBlurPx;
+					
+					// 扩展矩形
+					const QRectF layerRect = QRectF(shadowRect).adjusted(-expand, -expand, expand, expand);
+					
+					// 扩展半径
+					const float layerRadius = baseRadius + expand;
+					
+					// alpha 衰减：alpha_i = baseAlpha * (1 - t)^2
+					const float falloff = (1.0f - t) * (1.0f - t);
+					const float layerAlpha = baseAlpha * falloff;
+					
+					// 创建该层的颜色
+					QColor layerColor = m_p.shadowColor;
+					layerColor.setAlphaF(layerAlpha);
+					
+					// 添加圆角矩形命令
+					fd.roundedRects.push_back(Render::RoundedRectCmd{
+						.rect = layerRect,
+						.radiusPx = layerRadius,
+						.color = withOpacity(layerColor, m_p.opacity),
+						.clipRect = clip
+					});
+				}
+			}
+		}
+
+		// 再画边框（若启用）
 		if (m_drawRect.isValid() && borderColor.alpha() > 0 && m_p.borderW > 0.0f)
 		{
 			fd.roundedRects.push_back(Render::RoundedRectCmd{
