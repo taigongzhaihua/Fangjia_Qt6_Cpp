@@ -29,7 +29,7 @@ std::shared_ptr<Card> elevation(float e);
 Card elevation now automatically generates appropriate shadows based on Material Design principles:
 Card elevation 现在基于 Material Design 原则自动生成适当的阴影：
 
-- **Shadow opacity** / 阴影透明度: `50 + elevation * 15` (range 50-200)
+- **Shadow opacity** / 阴影透明度: `30 + elevation * 10` (range 30-120, improved transparency)
 - **Blur radius** / 模糊半径: `elevation * 2` (range 2-24px)  
 - **Y offset** / Y偏移: `elevation * 0.5` (range 1-8px)
 - **Spread** / 扩展: `elevation * 0.25` (range 0-4px)
@@ -77,16 +77,17 @@ UI::card(UI::text("Custom Card"))
 The shadow system uses a layered approach to approximate Gaussian blur:
 阴影系统使用分层方法来近似高斯模糊：
 
-1. **Layer count** / 层数计算: `clamp(round(max(blurPx, 1) / 2), 4, 16)`
-2. **Alpha falloff** / 透明度衰减: `baseAlpha * (1 - t)²` where `t ∈ (0,1]`
+1. **Layer count** / 层数计算: `clamp(round(blurPx), 8, 64)` (improved from 4-16 to 8-64)
+2. **Alpha falloff** / 透明度衰减: `baseAlpha * exp(-2.5 * t)` where `t ∈ (0,1]` (smoother exponential decay)
 3. **Rect inflation** / 矩形膨胀: `expand = spreadPx + t * blurPx`
 4. **Radius expansion** / 半径扩展: `radius = baseRadius + expand`
+5. **Shadow clipping** / 阴影裁剪: Extended clip region allows shadows to extend beyond control bounds
 
 ### Performance / 性能
 
-- **Bounded draw calls** / 有界绘制调用: Maximum 16 layers per shadow
+- **Bounded draw calls** / 有界绘制调用: Maximum 64 layers per shadow (improved from 16)
 - **No additional textures** / 无额外纹理: Uses existing RoundedRectCmd
-- **Viewport clipping** / 视口裁剪: Shadows respect parent clipping
+- **Extended shadow clipping** / 扩展阴影裁剪: Shadows can extend beyond control bounds
 - **Layout neutral** / 布局中性: Shadows don't affect measurement or arrangement
 
 ## Technical Notes / 技术说明

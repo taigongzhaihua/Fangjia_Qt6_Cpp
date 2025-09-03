@@ -35,7 +35,7 @@ namespace UI {
 		// 将 elevation 映射为阴影效果
 		if (m_elevation > 0.0f) {
 			p.useShadow = true;
-			p.shadowColor = QColor(0, 0, 0, static_cast<int>(std::clamp(50 + m_elevation * 15, 50.0f, 200.0f))); // 阴影透明度根据高度调整
+			p.shadowColor = QColor(0, 0, 0, static_cast<int>(std::clamp(30 + m_elevation * 10, 30.0f, 120.0f))); // 降低阴影透明度：30-120 范围，更加透明
 			p.shadowBlurPx = std::clamp(m_elevation * 2.0f, 2.0f, 24.0f);  // 模糊半径：elevation * 2，范围 2-24px
 			p.shadowOffset = QPoint(0, static_cast<int>(std::clamp(m_elevation * 0.5f, 1.0f, 8.0f))); // Y 偏移：elevation * 0.5，范围 1-8px
 			p.shadowSpreadPx = std::clamp(m_elevation * 0.25f, 0.0f, 4.0f); // 扩展：elevation * 0.25，范围 0-4px
