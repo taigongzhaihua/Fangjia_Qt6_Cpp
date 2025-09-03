@@ -55,7 +55,7 @@
 ## 平台支持
 
 ### Windows 平台
-- **[Windows 平台集成](platform/windows.md)** - WinWindowChrome 窗口装饰和 HitTest 区域处理
+- **[Windows 平台集成](infrastructure/platform-windows.md)** - WinWindowChrome 窗口装饰和 HitTest 区域处理
 
 ## 导航指南
 

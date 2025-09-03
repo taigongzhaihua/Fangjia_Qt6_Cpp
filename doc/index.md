@@ -55,7 +55,7 @@ This documentation is organized by system to provide developers with comprehensi
 ## Platform Support
 
 ### Windows Platform
-- **[Windows Platform Integration](platform/windows.md)** - WinWindowChrome window decoration and HitTest region handling
+- **[Windows Platform Integration](infrastructure/platform-windows.md)** - WinWindowChrome window decoration and HitTest region handling
 
 ## Navigation Guide
 
