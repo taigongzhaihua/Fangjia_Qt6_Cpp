@@ -10,6 +10,7 @@
 - **[架构概览](architecture/overview.md)** - 系统设计、组件生命周期、数据绑定和线程模型
 - **[系统集成设计](architecture/system-integration.md)** - 各层间交互模式、数据流转和集成策略
 - **[依赖注入设计](architecture/dependency-injection.md)** - DI 容器、服务定位器和依赖管理策略
+- **[架构分析与优化建议](architecture/architecture-analysis.md)** - 当前架构优势、劣势分析及针对性优化建议
 
 ## 构建与开发
 
