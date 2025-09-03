@@ -11,6 +11,10 @@ class IFormulaRepository {
 public:
     virtual ~IFormulaRepository() = default;
 
+    /// Fetch first-level categories from database
+    /// Returns: Vector of category names for top-level classification
+    virtual std::vector<std::string> fetchFirstCategories() = 0;
+
     /// Load all formula nodes from data source
     /// Returns: Vector of formula nodes in hierarchical order
     virtual std::vector<entities::FormulaNode> loadFormulaTree() = 0;

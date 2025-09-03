@@ -12,23 +12,18 @@ namespace data::repositories
 	/// Uses Qt SQL for database operations
 	class FormulaRepository : public domain::repositories::IFormulaRepository {
 	public:
-		/// Constructor
-		/// Parameters: dbPath - Path to SQLite database file, empty for default location
+		/// Constructor using shared database connection
+		/// Parameters: dbPath - Ignored, kept for compatibility. Uses SqliteDatabase::openDefault()
 		explicit FormulaRepository(const QString& dbPath = QString());
 		~FormulaRepository() override;
 
 		// IFormulaRepository interface
+		std::vector<std::string> fetchFirstCategories() override;
 		std::vector<domain::entities::FormulaNode> loadFormulaTree() override;
 		domain::entities::FormulaDetail loadFormulaDetail(const std::string& formulaId) override;
 		bool isAvailable() const override;
 
 	private:
-		/// Initialize database connection and create tables if needed
-		bool initializeDatabase();
-
-		/// Create sample data in database if tables are empty
-		void createSampleData() const;
-
 		/// Convert QString to std::string safely
 		std::string qStringToStdString(const QString& qstr) const;
 
@@ -36,7 +31,6 @@ namespace data::repositories
 		QString stdStringToQString(const std::string& str) const;
 
 	private:
-		QString m_dbPath;
 		std::unique_ptr<QSqlDatabase> m_database;
 		bool m_isInitialized;
 	};
