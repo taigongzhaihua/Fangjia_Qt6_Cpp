@@ -129,4 +129,5 @@ private:
     QVector<TreeNode> m_nodes;
     int m_selectedIdx{ -1 };
     std::shared_ptr<domain::services::IFormulaService> m_formulaService;
+    bool m_isDestroying{ false };  // Flag to track destruction state
 };
