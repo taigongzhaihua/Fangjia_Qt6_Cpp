@@ -66,6 +66,13 @@ namespace UI {
 			// DecoratedBox will apply subtle hover/press backgrounds by theme.
 			bool     enableAutoInteractive{ true };
 
+			// Shadow properties / 阴影属性
+			bool     useShadow{ false };                           // 启用阴影渲染
+			QColor   shadowColor{ 0, 0, 0, 160 };                  // 阴影颜色（默认半透明黑色）
+			float    shadowBlurPx{ 0.0f };                        // 模糊半径（控制柔化程度）
+			QPoint   shadowOffset{ 0, 0 };                        // 阴影偏移
+			float    shadowSpreadPx{ 0.0f };                      // 扩展半径（阴影分层前的额外扩展）
+
 			QSize    fixedSize{ -1, -1 };
 			bool     visible{ true };
 			float    opacity{ 1.0f };

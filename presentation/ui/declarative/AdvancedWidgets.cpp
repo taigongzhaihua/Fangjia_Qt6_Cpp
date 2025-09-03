@@ -32,6 +32,15 @@ namespace UI {
 			p.borderRadius = m_pal.radius;
 		}
 
+		// 将 elevation 映射为阴影效果
+		if (m_elevation > 0.0f) {
+			p.useShadow = true;
+			p.shadowColor = QColor(0, 0, 0, static_cast<int>(std::clamp(50 + m_elevation * 15, 50.0f, 200.0f))); // 阴影透明度根据高度调整
+			p.shadowBlurPx = std::clamp(m_elevation * 2.0f, 2.0f, 24.0f);  // 模糊半径：elevation * 2，范围 2-24px
+			p.shadowOffset = QPoint(0, static_cast<int>(std::clamp(m_elevation * 0.5f, 1.0f, 8.0f))); // Y 偏移：elevation * 0.5，范围 1-8px
+			p.shadowSpreadPx = std::clamp(m_elevation * 0.25f, 0.0f, 4.0f); // 扩展：elevation * 0.25，范围 0-4px
+		}
+
 		// 透传用户在基类 Widget 上设置的 size / margin / 可见性 / 透明度 / 交互
 		// 注意：如果用户同时在 Card 上设置了 background/border（旧 API），这里优先使用主题化配置
 		p.fixedSize = m_decorations.fixedSize;

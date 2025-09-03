@@ -29,6 +29,7 @@ namespace UI {
 		std::shared_ptr<Widget> margin(int left, int top, int right, int bottom);
 		std::shared_ptr<Widget> background(QColor color, float radius = 0.0f);
 		std::shared_ptr<Widget> border(QColor color, float width = 1.0f, float radius = 0.0f);
+		std::shared_ptr<Widget> shadow(QColor color, float blurPx, QPoint offset, float spreadPx = 0.0f);
 		std::shared_ptr<Widget> size(int width, int height);
 		std::shared_ptr<Widget> width(int w);
 		std::shared_ptr<Widget> height(int h);
@@ -46,6 +47,14 @@ namespace UI {
 			QColor   borderColor{ Qt::transparent };
 			float    borderWidth{ 0.0f };
 			float    borderRadius{ 0.0f };
+			
+			// Shadow properties / 阴影属性
+			bool     useShadow{ false };
+			QColor   shadowColor{ 0, 0, 0, 160 };
+			float    shadowBlurPx{ 0.0f };
+			QPoint   shadowOffset{ 0, 0 };
+			float    shadowSpreadPx{ 0.0f };
+			
 			QSize    fixedSize{ -1,-1 };
 			bool     isVisible{ true };
 			float    opacity{ 1.0f };
