@@ -9,16 +9,7 @@
 #include "AppConfig.h"
 #include "MainOpenGlWindow.h"
 #include "ThemeManager.h"
-#include "SettingsRepository.h"
 #include "CompositionRoot.h"
-#include "usecases/GetSettingsUseCase.h"
-#include "usecases/UpdateSettingsUseCase.h"
-#include "usecases/ToggleThemeUseCase.h"
-#include "usecases/GetThemeModeUseCase.h"
-#include "usecases/SetThemeModeUseCase.h"
-#include "usecases/GetRecentTabUseCase.h"
-#include "usecases/SetRecentTabUseCase.h"
-#include "DependencyProvider.h"
 #include "UnifiedDependencyProvider.h"
 #include "DependencyMigrationTool.h"
 #include "UnifiedDIUsageExample.h"
@@ -68,57 +59,32 @@ int main(int argc, char* argv[])
 		auto config = std::make_shared<AppConfig>();
 		config->load();
 
-		// === Domain/Data Layer Composition Root ===
-		// 创建数据层仓储（适配器模式：包装AppConfig）
-		auto settingsRepository = std::make_shared<data::repositories::SettingsRepository>(config);
-		
-		// 创建领域用例
-		auto getSettingsUseCase = std::make_shared<domain::usecases::GetSettingsUseCase>(settingsRepository);
-		auto updateSettingsUseCase = std::make_shared<domain::usecases::UpdateSettingsUseCase>(settingsRepository);
-		auto toggleThemeUseCase = std::make_shared<domain::usecases::ToggleThemeUseCase>(settingsRepository);
-		auto getThemeModeUseCase = std::make_shared<domain::usecases::GetThemeModeUseCase>(settingsRepository);
-		auto setThemeModeUseCase = std::make_shared<domain::usecases::SetThemeModeUseCase>(settingsRepository);
-		auto getRecentTabUseCase = std::make_shared<domain::usecases::GetRecentTabUseCase>(settingsRepository);
-		auto setRecentTabUseCase = std::make_shared<domain::usecases::SetRecentTabUseCase>(settingsRepository);
-
-		// 配置依赖提供者（临时服务定位器）
-		auto& deps = DependencyProvider::instance();
-		deps.setGetSettingsUseCase(getSettingsUseCase);
-		deps.setUpdateSettingsUseCase(updateSettingsUseCase);
-		deps.setToggleThemeUseCase(toggleThemeUseCase);
-		deps.setGetThemeModeUseCase(getThemeModeUseCase);
-		deps.setSetThemeModeUseCase(setThemeModeUseCase);
-		deps.setGetRecentTabUseCase(getRecentTabUseCase);
-		deps.setSetRecentTabUseCase(setRecentTabUseCase);
-
-		// === Formula Domain Layer Composition ===
-		// 创建Formula服务通过DI容器
-		auto formulaService = CompositionRoot::getFormulaService();
-		deps.setFormulaService(formulaService);
-
-		// === Initialize Unified Dependency Provider (Phase 1) ===
-		// 初始化统一依赖提供者，桥接两套DI系统
+		// === Pure Boost.DI Configuration (Phase 4 Complete) ===
+		// All services are now managed through CompositionRoot and Boost.DI
 		auto& unifiedDeps = UnifiedDependencyProvider::instance();
-		unifiedDeps.initialize(deps, formulaService);
 		
-		qDebug() << "Unified Dependency Provider initialized successfully";
+		qDebug() << "Pure Boost.DI Dependency Provider initialized successfully";
+		
+		// === Get services from Boost.DI ===
+		auto getThemeModeUseCase = unifiedDeps.get<domain::usecases::GetThemeModeUseCase>();
+		auto setThemeModeUseCase = unifiedDeps.get<domain::usecases::SetThemeModeUseCase>();
 		
 		// === Migration Status Report ===
-		// 生成迁移状态报告，展示当前进度
+		// Phase 4 Complete: All services migrated to pure Boost.DI
 		auto& migrationTool = DependencyMigrationTool::instance();
 		auto migrationReport = migrationTool.generateMigrationReport();
 		
-		qDebug() << "DI Migration Status:" 
+		qDebug() << "DI Migration Status: Phase 4 Complete!" 
 				 << migrationReport.migratedServices << "/" << migrationReport.totalServices 
 				 << "services migrated (" << migrationReport.completionPercentage << "%)";
 
-		// === Demonstrate Unified DI Usage ===
-		// 展示统一依赖注入的使用模式
+		// === Demonstrate Pure Boost.DI Usage ===
+		// 展示纯Boost.DI依赖注入的使用模式
 		UnifiedDIUsageExample example;
 		example.demonstrateUnifiedAccess();
 		example.demonstrateViewModelUsage();
 
-		// 创建主题管理器（使用依赖注入的新构造函数）
+		// 创建主题管理器（使用纯Boost.DI获取的服务）
 		const auto themeManager = std::make_shared<ThemeManager>(getThemeModeUseCase, setThemeModeUseCase);
 		
 		// 从设置中加载主题状态

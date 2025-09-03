@@ -266,57 +266,58 @@ public:
 
 ## 迁移策略
 
-### 当前状态
+### 当前状态（Phase 4 完成）
 ```
 ✅ Formula 领域 → Boost.DI (完整实现)
-🔄 Settings 领域 → DependencyProvider (临时方案)
-🚧 Theme 领域 → 混合方案
-⏳ 新领域 → 计划使用 Boost.DI
+✅ Settings 领域 → Boost.DI (Phase 4 完成)
+✅ Theme 领域 → Boost.DI (Phase 4 完成)
+✅ Recent Tab 领域 → Boost.DI (Phase 4 完成)
+🎉 所有领域 → 纯 Boost.DI 架构
 ```
 
-### 迁移路径
+### 迁移路径（已完成）
 ```cpp
-// 阶段1：保持当前双重系统 + 统一接口（已实现）
-// 统一依赖提供者桥接两套系统
+// Phase 4：纯 Boost.DI 系统（完成）
+// UnifiedDependencyProvider 现在直接使用 Boost.DI
 class UnifiedDependencyProvider {
     template<typename T>
     std::shared_ptr<T> get() const {
-        if constexpr (boost_di_managed<T>) {
-            return m_injector.create<std::shared_ptr<T>>();
-        } else {
-            return m_legacyProvider.get<T>();
-        }
+        // 所有服务都通过 Boost.DI 解析
+        return getFromBoostDI<T>();
     }
 };
 
-// 阶段2：新功能优先使用 Boost.DI
-// 阶段3：逐步迁移 Settings 到 Boost.DI
-// 阶段4：移除 DependencyProvider
-
-// 目标架构（阶段4后）
+// 目标架构（Phase 4 已达成）
 auto createUnifiedInjector() {
     return boost::di::make_injector(
         // Formula 领域
         boost::di::bind<IFormulaRepository>().to<FormulaRepository>(),
         boost::di::bind<IFormulaService>().to<FormulaService>(),
         
-        // Settings 领域
+        // Settings 领域（Phase 4 完成）
         boost::di::bind<ISettingsRepository>().to<SettingsRepository>(),
         boost::di::bind<GetSettingsUseCase>().in(boost::di::singleton),
         boost::di::bind<UpdateSettingsUseCase>().in(boost::di::singleton),
         
-        // Theme 领域
-        boost::di::bind<ThemeManager>().in(boost::di::singleton)
+        // Theme 领域（Phase 4 完成）
+        boost::di::bind<GetThemeModeUseCase>().in(boost::di::singleton),
+        boost::di::bind<SetThemeModeUseCase>().in(boost::di::singleton),
+        boost::di::bind<ToggleThemeUseCase>().in(boost::di::singleton),
+        
+        // Recent Tab 领域（Phase 4 完成）
+        boost::di::bind<GetRecentTabUseCase>().in(boost::di::singleton),
+        boost::di::bind<SetRecentTabUseCase>().in(boost::di::singleton)
     );
 }
 ```
 
-### 迁移最佳实践
-1. **渐进式迁移**: 一次迁移一个领域
-2. **接口优先**: 先定义接口，再迁移实现
-3. **测试覆盖**: 确保迁移前后行为一致
-4. **向后兼容**: 保持旧代码可用直到完全迁移
-5. **统一接口**: 使用 UnifiedDependencyProvider 简化开发体验（✅ 已实现）
+### 迁移最佳实践（已完成）
+1. ✅ **渐进式迁移**: 一次迁移一个领域
+2. ✅ **接口优先**: 先定义接口，再迁移实现
+3. ✅ **测试覆盖**: 确保迁移前后行为一致
+4. ✅ **向后兼容**: 保持旧代码可用直到完全迁移
+5. ✅ **统一接口**: 使用 UnifiedDependencyProvider 简化开发体验
+6. ✅ **清理遗留**: 移除 DependencyProvider，实现纯 Boost.DI 架构
 
 ## 统一依赖注入实现
 

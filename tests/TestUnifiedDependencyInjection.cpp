@@ -3,10 +3,9 @@
 #include <QObject>
 #include <memory>
 
-// Include our unified DI components
+// Include our pure Boost.DI components - Phase 4 complete
 #include "UnifiedDependencyProvider.h"
 #include "DependencyMigrationTool.h"
-#include "DependencyProvider.h"
 #include "CompositionRoot.h"
 
 // Mock services for testing
@@ -18,133 +17,100 @@ class TestUnifiedDependencyInjection : public QObject
     Q_OBJECT
 
 public slots:
-    void testUnifiedProviderCompileTimeSystemDetection()
+    void testUnifiedProviderPureBoostDI()
     {
         auto& provider = UnifiedDependencyProvider::instance();
         
-        // Test compile-time system detection
-        QVERIFY(provider.isBoostDIManaged<domain::services::IFormulaService>());
-        QVERIFY(!provider.isBoostDIManaged<domain::usecases::GetSettingsUseCase>());
+        // Test that all services can be resolved through pure Boost.DI
+        try {
+            auto formulaService = provider.get<domain::services::IFormulaService>();
+            QVERIFY(formulaService != nullptr);
+            
+            auto settingsUseCase = provider.get<domain::usecases::GetSettingsUseCase>();
+            QVERIFY(settingsUseCase != nullptr);
+        } catch (const std::exception& e) {
+            QFAIL(QString("Failed to resolve services: %1").arg(e.what()).toLatin1());
+        }
     }
     
-    void testUnifiedProviderMigrationStatus()
-    {
-        auto& provider = UnifiedDependencyProvider::instance();
-        
-        // Test migration status reporting
-        const char* formulaStatus = provider.getMigrationStatus<domain::services::IFormulaService>();
-        const char* settingsStatus = provider.getMigrationStatus<domain::usecases::GetSettingsUseCase>();
-        
-        QVERIFY(QString(formulaStatus).contains("Boost.DI"));
-        QVERIFY(QString(formulaStatus).contains("migrated"));
-        QVERIFY(QString(settingsStatus).contains("Legacy"));
-        QVERIFY(QString(settingsStatus).contains("pending"));
-    }
-    
-    void testMigrationToolStatusTracking()
+    void testMigrationToolPhase4Complete()
     {
         auto& tool = DependencyMigrationTool::instance();
         
-        // Test migration report generation
+        // Test migration report generation - Phase 4 should show completion
         auto report = tool.generateMigrationReport();
         
         QVERIFY(report.totalServices > 0);
-        QVERIFY(report.migratedServices >= 1); // At least FormulaService should be migrated
-        QVERIFY(report.pendingServices >= 0);
-        QCOMPARE(report.totalServices, report.migratedServices + report.pendingServices);
-        
-        // Test completion percentage calculation
-        double expectedPercentage = (static_cast<double>(report.migratedServices) / report.totalServices) * 100.0;
-        QCOMPARE(report.completionPercentage, expectedPercentage);
+        // All services should be migrated in Phase 4
+        QCOMPARE(report.migratedServices, report.totalServices);
+        QCOMPARE(report.pendingServices, 0);
+        QCOMPARE(report.completionPercentage, 100.0);
     }
     
-    void testMigrationToolServiceStatus()
+    void testMigrationToolAllServicesCompleted()
     {
         auto& tool = DependencyMigrationTool::instance();
         
-        // Test specific service status
+        // Test that all services are marked as completed
         auto formulaStatus = tool.getServiceStatus("IFormulaService");
         auto settingsStatus = tool.getServiceStatus("GetSettingsUseCase");
         
         QCOMPARE(formulaStatus, DependencyMigrationTool::MigrationStatus::Completed);
-        QCOMPARE(settingsStatus, DependencyMigrationTool::MigrationStatus::NotStarted);
+        QCOMPARE(settingsStatus, DependencyMigrationTool::MigrationStatus::Completed);
         
         // Test unknown service
         auto unknownStatus = tool.getServiceStatus("UnknownService");
         QCOMPARE(unknownStatus, DependencyMigrationTool::MigrationStatus::NotStarted);
     }
     
-    void testMigrationToolPendingServices()
+    void testMigrationToolNoPendingServices()
     {
         auto& tool = DependencyMigrationTool::instance();
         
         auto pendingServices = tool.getPendingServices();
         
-        // Should have pending services since we haven't migrated everything
-        QVERIFY(!pendingServices.empty());
-        
-        // Should include known pending services
-        QVERIFY(std::find(pendingServices.begin(), pendingServices.end(), "GetSettingsUseCase") != pendingServices.end());
-        QVERIFY(std::find(pendingServices.begin(), pendingServices.end(), "UpdateSettingsUseCase") != pendingServices.end());
-        
-        // Should not include already migrated services
-        QVERIFY(std::find(pendingServices.begin(), pendingServices.end(), "IFormulaService") == pendingServices.end());
-    }
+        // Should have no pending services since Phase 4 is complete
+        QVERIFY(pendingServices.empty());
     
-    void testMigrationToolFullMigrationStatus()
+    void testMigrationToolFullyMigrated()
     {
         auto& tool = DependencyMigrationTool::instance();
         
-        // Should not be fully migrated yet
-        QVERIFY(!tool.isFullyMigrated());
+        // Should be fully migrated in Phase 4
+        QVERIFY(tool.isFullyMigrated());
         
-        // Verify we have the expected mix of migrated and pending services
+        // Verify all services are migrated and no pending services
         auto report = tool.generateMigrationReport();
-        QVERIFY(report.migratedServices > 0);  // Some services are migrated
-        QVERIFY(report.pendingServices > 0);   // Some services are still pending
+        QVERIFY(report.migratedServices > 0);
+        QCOMPARE(report.pendingServices, 0);
     }
     
     void testMigrationToolValidation()
     {
         auto& tool = DependencyMigrationTool::instance();
         
-        // Test migration validation (should pass for current state)
+        // Test migration validation (should pass for Phase 4 complete state)
         bool validationResult = tool.validateMigration();
-        QVERIFY(validationResult); // Should be true since our migrated services work
-    }
-    
-    void testMigrationProcessSimulation()
-    {
-        auto& tool = DependencyMigrationTool::instance();
-        
-        // Test starting migration for a pending service
-        bool migrationStarted = tool.migrateService("GetSettingsUseCase");
-        QVERIFY(migrationStarted);
-        
-        // Status should now be in progress
-        auto status = tool.getServiceStatus("GetSettingsUseCase");
-        QCOMPARE(status, DependencyMigrationTool::MigrationStatus::InProgress);
-        
-        // Test that trying to migrate an unknown service fails gracefully
-        bool unknownMigration = tool.migrateService("NonExistentService");
-        QVERIFY(!unknownMigration);
+        QVERIFY(validationResult); // Should be true since all services are migrated
     }
     
     void testUnifiedProviderErrorHandling()
     {
         auto& provider = UnifiedDependencyProvider::instance();
         
-        // Test that accessing services before initialization throws appropriate errors
-        // Note: In a real test, we would reset the provider state first
-        // For now, we just verify that the methods exist and can be called
-        
+        // Test that accessing services works correctly with pure Boost.DI
         try {
-            // This should work if the provider was properly initialized in main
+            // This should work since all services are now in Boost.DI
             auto formulaService = provider.get<domain::services::IFormulaService>();
             QVERIFY(formulaService != nullptr);
+            
+            auto settingsUseCase = provider.get<domain::usecases::GetSettingsUseCase>();
+            QVERIFY(settingsUseCase != nullptr);
         } catch (const std::exception& e) {
-            // If it throws, it should be a meaningful error
-            QVERIFY(QString(e.what()).length() > 0);
+            // If it throws, log the error for debugging
+            qDebug() << "Error accessing services:" << e.what();
+            // In Phase 4, this should not happen
+            QFAIL("Services should be accessible through pure Boost.DI");
         }
     }
 };
