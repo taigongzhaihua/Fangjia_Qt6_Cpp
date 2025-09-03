@@ -6,16 +6,15 @@
  * 备注：实现包装类，转发配置到运行时组件，确保行为一致性
  */
 
-#include "NavTopBarWidgets.h"
-#include "UiComponent.hpp"
-#include "RenderUtils.hpp"
 #include "IconCache.h"
-#include <memory>
+#include "NavTopBarWidgets.h"
+#include "RenderUtils.hpp"
+#include "UiComponent.hpp"
 #include <algorithm>
 #include <cmath>
+#include <memory>
 #include <qelapsedtimer.h>
 #include <qopenglfunctions.h>
-#include <qglobal.h>
 
 namespace UI {
 
@@ -150,16 +149,17 @@ namespace UI {
 				m_followSystem = startState; // 临时设置为起始状态
 				m_themeAlpha = startState ? 0.0f : 1.0f;
 				m_followSlide = startState ? 1.0f : 0.0f;
-				
+
 				// 启动动画序列到目标状态
 				m_followSystem = followSystem; // 设置真正的目标状态
 				startAnimSequence(followSystem);
-			} else {
+			}
+			else {
 				// 无动画，直接设置最终状态
 				m_themeAlpha = followSystem ? 0.0f : 1.0f;
 				m_followSlide = followSystem ? 1.0f : 0.0f;
 			}
-			
+
 			m_btnTheme.setOpacity(m_themeAlpha);
 			m_btnTheme.setEnabled(themeInteractive());
 
@@ -208,8 +208,8 @@ namespace UI {
 		}
 
 		void updateResourceContext(IconCache& iconCache, QOpenGLFunctions* gl, const float devicePixelRatio) override {
-			m_cache = &iconCache; 
-			m_gl = gl; 
+			m_cache = &iconCache;
+			m_gl = gl;
 			m_dpr = std::max(0.5f, devicePixelRatio);
 
 			if (!m_cache || !m_gl) return;
@@ -291,8 +291,8 @@ namespace UI {
 		bool onWheel(const QPoint& pos, const QPoint& angleDelta) override {
 			// 顶栏不处理滚轮事件
 			Q_UNUSED(pos)
-			Q_UNUSED(angleDelta)
-			return false;
+				Q_UNUSED(angleDelta)
+				return false;
 		}
 
 		bool tick() override {
@@ -389,12 +389,12 @@ namespace UI {
 
 	private:
 		// 动画状态枚举
-		enum class AnimPhase : uint8_t { 
-			Idle, 
-			HideTheme_FadeOut, 
-			MoveFollow_Right, 
-			MoveFollow_Left, 
-			ShowTheme_FadeIn 
+		enum class AnimPhase : uint8_t {
+			Idle,
+			HideTheme_FadeOut,
+			MoveFollow_Right,
+			MoveFollow_Left,
+			ShowTheme_FadeIn
 		};
 
 		// 动画工具函数
@@ -403,14 +403,14 @@ namespace UI {
 			return t * t * (3.0f - 2.0f * t);
 		}
 
-		static float lerp(const float a, const float b, const float t) { 
-			return a + (b - a) * t; 
+		static float lerp(const float a, const float b, const float t) {
+			return a + (b - a) * t;
 		}
 
 		// 动画控制方法
 		void setFollowSystem(const bool on, const bool animate) {
 			if (m_followSystem == on && !animate) return; // No change and no forced animation
-			
+
 			if (!animate) {
 				// 立即设置状态，无动画
 				m_followSystem = on;
@@ -421,7 +421,7 @@ namespace UI {
 				m_btnTheme.setEnabled(themeInteractive());
 				return;
 			}
-			
+
 			// 启用动画：只有状态真正改变时才启动动画
 			if (m_followSystem != on) {
 				m_followSystem = on;
@@ -471,7 +471,7 @@ namespace UI {
 
 		void setupSvgIcon(Ui::Button& btn, const QString& baseKey, const QString& svgPath, int iconLogical) {
 			if (!m_cache || !m_gl || svgPath.isEmpty()) return;
-			
+
 			btn.setIconPainter([this, baseKey, svgPath, iconLogical](const QRectF& r, Render::FrameData& fd, const QColor& iconColor, float) {
 				if (!m_cache || !m_gl) return;
 				const int px = std::lround(iconLogical * m_dpr);

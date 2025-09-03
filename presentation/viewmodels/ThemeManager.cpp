@@ -1,9 +1,9 @@
+#include "GetThemeModeUseCase.h"
+#include "SetThemeModeUseCase.h"
+#include "Theme.h"
 #include "ThemeManager.h"
-#include "entities/Theme.h"
-#include "usecases/GetThemeModeUseCase.h"
-#include "usecases/SetThemeModeUseCase.h"
 
-#include <qglobal.h>
+#include <memory>
 #include <qguiapplication.h>
 #include <qnamespace.h>
 #include <qobject.h>
@@ -11,6 +11,8 @@
 #include <qstring.h>
 #include <qstylehints.h>
 #include <qtmetamacros.h>
+#include <qtversionchecks.h>
+#include <utility>
 
 namespace {
 	constexpr auto K_SETTINGS_GROUP = "Theme";
@@ -51,8 +53,8 @@ ThemeManager::ThemeManager(QObject* parent)
 }
 
 ThemeManager::ThemeManager(std::shared_ptr<domain::usecases::GetThemeModeUseCase> getThemeUseCase,
-                           std::shared_ptr<domain::usecases::SetThemeModeUseCase> setThemeUseCase,
-                           QObject* parent)
+	std::shared_ptr<domain::usecases::SetThemeModeUseCase> setThemeUseCase,
+	QObject* parent)
 	: QObject(parent)
 	, m_getThemeUseCase(std::move(getThemeUseCase))
 	, m_setThemeUseCase(std::move(setThemeUseCase))
@@ -123,7 +125,8 @@ void ThemeManager::load()
 		// Use domain use case
 		const auto domainMode = m_getThemeUseCase->execute();
 		setMode(fromDomainThemeMode(static_cast<int>(domainMode)));
-	} else {
+	}
+	else {
 		// Fallback to QSettings for backward compatibility
 		QSettings s;
 		s.beginGroup(K_SETTINGS_GROUP);
@@ -139,7 +142,8 @@ void ThemeManager::save() const
 		// Use domain use case
 		const auto domainMode = static_cast<domain::entities::ThemeMode>(toDomainThemeMode(m_mode));
 		m_setThemeUseCase->execute(domainMode);
-	} else {
+	}
+	else {
 		// Fallback to QSettings for backward compatibility
 		QSettings s;
 		s.beginGroup(K_SETTINGS_GROUP);

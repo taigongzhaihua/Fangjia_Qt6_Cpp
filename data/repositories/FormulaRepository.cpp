@@ -1,13 +1,12 @@
+#include "Formula.h"
 #include "FormulaRepository.h"
 #include "SqliteDatabase.h"
-#include "entities/Formula.h"
-#include <exception>
 #include <memory>
+#include <qcontainerfwd.h>
 #include <qlogging.h>
 #include <qsqldatabase.h>
 #include <qsqlerror.h>
 #include <qsqlquery.h>
-#include <qstandardpaths.h>
 #include <qstring.h>
 #include <qvariant.h>
 #include <string>
@@ -28,7 +27,8 @@ namespace data::repositories
 			m_database = std::make_unique<QSqlDatabase>(db);
 			m_isInitialized = true;
 			qDebug() << "[FormulaRepository] Using shared database connection:" << db.databaseName();
-		} else {
+		}
+		else {
 			qWarning() << "[FormulaRepository] Failed to get shared database connection";
 			m_isInitialized = false;
 		}
@@ -56,7 +56,7 @@ namespace data::repositories
 
 		QSqlQuery query(*m_database);
 		const QString sql = "SELECT DISTINCT FirstCategory FROM Category WHERE FirstCategory IS NOT NULL AND FirstCategory != '' ORDER BY FirstCategory";
-		
+
 		if (!query.prepare(sql)) {
 			qWarning() << "[FormulaRepository] Failed to prepare first categories query:" << query.lastError().text();
 			return categories;
@@ -153,11 +153,11 @@ namespace data::repositories
 			formulaNode.label = qStringToStdString(name);
 			formulaNode.level = 2;
 			formulaNode.parentId = qStringToStdString(firstCategory + "_" + secondCategory);
-			
+
 			// Load the detail for this formula
 			formulaNode.detail = loadFormulaDetail(formulaNode.id);
 			formulaNode.hasDetail = formulaNode.detail.hasDetail;
-			
+
 			nodes.push_back(std::move(formulaNode));
 		}
 
@@ -174,7 +174,7 @@ namespace data::repositories
 		}
 
 		QSqlQuery query(*m_database);
-		
+
 		// Load formulation details from the real schema
 		query.prepare("SELECT * FROM Formulation WHERE Id = ?");
 		query.addBindValue(stdStringToQString(formulaId).toInt());
@@ -197,7 +197,7 @@ namespace data::repositories
 			QSqlQuery compQuery(*m_database);
 			compQuery.prepare("SELECT DrugName FROM FormulationComposition WHERE FormulationId = ? ORDER BY Position");
 			compQuery.addBindValue(stdStringToQString(formulaId).toInt());
-			
+
 			if (compQuery.exec()) {
 				QStringList drugs;
 				while (compQuery.next()) {

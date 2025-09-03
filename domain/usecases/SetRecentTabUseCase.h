@@ -13,7 +13,7 @@ namespace domain::usecases
 
 		/// Set the recent tab ID in settings and save
 	/// @param tabId New recent tab ID to set
-		void execute(const std::string& tabId);
+		void execute(const std::string& tabId) const;
 
 	private:
 		std::shared_ptr<repositories::ISettingsRepository> m_repository;

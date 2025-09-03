@@ -1,4 +1,8 @@
 #include "SetThemeModeUseCase.h"
+#include <ISettingsRepository.h>
+#include <memory>
+#include <Theme.h>
+#include <utility>
 
 namespace domain::usecases
 {
@@ -8,7 +12,7 @@ namespace domain::usecases
 	{
 	}
 
-	void SetThemeModeUseCase::execute(entities::ThemeMode mode)
+	void SetThemeModeUseCase::execute(entities::ThemeMode mode) const
 	{
 		auto settings = m_repository->getSettings();
 		settings.themeMode = entities::themeModeToString(mode);

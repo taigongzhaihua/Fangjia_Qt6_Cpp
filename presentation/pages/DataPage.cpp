@@ -1,17 +1,15 @@
 #include "AppConfig.h"
 #include "DataPage.h"
 #include "DataViewModel.h"
-#include "SettingsRepository.h"
-#include "usecases/GetRecentTabUseCase.h"
-#include "usecases/SetRecentTabUseCase.h"
-#include "UI.h"
 #include "FormulaContent.h"
-#include "FormulaViewModel.h"
-#include "tab_interface.h"
 #include "FormulaRepository.h"
-#include "services/FormulaService.h"
+#include "FormulaService.h"
+#include "FormulaViewModel.h"
+#include "GetRecentTabUseCase.h"
+#include "SetRecentTabUseCase.h"
+#include "SettingsRepository.h"
+#include "UI.h"
 #include <BasicWidgets.h>
-#include <ComponentWrapper.h>
 #include <Layouts.h>
 #include <memory>
 #include <qlogging.h>
@@ -46,11 +44,11 @@ public:
 		// Create Formula service chain: Repository → Service → ViewModel
 		auto formulaRepository = std::make_shared<data::repositories::FormulaRepository>();
 		auto formulaService = std::make_shared<domain::services::FormulaService>(formulaRepository);
-		
+
 		// Create FormulaViewModel with service injection
 		formulaViewModel = std::make_unique<FormulaViewModel>(formulaService);
 		formulaViewModel->loadData(); // Load data (from service or fallback to sample)
-		
+
 		// 创建方剂内容组件（非拥有ViewModel）
 		formulaContent = std::make_shared<FormulaContent>(formulaViewModel.get());
 	}

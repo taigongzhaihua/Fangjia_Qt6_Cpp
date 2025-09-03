@@ -1,7 +1,10 @@
 #pragma once
-#include <qbytearray.h>
+#include <qchar.h>
 #include <qcolor.h>
+#include <qfont.h>
 #include <qimage.h>
+#include <qsize.h>
+#include <qstring.h>
 
 class QSvgRenderer;
 

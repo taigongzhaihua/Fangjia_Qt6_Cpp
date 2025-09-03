@@ -21,6 +21,15 @@ target_include_directories(FangJia_Tests PRIVATE
     ${CMAKE_SOURCE_DIR}/data/sources/local
     ${CMAKE_SOURCE_DIR}/data/repositories
     ${CMAKE_SOURCE_DIR}/domain
+    ${CMAKE_SOURCE_DIR}/domain/entities
+    ${CMAKE_SOURCE_DIR}/domain/repositories
+    ${CMAKE_SOURCE_DIR}/domain/services
+    ${CMAKE_SOURCE_DIR}/domain/usecases
+    ${CMAKE_SOURCE_DIR}/infrastructure/gfx
+    ${CMAKE_SOURCE_DIR}/infrastructure/platform
+    ${CMAKE_SOURCE_DIR}/presentation/pages
+    ${CMAKE_SOURCE_DIR}/presentation/views
+    ${CMAKE_SOURCE_DIR}/presentation/views/formula
     ${CMAKE_SOURCE_DIR}/presentation/viewmodels
     ${CMAKE_SOURCE_DIR}/presentation/ui/base
     ${CMAKE_SOURCE_DIR}/presentation/ui/declarative
@@ -51,73 +60,6 @@ endif()
 
 # 添加测试
 add_test(NAME AllTests COMMAND FangJia_Tests)
-
-# 单独的 Settings DI 测试
-# add_executable(SettingsDI_Test test_settings_di.cpp ${CMAKE_SOURCE_DIR}/apps/fangjia/CompositionRoot.cpp)
-
-# target_include_directories(SettingsDI_Test PRIVATE
-#     ${CMAKE_CURRENT_SOURCE_DIR}
-#     ${CMAKE_SOURCE_DIR}
-#     ${CMAKE_SOURCE_DIR}/data/sources/local
-#     ${CMAKE_SOURCE_DIR}/data/repositories
-#     ${CMAKE_SOURCE_DIR}/domain
-#     ${CMAKE_SOURCE_DIR}/apps/fangjia
-#     ${boost_di_SOURCE_DIR}/include
-# )
-
-# target_link_libraries(SettingsDI_Test PRIVATE
-#     Qt6::Core
-#     fj_domain
-#     fj_data
-# )
-
-# add_test(NAME SettingsDITest COMMAND SettingsDI_Test)
-
-# Phase 3 Migration Validation Test
-add_executable(Phase3Migration_Test test_phase3_migration.cpp
-    ${CMAKE_SOURCE_DIR}/apps/fangjia/UnifiedDependencyProvider.cpp
-    ${CMAKE_SOURCE_DIR}/apps/fangjia/DependencyMigrationTool.cpp
-    ${CMAKE_SOURCE_DIR}/apps/fangjia/CompositionRoot.cpp
-    ${CMAKE_SOURCE_DIR}/apps/fangjia/DependencyProvider.cpp
-)
-
-target_include_directories(Phase3Migration_Test PRIVATE
-    ${CMAKE_CURRENT_SOURCE_DIR}
-    ${CMAKE_SOURCE_DIR}
-    ${CMAKE_SOURCE_DIR}/data/sources/local
-    ${CMAKE_SOURCE_DIR}/data/repositories
-    ${CMAKE_SOURCE_DIR}/domain
-    ${CMAKE_SOURCE_DIR}/apps/fangjia
-    ${boost_di_SOURCE_DIR}/include
-)
-
-target_link_libraries(Phase3Migration_Test PRIVATE
-    Qt6::Core
-    fj_domain
-    fj_data
-)
-
-add_test(NAME Phase3MigrationTest COMMAND Phase3Migration_Test)
-
-# 设置测试环境
-set_tests_properties(AllTests PROPERTIES
-    ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_LOGGING_RULES=qt.qpa.gl=false"
-    TIMEOUT 60
-)
-
-# 代码覆盖率（可选）
-if(CMAKE_BUILD_TYPE STREQUAL "Debug" AND CMAKE_COMPILER_IS_GNUCXX)
-    target_compile_options(FangJia_Tests PRIVATE --coverage)
-    target_link_options(FangJia_Tests PRIVATE --coverage)
-endif()
-
-# 自定义测试目标
-add_custom_target(run_tests
-    COMMAND ${CMAKE_CTEST_COMMAND} --output-on-failure
-    DEPENDS FangJia_Tests
-    WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
-    COMMENT "Running all tests..."
-)
 
 # 性能测试目标
 add_custom_target(perf_tests

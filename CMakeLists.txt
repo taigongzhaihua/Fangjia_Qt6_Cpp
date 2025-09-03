@@ -199,6 +199,10 @@ file(GLOB FJ_DOMAIN_SOURCES
 add_library(fj_domain STATIC ${FJ_DOMAIN_SOURCES})
 target_include_directories(fj_domain PUBLIC 
     domain
+    domain/entities
+    domain/repositories
+    domain/services
+    domain/usecases
     ${boost_di_SOURCE_DIR}/include
 )
 

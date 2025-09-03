@@ -15,7 +15,7 @@ namespace domain::usecases
 		~ToggleThemeUseCase() = default;
 
 		/// Execute the use case - cycle to next theme mode and return the new mode
-		std::string execute();
+		std::string execute() const;
 
 	private:
 		std::shared_ptr<repositories::ISettingsRepository> m_repository;

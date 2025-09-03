@@ -1,17 +1,16 @@
-#include "UiScrollView.h"
-#include <algorithm>
-#include "ILayoutable.hpp"
 #include "IFocusable.hpp"
 #include "IFocusContainer.hpp"
-#include <qcolor.h>
-#include <qpoint.h>
-#include <qrect.h>
-#include <qsize.h>
-#include <qglobal.h>
+#include "ILayoutable.hpp"
 #include "RenderData.hpp"
 #include "RenderUtils.hpp"
 #include "UiComponent.hpp"
 #include "UiContent.hpp"
+#include "UiScrollView.h"
+#include <algorithm>
+#include <qcolor.h>
+#include <qpoint.h>
+#include <qrect.h>
+#include <qsize.h>
 
 UiScrollView::UiScrollView() {
 	applyTheme(false); // 初始化为浅色主题
@@ -50,7 +49,8 @@ QSize UiScrollView::measure(const SizeConstraints& cs) {
 		SizeConstraints childCs = cs;         // bounded by parent for viewport
 		childCs.maxW = std::max(0, cs.maxW - SCROLLBAR_WIDTH);
 		childSizeForViewport = layoutable->measure(childCs);
-	} else {
+	}
+	else {
 		childSizeForViewport = m_child->bounds().size();
 	}
 
@@ -60,7 +60,8 @@ QSize UiScrollView::measure(const SizeConstraints& cs) {
 		const SizeConstraints contentCs = SizeConstraints::widthBounded(widthForContent);
 		const QSize intrinsic = layoutable->measure(contentCs);
 		m_contentHeight = intrinsic.height();
-	} else {
+	}
+	else {
 		m_contentHeight = m_child->bounds().height();
 	}
 
@@ -539,14 +540,14 @@ QRect UiScrollView::getDownButtonRect() const {
 void UiScrollView::enumerateFocusables(std::vector<IFocusable*>& out) const
 {
 	if (!m_child) return;
-	
+
 	// 如果子组件本身可以获得焦点，添加它
 	if (auto* focusable = dynamic_cast<IFocusable*>(m_child)) {
 		if (focusable->canFocus()) {
 			out.push_back(focusable);
 		}
 	}
-	
+
 	// 如果子组件是容器，递归枚举其可焦点子组件
 	if (auto* container = dynamic_cast<IFocusContainer*>(m_child)) {
 		container->enumerateFocusables(out);

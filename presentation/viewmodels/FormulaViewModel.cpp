@@ -1,9 +1,17 @@
+#include "Formula.h"
 #include "FormulaViewModel.h"
-#include "services/FormulaService.h"
-#include "entities/Formula.h"
 #include "ServiceRegistry.h"
-#include <QHash>
+#include "FormulaService.h"
+#include <exception>
+#include <memory>
+#include <qcontainerfwd.h>
+#include <qhash.h>
+#include <qlogging.h>
+#include <qobject.h>
+#include <qstring.h>
 #include <QDebug>
+#include <qtmetamacros.h>
+#include <utility>
 
 FormulaViewModel::FormulaViewModel(QObject* parent)
 	: QObject(parent)
@@ -32,7 +40,7 @@ void FormulaViewModel::clearData()
 	}
 	m_nodes.clear();
 	m_selectedIdx = -1;
-	
+
 	// Only emit signal if not destroying to avoid callbacks on destroyed objects
 	if (!m_isDestroying) {
 		emit dataChanged();
@@ -168,7 +176,7 @@ void FormulaViewModel::setSelectedIndex(const int idx)
 {
 	// Guard against modification during destruction
 	if (m_isDestroying) return;
-	
+
 	if (idx < -1 || idx >= m_nodes.size()) return;
 	if (m_selectedIdx == idx) return;
 
@@ -188,7 +196,7 @@ void FormulaViewModel::setExpanded(const int idx, const bool expanded)
 {
 	// Guard against modification during destruction
 	if (m_isDestroying) return;
-	
+
 	if (idx < 0 || idx >= m_nodes.size()) return;
 	if (m_nodes[idx].expanded == expanded) return;
 
@@ -206,7 +214,7 @@ const FormulaViewModel::FormulaDetail* FormulaViewModel::selectedFormula() const
 	if (m_isDestroying) {
 		return nullptr;
 	}
-	
+
 	if (m_selectedIdx >= 0 && m_selectedIdx < m_nodes.size()) {
 		return m_nodes[m_selectedIdx].detail;
 	}
@@ -218,7 +226,8 @@ void FormulaViewModel::loadData()
 	// Try service first, fallback to sample data
 	if (m_formulaService && m_formulaService->isDataAvailable()) {
 		loadDataFromService();
-	} else {
+	}
+	else {
 		loadSampleData();
 	}
 }
@@ -226,18 +235,18 @@ void FormulaViewModel::loadData()
 void FormulaViewModel::loadDataFromService()
 {
 	clearData();
-	
+
 	if (!m_formulaService || !m_formulaService->isDataAvailable()) {
 		return;
 	}
-	
+
 	try {
 		// Load the formula tree from service
 		auto domainNodes = m_formulaService->getFormulaTree();
-		
+
 		// Build parent index mapping for hierarchical structure
 		QHash<QString, int> idToIndex;
-		
+
 		// First pass: create all nodes and map IDs to indices
 		for (const auto& domainNode : domainNodes) {
 			TreeNode node;
@@ -247,16 +256,16 @@ void FormulaViewModel::loadDataFromService()
 			node.expanded = false;
 			node.parentIndex = -1; // Will be set in second pass
 			node.detail = nullptr;
-			
+
 			// Convert domain detail to ViewModel detail for formulas
 			if (domainNode.hasDetail) {
 				node.detail = convertDomainDetail(domainNode.detail);
 			}
-			
+
 			idToIndex[node.id] = m_nodes.size();
 			m_nodes.append(node);
 		}
-		
+
 		// Second pass: set parent indices
 		for (int i = 0; i < domainNodes.size(); ++i) {
 			const auto& domainNode = domainNodes[i];
@@ -267,25 +276,26 @@ void FormulaViewModel::loadDataFromService()
 				}
 			}
 		}
-		
+
 		// Only emit signal if not destroying
 		if (!m_isDestroying) {
 			emit dataChanged();
 		}
-		
-	} catch (const std::exception& e) {
+
+	}
+	catch (const std::exception& e) {
 		qWarning() << "[FormulaViewModel] Failed to load data from service:" << e.what();
 		// Fallback to sample data on error
 		loadSampleData();
 	}
 }
 
-FormulaViewModel::FormulaDetail* FormulaViewModel::convertDomainDetail(const domain::entities::FormulaDetail& domainDetail)
+FormulaViewModel::FormulaDetail* FormulaViewModel::convertDomainDetail(const domain::entities::FormulaDetail& domainDetail) const
 {
 	if (!domainDetail.hasDetail) {
 		return nullptr;
 	}
-	
+
 	return new FormulaDetail{
 		.name = QString::fromStdString(domainDetail.name),
 		.source = QString::fromStdString(domainDetail.source),

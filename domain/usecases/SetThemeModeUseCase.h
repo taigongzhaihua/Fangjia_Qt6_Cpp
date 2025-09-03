@@ -13,7 +13,7 @@ namespace domain::usecases
 
 		/// Set the theme mode in settings and save
 	/// @param mode New theme mode to set
-		void execute(entities::ThemeMode mode);
+		void execute(entities::ThemeMode mode) const;
 
 	private:
 		std::shared_ptr<repositories::ISettingsRepository> m_repository;

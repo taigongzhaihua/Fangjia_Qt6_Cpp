@@ -1,4 +1,8 @@
 #include "ToggleThemeUseCase.h"
+#include <ISettingsRepository.h>
+#include <memory>
+#include <string>
+#include <utility>
 
 namespace domain::usecases
 {
@@ -8,7 +12,7 @@ namespace domain::usecases
 	{
 	}
 
-	std::string ToggleThemeUseCase::execute()
+	std::string ToggleThemeUseCase::execute() const
 	{
 		auto settings = m_repository->getSettings();
 		const std::string newMode = getNextThemeMode(settings.themeMode);

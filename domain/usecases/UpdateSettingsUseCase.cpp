@@ -1,4 +1,8 @@
 #include "UpdateSettingsUseCase.h"
+#include <ISettingsRepository.h>
+#include <memory>
+#include <Settings.h>
+#include <utility>
 
 namespace domain::usecases
 {
@@ -8,7 +12,7 @@ namespace domain::usecases
 	{
 	}
 
-	void UpdateSettingsUseCase::execute(const entities::Settings& settings, bool saveImmediately)
+	void UpdateSettingsUseCase::execute(const entities::Settings& settings, bool saveImmediately) const
 	{
 		m_repository->updateSettings(settings);
 		if (saveImmediately) {

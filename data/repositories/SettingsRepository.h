@@ -1,6 +1,6 @@
 #pragma once
-#include "entities/Settings.h"
-#include "repositories/ISettingsRepository.h"
+#include "ISettingsRepository.h"
+#include "Settings.h"
 #include <memory>
 
 // Forward declaration to avoid Qt includes in header

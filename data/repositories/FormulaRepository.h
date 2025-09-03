@@ -1,5 +1,5 @@
 #pragma once
-#include "repositories/IFormulaRepository.h"
+#include "IFormulaRepository.h"
 #include <memory>
 #include <QString>
 

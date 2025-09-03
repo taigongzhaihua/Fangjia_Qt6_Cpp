@@ -7,35 +7,34 @@
  */
 
 #pragma once
-#include "UiComponent.hpp"
-#include "UiContent.hpp"
-#include "ILayoutable.hpp"
 #include "IFocusable.hpp"
 #include "IKeyInput.hpp"
+#include "ILayoutable.hpp"
 #include "UiButton.hpp"
-#include "RenderUtils.hpp"
+#include "UiComponent.hpp"
+#include "UiContent.hpp"
 
+#include <functional>
 #include <qfont.h>
 #include <qmargins.h>
 #include <qstring.h>
-#include <functional>
 
-/// 可重用按钮运行时组件：实现完整的按钮功能包括文本、图标、状态管理
-/// 
-/// 功能特性：
-/// - 支持纯文本、纯图标或文本+图标组合
-/// - 多种预设尺寸（S/M/L）和视觉变体（Primary/Secondary/Ghost）
-/// - 完整的交互状态：正常/悬停/按下/禁用
-/// - 主题自适应的颜色方案
-/// - DPR优化的文本和图标渲染
-/// - 可定制的圆角半径和内边距
-/// 
-/// 使用方式：
-/// UiPushButton btn;
-/// btn.setText("保存");
-/// btn.setVariant(UiPushButton::Variant::Primary);
-/// btn.setSize(UiPushButton::Size::M);
-/// btn.setOnTap([](){ /* 点击处理 */ });
+ /// 可重用按钮运行时组件：实现完整的按钮功能包括文本、图标、状态管理
+ /// 
+ /// 功能特性：
+ /// - 支持纯文本、纯图标或文本+图标组合
+ /// - 多种预设尺寸（S/M/L）和视觉变体（Primary/Secondary/Ghost）
+ /// - 完整的交互状态：正常/悬停/按下/禁用
+ /// - 主题自适应的颜色方案
+ /// - DPR优化的文本和图标渲染
+ /// - 可定制的圆角半径和内边距
+ /// 
+ /// 使用方式：
+ /// UiPushButton btn;
+ /// btn.setText("保存");
+ /// btn.setVariant(UiPushButton::Variant::Primary);
+ /// btn.setSize(UiPushButton::Size::M);
+ /// btn.setOnTap([](){ /* 点击处理 */ });
 class UiPushButton final : public IUiComponent, public IUiContent, public ILayoutable, public IFocusable, public IKeyInput {
 public:
 	/// 按钮视觉变体
@@ -61,7 +60,7 @@ public:
 	/// 功能：设置按钮文本
 	/// 参数：text — 显示的文本内容
 	void setText(const QString& text) { m_text = text; }
-	
+
 	/// 功能：获取按钮文本
 	/// 返回：当前设置的文本内容
 	const QString& text() const { return m_text; }
@@ -78,7 +77,7 @@ public:
 	/// 功能：设置按钮变体样式
 	/// 参数：variant — 视觉变体类型
 	void setVariant(Variant variant) { m_variant = variant; }
-	
+
 	/// 功能：获取按钮变体
 	/// 返回：当前的视觉变体
 	Variant variant() const { return m_variant; }
@@ -86,7 +85,7 @@ public:
 	/// 功能：设置按钮尺寸
 	/// 参数：size — 尺寸预设
 	void setSize(Size size) { m_size = size; }
-	
+
 	/// 功能：获取按钮尺寸
 	/// 返回：当前的尺寸预设
 	Size size() const { return m_size; }
@@ -98,14 +97,14 @@ public:
 	/// 功能：设置内边距覆盖
 	/// 参数：padding — 自定义内边距，空值使用预设
 	void setPadding(const QMargins& padding) { m_customPadding = padding; m_useCustomPadding = true; }
-	
+
 	/// 功能：清除内边距覆盖，恢复预设
 	void clearCustomPadding() { m_useCustomPadding = false; }
 
 	/// 功能：设置禁用状态
 	/// 参数：disabled — 是否禁用
 	void setDisabled(bool disabled) { m_disabled = disabled; }
-	
+
 	/// 功能：获取禁用状态
 	/// 返回：是否处于禁用状态
 	bool isDisabled() const { return m_disabled; }
@@ -161,22 +160,22 @@ private:
 	QString m_iconLightPath;
 	QString m_iconDarkPath;
 	bool m_useThemeIconPaths{ false };
-	
+
 	Variant m_variant{ Variant::Primary };
 	Size m_size{ Size::M };
 	float m_cornerRadius{ 8.0f };
-	
+
 	QMargins m_customPadding;
 	bool m_useCustomPadding{ false };
 	bool m_disabled{ false };
-	
+
 	std::function<void()> m_onTap;
 
 	// === 运行时状态 ===
 	QRect m_bounds;
 	bool m_isDarkTheme{ false };
 	bool m_focused{ false };  // 焦点状态
-	
+
 	// === 渲染资源 ===
 	IconCache* m_cache{ nullptr };
 	QOpenGLFunctions* m_gl{ nullptr };

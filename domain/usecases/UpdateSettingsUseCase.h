@@ -14,7 +14,7 @@ namespace domain::usecases
 		~UpdateSettingsUseCase() = default;
 
 		/// Execute the use case - update settings and optionally save immediately
-		void execute(const entities::Settings& settings, bool saveImmediately = true);
+		void execute(const entities::Settings& settings, bool saveImmediately = true) const;
 
 	private:
 		std::shared_ptr<repositories::ISettingsRepository> m_repository;
