@@ -409,5 +409,4 @@ void MainOpenGlWindow::resizeGL(int w, int h) {
 ## 相关文档
 
 - [表现层架构概览](../presentation/architecture.md) - UI 组件如何使用渲染系统
-- [UI 基础部件与容器](../presentation/ui/components.md) - 组件的渲染实现示例
-- [Windows 平台集成](../platform/windows.md) - 平台特定的渲染优化
+- [Windows 平台集成](platform-windows.md) - 平台特定的渲染优化

@@ -105,6 +105,5 @@ void UiTopBar::onThemeChanged(bool isDark) {
 
 ## 相关文档
 
-- [Windows 平台集成](../../platform/windows.md)
+- [Windows 平台集成](../../infrastructure/platform-windows.md)
 - [主题与渲染](../ui-framework/theme-and-rendering.md)
-- [声明式 TopBar](../ui/topbar/declarative-topbar.md)

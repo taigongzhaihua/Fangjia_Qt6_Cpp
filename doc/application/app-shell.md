@@ -361,6 +361,5 @@ auto createResponsiveShell() {
 ## Related Documentation
 
 - [Presentation Architecture Overview](../presentation/architecture.md) - AppShell's position in the overall architecture
-- [UI Components & Containers](../presentation/ui/components.md) - Layout containers used internally by AppShell
-- [Declarative TopBar Component](../presentation/ui/topbar/declarative-topbar.md) - Specific TopBar component configuration
+- [TopBar Component](../presentation/components/top-bar.md) - Specific TopBar component configuration
 - [Binding & Reactive Rebuild](../presentation/binding.md) - Reactive mechanisms in AppShell
