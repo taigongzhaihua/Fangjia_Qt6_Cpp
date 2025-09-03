@@ -53,9 +53,35 @@ endif()
 add_test(NAME AllTests COMMAND FangJia_Tests)
 
 # 单独的 Settings DI 测试
-add_executable(SettingsDI_Test test_settings_di.cpp ${CMAKE_SOURCE_DIR}/apps/fangjia/CompositionRoot.cpp)
+# add_executable(SettingsDI_Test test_settings_di.cpp ${CMAKE_SOURCE_DIR}/apps/fangjia/CompositionRoot.cpp)
 
-target_include_directories(SettingsDI_Test PRIVATE
+# target_include_directories(SettingsDI_Test PRIVATE
+#     ${CMAKE_CURRENT_SOURCE_DIR}
+#     ${CMAKE_SOURCE_DIR}
+#     ${CMAKE_SOURCE_DIR}/data/sources/local
+#     ${CMAKE_SOURCE_DIR}/data/repositories
+#     ${CMAKE_SOURCE_DIR}/domain
+#     ${CMAKE_SOURCE_DIR}/apps/fangjia
+#     ${boost_di_SOURCE_DIR}/include
+# )
+
+# target_link_libraries(SettingsDI_Test PRIVATE
+#     Qt6::Core
+#     fj_domain
+#     fj_data
+# )
+
+# add_test(NAME SettingsDITest COMMAND SettingsDI_Test)
+
+# Phase 3 Migration Validation Test
+add_executable(Phase3Migration_Test test_phase3_migration.cpp
+    ${CMAKE_SOURCE_DIR}/apps/fangjia/UnifiedDependencyProvider.cpp
+    ${CMAKE_SOURCE_DIR}/apps/fangjia/DependencyMigrationTool.cpp
+    ${CMAKE_SOURCE_DIR}/apps/fangjia/CompositionRoot.cpp
+    ${CMAKE_SOURCE_DIR}/apps/fangjia/DependencyProvider.cpp
+)
+
+target_include_directories(Phase3Migration_Test PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}
     ${CMAKE_SOURCE_DIR}
     ${CMAKE_SOURCE_DIR}/data/sources/local
@@ -65,13 +91,13 @@ target_include_directories(SettingsDI_Test PRIVATE
     ${boost_di_SOURCE_DIR}/include
 )
 
-target_link_libraries(SettingsDI_Test PRIVATE
+target_link_libraries(Phase3Migration_Test PRIVATE
     Qt6::Core
     fj_domain
     fj_data
 )
 
-add_test(NAME SettingsDITest COMMAND SettingsDI_Test)
+add_test(NAME Phase3MigrationTest COMMAND Phase3Migration_Test)
 
 # 设置测试环境
 set_tests_properties(AllTests PROPERTIES

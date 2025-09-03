@@ -19,14 +19,27 @@ void DependencyMigrationTool::initializeKnownServices()
     trackService("IFormulaService", "Boost.DI", "Boost.DI");
     markServiceMigrated("IFormulaService"); // Already migrated
     
-    // Services pending migration from legacy provider
-    trackService("GetSettingsUseCase", "Legacy", "Boost.DI");
-    trackService("UpdateSettingsUseCase", "Legacy", "Boost.DI");
-    trackService("ToggleThemeUseCase", "Legacy", "Boost.DI");
-    trackService("GetThemeModeUseCase", "Legacy", "Boost.DI");
-    trackService("SetThemeModeUseCase", "Legacy", "Boost.DI");
-    trackService("GetRecentTabUseCase", "Legacy", "Boost.DI");
-    trackService("SetRecentTabUseCase", "Legacy", "Boost.DI");
+    // Services migrated to Boost.DI in Phase 3
+    trackService("GetSettingsUseCase", "Boost.DI", "Boost.DI");
+    markServiceMigrated("GetSettingsUseCase");
+    
+    trackService("UpdateSettingsUseCase", "Boost.DI", "Boost.DI");
+    markServiceMigrated("UpdateSettingsUseCase");
+    
+    trackService("ToggleThemeUseCase", "Boost.DI", "Boost.DI");
+    markServiceMigrated("ToggleThemeUseCase");
+    
+    trackService("GetThemeModeUseCase", "Boost.DI", "Boost.DI");
+    markServiceMigrated("GetThemeModeUseCase");
+    
+    trackService("SetThemeModeUseCase", "Boost.DI", "Boost.DI");
+    markServiceMigrated("SetThemeModeUseCase");
+    
+    trackService("GetRecentTabUseCase", "Boost.DI", "Boost.DI");
+    markServiceMigrated("GetRecentTabUseCase");
+    
+    trackService("SetRecentTabUseCase", "Boost.DI", "Boost.DI");
+    markServiceMigrated("SetRecentTabUseCase");
 }
 
 bool DependencyMigrationTool::migrateService(const std::string& serviceName)
