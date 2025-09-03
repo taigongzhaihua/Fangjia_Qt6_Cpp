@@ -19,6 +19,9 @@
 #include "usecases/GetRecentTabUseCase.h"
 #include "usecases/SetRecentTabUseCase.h"
 #include "DependencyProvider.h"
+#include "UnifiedDependencyProvider.h"
+#include "DependencyMigrationTool.h"
+#include "UnifiedDIUsageExample.h"
 #include <exception>
 #include <memory>
 #include <qapplication.h>
@@ -92,6 +95,28 @@ int main(int argc, char* argv[])
 		// 创建Formula服务通过DI容器
 		auto formulaService = CompositionRoot::getFormulaService();
 		deps.setFormulaService(formulaService);
+
+		// === Initialize Unified Dependency Provider (Phase 1) ===
+		// 初始化统一依赖提供者，桥接两套DI系统
+		auto& unifiedDeps = UnifiedDependencyProvider::instance();
+		unifiedDeps.initialize(deps, formulaService);
+		
+		qDebug() << "Unified Dependency Provider initialized successfully";
+		
+		// === Migration Status Report ===
+		// 生成迁移状态报告，展示当前进度
+		auto& migrationTool = DependencyMigrationTool::instance();
+		auto migrationReport = migrationTool.generateMigrationReport();
+		
+		qDebug() << "DI Migration Status:" 
+				 << migrationReport.migratedServices << "/" << migrationReport.totalServices 
+				 << "services migrated (" << migrationReport.completionPercentage << "%)";
+
+		// === Demonstrate Unified DI Usage ===
+		// 展示统一依赖注入的使用模式
+		UnifiedDIUsageExample example;
+		example.demonstrateUnifiedAccess();
+		example.demonstrateViewModelUsage();
 
 		// 创建主题管理器（使用依赖注入的新构造函数）
 		const auto themeManager = std::make_shared<ThemeManager>(getThemeModeUseCase, setThemeModeUseCase);
