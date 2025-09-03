@@ -1,7 +1,5 @@
 #pragma once
 #include <memory>
-#include <type_traits>
-#include "DependencyProvider.h"
 #include "CompositionRoot.h"
 #include <boost/di.hpp>
 
@@ -20,104 +18,58 @@ namespace domain::services {
     class IFormulaService;
 }
 
-/// Unified dependency provider that bridges Boost.DI and legacy service locator
-/// This implements Phase 1 of the DI unification strategy from architecture-analysis.md
-/// Provides a template-based unified interface for dependency resolution
+/// Pure Boost.DI dependency provider - Phase 4 implementation
+/// All services have been migrated to Boost.DI, providing unified dependency resolution
+/// Replaces the previous dual-system architecture with pure Boost.DI
 class UnifiedDependencyProvider {
 public:
     static UnifiedDependencyProvider& instance();
 
-    /// Template-based service resolution with compile-time system selection
+    /// Pure Boost.DI service resolution - all services migrated in Phase 3
     /// @tparam T The service type to resolve
     /// @return Shared pointer to the requested service
     template<typename T>
     std::shared_ptr<T> get() const {
-        if constexpr (is_boost_di_managed_v<T>) {
-            // Use Boost.DI for Formula domain services
-            return getFromBoostDI<T>();
-        } else {
-            // Use legacy service locator for Settings/Theme services
-            return getFromLegacyProvider<T>();
-        }
-    }
-
-    /// Initialize the unified provider with existing DI systems
-    /// This maintains backward compatibility with current initialization in main.cpp
-    void initialize(DependencyProvider& legacyProvider, const std::shared_ptr<domain::services::IFormulaService>& formulaService);
-
-    /// Check if a service is managed by Boost.DI (compile-time)
-    template<typename T>
-    static constexpr bool isBoostDIManaged() {
-        return is_boost_di_managed_v<T>;
-    }
-
-    /// Get migration status for a service type
-    template<typename T>
-    const char* getMigrationStatus() const {
-        if constexpr (is_boost_di_managed_v<T>) {
-            return "Boost.DI (✅ migrated)";
-        } else {
-            return "Legacy Service Locator (🔄 pending migration)";
-        }
+        return getFromBoostDI<T>();
     }
 
 private:
     UnifiedDependencyProvider() = default;
 
-    /// Type trait to detect Boost.DI managed services at compile time
-    template<typename T>
-    struct is_boost_di_managed : std::false_type {};
-
-    template<typename T>
-    static constexpr bool is_boost_di_managed_v = is_boost_di_managed<T>::value;
-
-    /// Boost.DI service resolution
+    /// Boost.DI service resolution through CompositionRoot
     template<typename T>
     std::shared_ptr<T> getFromBoostDI() const;
-
-    /// Legacy service locator resolution
-    template<typename T>
-    std::shared_ptr<T> getFromLegacyProvider() const;
-
-    /// Template specializations for legacy service resolution
-    template<typename T>
-    std::shared_ptr<T> resolveLegacyService() const;
-
-    DependencyProvider* m_legacyProvider = nullptr;
-    std::shared_ptr<domain::services::IFormulaService> m_formulaService;
 };
 
-// Specializations to mark Boost.DI managed services
-template<>
-struct UnifiedDependencyProvider::is_boost_di_managed<domain::services::IFormulaService> : std::true_type {};
-
-// Settings domain - migrated to Boost.DI in Phase 3
-template<>
-struct UnifiedDependencyProvider::is_boost_di_managed<domain::usecases::GetSettingsUseCase> : std::true_type {};
-
-template<>
-struct UnifiedDependencyProvider::is_boost_di_managed<domain::usecases::UpdateSettingsUseCase> : std::true_type {};
-
-// Theme domain - migrated to Boost.DI in Phase 3
-template<>
-struct UnifiedDependencyProvider::is_boost_di_managed<domain::usecases::GetThemeModeUseCase> : std::true_type {};
-
-template<>
-struct UnifiedDependencyProvider::is_boost_di_managed<domain::usecases::SetThemeModeUseCase> : std::true_type {};
-
-template<>
-struct UnifiedDependencyProvider::is_boost_di_managed<domain::usecases::ToggleThemeUseCase> : std::true_type {};
-
-// Recent Tab domain - migrated to Boost.DI in Phase 3
-template<>
-struct UnifiedDependencyProvider::is_boost_di_managed<domain::usecases::GetRecentTabUseCase> : std::true_type {};
-
-template<>
-struct UnifiedDependencyProvider::is_boost_di_managed<domain::usecases::SetRecentTabUseCase> : std::true_type {};
-
-// Template specialization declarations for legacy services
-// Note: All use cases migrated to Boost.DI in Phase 3 - only IFormulaService fallback remains
-
+// Template specializations for pure Boost.DI resolution - Phase 4 complete
 template<>
 std::shared_ptr<domain::services::IFormulaService> 
-UnifiedDependencyProvider::resolveLegacyService<domain::services::IFormulaService>() const;
+UnifiedDependencyProvider::getFromBoostDI<domain::services::IFormulaService>() const;
+
+template<>
+std::shared_ptr<domain::usecases::GetSettingsUseCase> 
+UnifiedDependencyProvider::getFromBoostDI<domain::usecases::GetSettingsUseCase>() const;
+
+template<>
+std::shared_ptr<domain::usecases::UpdateSettingsUseCase> 
+UnifiedDependencyProvider::getFromBoostDI<domain::usecases::UpdateSettingsUseCase>() const;
+
+template<>
+std::shared_ptr<domain::usecases::GetThemeModeUseCase> 
+UnifiedDependencyProvider::getFromBoostDI<domain::usecases::GetThemeModeUseCase>() const;
+
+template<>
+std::shared_ptr<domain::usecases::SetThemeModeUseCase> 
+UnifiedDependencyProvider::getFromBoostDI<domain::usecases::SetThemeModeUseCase>() const;
+
+template<>
+std::shared_ptr<domain::usecases::ToggleThemeUseCase> 
+UnifiedDependencyProvider::getFromBoostDI<domain::usecases::ToggleThemeUseCase>() const;
+
+template<>
+std::shared_ptr<domain::usecases::GetRecentTabUseCase> 
+UnifiedDependencyProvider::getFromBoostDI<domain::usecases::GetRecentTabUseCase>() const;
+
+template<>
+std::shared_ptr<domain::usecases::SetRecentTabUseCase> 
+UnifiedDependencyProvider::getFromBoostDI<domain::usecases::SetRecentTabUseCase>() const;
