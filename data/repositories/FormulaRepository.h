@@ -18,17 +18,12 @@ namespace data::repositories
 		~FormulaRepository() override;
 
 		// IFormulaRepository interface
+		std::vector<std::string> fetchFirstCategories() override;
 		std::vector<domain::entities::FormulaNode> loadFormulaTree() override;
 		domain::entities::FormulaDetail loadFormulaDetail(const std::string& formulaId) override;
 		bool isAvailable() const override;
 
 	private:
-		/// Initialize database connection and create tables if needed
-		bool initializeDatabase();
-
-		/// Create sample data in database if tables are empty
-		void createSampleData() const;
-
 		/// Convert QString to std::string safely
 		std::string qStringToStdString(const QString& qstr) const;
 
@@ -36,7 +31,6 @@ namespace data::repositories
 		QString stdStringToQString(const std::string& str) const;
 
 	private:
-		QString m_dbPath;
 		std::unique_ptr<QSqlDatabase> m_database;
 		bool m_isInitialized;
 	};
