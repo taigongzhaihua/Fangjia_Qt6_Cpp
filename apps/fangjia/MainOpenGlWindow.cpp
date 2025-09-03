@@ -395,16 +395,16 @@ void MainOpenGlWindow::initializeNavigation()
 	// 连接导航状态变化到配置保存
 	if (m_config)
 	{
-		connect(&m_navVm, &NavViewModel::expandedChanged, m_config.get(), [this](const bool expanded)
+		connect(&m_navVm, &NavViewModel::expandedChanged, m_config.get(), [config = m_config](const bool expanded)
 			{
-				m_config->setNavExpanded(expanded);
-				m_config->save();
+				config->setNavExpanded(expanded);
+				config->save();
 			});
 
-		connect(&m_navVm, &NavViewModel::selectedIndexChanged, m_config.get(), [this](const int index)
+		connect(&m_navVm, &NavViewModel::selectedIndexChanged, m_config.get(), [config = m_config](const int index)
 			{
-				m_config->setNavSelectedIndex(index);
-				m_config->save();
+				config->setNavSelectedIndex(index);
+				config->save();
 			});
 	}
 }
@@ -415,7 +415,7 @@ void MainOpenGlWindow::initializePages()
 	{
 		// 注册页面工厂（支持懒加载）
 		m_pageRouter.registerPage("home", [] { return std::make_unique<HomePage>(); });
-		m_pageRouter.registerPage("data", [this] { return std::make_unique<DataPage>(m_config.get()); });
+		m_pageRouter.registerPage("data", [config = m_config] { return std::make_unique<DataPage>(config.get()); });
 		m_pageRouter.registerPage("explore", [] { return std::make_unique<ExplorePage>(); });
 		m_pageRouter.registerPage("favorites", [] { return std::make_unique<FavoritesPage>(); });
 		m_pageRouter.registerPage("settings", [] { return std::make_unique<SettingsPage>(); });
