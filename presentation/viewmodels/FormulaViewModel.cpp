@@ -1,7 +1,7 @@
 #include "FormulaViewModel.h"
-#include "domain/services/FormulaService.h"
-#include "domain/entities/Formula.h"
-#include "domain/ServiceRegistry.h"
+#include "services/FormulaService.h"
+#include "entities/Formula.h"
+#include "ServiceRegistry.h"
 #include <QHash>
 #include <QDebug>
 
