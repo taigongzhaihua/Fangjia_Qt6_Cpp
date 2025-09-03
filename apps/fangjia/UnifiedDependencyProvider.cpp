@@ -30,30 +30,78 @@ UnifiedDependencyProvider::getFromBoostDI<domain::services::IFormulaService>() c
     return CompositionRoot::getFormulaService();
 }
 
+// Settings domain specializations - Phase 3 migration
+template<>
+std::shared_ptr<domain::usecases::GetSettingsUseCase>
+UnifiedDependencyProvider::getFromBoostDI<domain::usecases::GetSettingsUseCase>() const {
+    return CompositionRoot::getGetSettingsUseCase();
+}
+
+template<>
+std::shared_ptr<domain::usecases::UpdateSettingsUseCase>
+UnifiedDependencyProvider::getFromBoostDI<domain::usecases::UpdateSettingsUseCase>() const {
+    return CompositionRoot::getUpdateSettingsUseCase();
+}
+
+// Theme domain specializations - Phase 3 migration
+template<>
+std::shared_ptr<domain::usecases::GetThemeModeUseCase>
+UnifiedDependencyProvider::getFromBoostDI<domain::usecases::GetThemeModeUseCase>() const {
+    return CompositionRoot::getGetThemeModeUseCase();
+}
+
+template<>
+std::shared_ptr<domain::usecases::SetThemeModeUseCase>
+UnifiedDependencyProvider::getFromBoostDI<domain::usecases::SetThemeModeUseCase>() const {
+    return CompositionRoot::getSetThemeModeUseCase();
+}
+
+template<>
+std::shared_ptr<domain::usecases::ToggleThemeUseCase>
+UnifiedDependencyProvider::getFromBoostDI<domain::usecases::ToggleThemeUseCase>() const {
+    return CompositionRoot::getToggleThemeUseCase();
+}
+
+// Recent Tab domain specializations - Phase 3 migration
+template<>
+std::shared_ptr<domain::usecases::GetRecentTabUseCase>
+UnifiedDependencyProvider::getFromBoostDI<domain::usecases::GetRecentTabUseCase>() const {
+    return CompositionRoot::getGetRecentTabUseCase();
+}
+
+template<>
+std::shared_ptr<domain::usecases::SetRecentTabUseCase>
+UnifiedDependencyProvider::getFromBoostDI<domain::usecases::SetRecentTabUseCase>() const {
+    return CompositionRoot::getSetRecentTabUseCase();
+}
+
 // Explicit template instantiations for services currently being used
 template std::shared_ptr<domain::services::IFormulaService> 
 UnifiedDependencyProvider::getFromBoostDI<domain::services::IFormulaService>() const;
 
+// Settings domain - migrated to Boost.DI in Phase 3
 template std::shared_ptr<domain::usecases::GetSettingsUseCase> 
-UnifiedDependencyProvider::getFromLegacyProvider<domain::usecases::GetSettingsUseCase>() const;
+UnifiedDependencyProvider::getFromBoostDI<domain::usecases::GetSettingsUseCase>() const;
 
 template std::shared_ptr<domain::usecases::UpdateSettingsUseCase> 
-UnifiedDependencyProvider::getFromLegacyProvider<domain::usecases::UpdateSettingsUseCase>() const;
+UnifiedDependencyProvider::getFromBoostDI<domain::usecases::UpdateSettingsUseCase>() const;
 
-template std::shared_ptr<domain::usecases::ToggleThemeUseCase> 
-UnifiedDependencyProvider::getFromLegacyProvider<domain::usecases::ToggleThemeUseCase>() const;
-
+// Theme domain - migrated to Boost.DI in Phase 3
 template std::shared_ptr<domain::usecases::GetThemeModeUseCase> 
-UnifiedDependencyProvider::getFromLegacyProvider<domain::usecases::GetThemeModeUseCase>() const;
+UnifiedDependencyProvider::getFromBoostDI<domain::usecases::GetThemeModeUseCase>() const;
 
 template std::shared_ptr<domain::usecases::SetThemeModeUseCase> 
-UnifiedDependencyProvider::getFromLegacyProvider<domain::usecases::SetThemeModeUseCase>() const;
+UnifiedDependencyProvider::getFromBoostDI<domain::usecases::SetThemeModeUseCase>() const;
 
+template std::shared_ptr<domain::usecases::ToggleThemeUseCase> 
+UnifiedDependencyProvider::getFromBoostDI<domain::usecases::ToggleThemeUseCase>() const;
+
+// Recent Tab domain - migrated to Boost.DI in Phase 3
 template std::shared_ptr<domain::usecases::GetRecentTabUseCase> 
-UnifiedDependencyProvider::getFromLegacyProvider<domain::usecases::GetRecentTabUseCase>() const;
+UnifiedDependencyProvider::getFromBoostDI<domain::usecases::GetRecentTabUseCase>() const;
 
 template std::shared_ptr<domain::usecases::SetRecentTabUseCase> 
-UnifiedDependencyProvider::getFromLegacyProvider<domain::usecases::SetRecentTabUseCase>() const;
+UnifiedDependencyProvider::getFromBoostDI<domain::usecases::SetRecentTabUseCase>() const;
 
 UnifiedDependencyProvider& UnifiedDependencyProvider::instance()
 {
@@ -70,75 +118,7 @@ void UnifiedDependencyProvider::initialize(
 }
 
 // Template specializations for legacy service resolution
-template<>
-std::shared_ptr<domain::usecases::GetSettingsUseCase> 
-UnifiedDependencyProvider::resolveLegacyService<domain::usecases::GetSettingsUseCase>() const
-{
-    if (!m_legacyProvider) {
-        throw std::runtime_error("Legacy provider not initialized");
-    }
-    return m_legacyProvider->getGetSettingsUseCase();
-}
-
-template<>
-std::shared_ptr<domain::usecases::UpdateSettingsUseCase> 
-UnifiedDependencyProvider::resolveLegacyService<domain::usecases::UpdateSettingsUseCase>() const
-{
-    if (!m_legacyProvider) {
-        throw std::runtime_error("Legacy provider not initialized");
-    }
-    return m_legacyProvider->getUpdateSettingsUseCase();
-}
-
-template<>
-std::shared_ptr<domain::usecases::ToggleThemeUseCase> 
-UnifiedDependencyProvider::resolveLegacyService<domain::usecases::ToggleThemeUseCase>() const
-{
-    if (!m_legacyProvider) {
-        throw std::runtime_error("Legacy provider not initialized");
-    }
-    return m_legacyProvider->getToggleThemeUseCase();
-}
-
-template<>
-std::shared_ptr<domain::usecases::GetThemeModeUseCase> 
-UnifiedDependencyProvider::resolveLegacyService<domain::usecases::GetThemeModeUseCase>() const
-{
-    if (!m_legacyProvider) {
-        throw std::runtime_error("Legacy provider not initialized");
-    }
-    return m_legacyProvider->getGetThemeModeUseCase();
-}
-
-template<>
-std::shared_ptr<domain::usecases::SetThemeModeUseCase> 
-UnifiedDependencyProvider::resolveLegacyService<domain::usecases::SetThemeModeUseCase>() const
-{
-    if (!m_legacyProvider) {
-        throw std::runtime_error("Legacy provider not initialized");
-    }
-    return m_legacyProvider->getSetThemeModeUseCase();
-}
-
-template<>
-std::shared_ptr<domain::usecases::GetRecentTabUseCase> 
-UnifiedDependencyProvider::resolveLegacyService<domain::usecases::GetRecentTabUseCase>() const
-{
-    if (!m_legacyProvider) {
-        throw std::runtime_error("Legacy provider not initialized");
-    }
-    return m_legacyProvider->getGetRecentTabUseCase();
-}
-
-template<>
-std::shared_ptr<domain::usecases::SetRecentTabUseCase> 
-UnifiedDependencyProvider::resolveLegacyService<domain::usecases::SetRecentTabUseCase>() const
-{
-    if (!m_legacyProvider) {
-        throw std::runtime_error("Legacy provider not initialized");
-    }
-    return m_legacyProvider->getSetRecentTabUseCase();
-}
+// Note: All use cases migrated to Boost.DI in Phase 3 - only IFormulaService fallback remains
 
 template<>
 std::shared_ptr<domain::services::IFormulaService> 

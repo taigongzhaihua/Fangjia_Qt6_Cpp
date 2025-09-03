@@ -91,34 +91,32 @@ private:
 template<>
 struct UnifiedDependencyProvider::is_boost_di_managed<domain::services::IFormulaService> : std::true_type {};
 
+// Settings domain - migrated to Boost.DI in Phase 3
+template<>
+struct UnifiedDependencyProvider::is_boost_di_managed<domain::usecases::GetSettingsUseCase> : std::true_type {};
+
+template<>
+struct UnifiedDependencyProvider::is_boost_di_managed<domain::usecases::UpdateSettingsUseCase> : std::true_type {};
+
+// Theme domain - migrated to Boost.DI in Phase 3
+template<>
+struct UnifiedDependencyProvider::is_boost_di_managed<domain::usecases::GetThemeModeUseCase> : std::true_type {};
+
+template<>
+struct UnifiedDependencyProvider::is_boost_di_managed<domain::usecases::SetThemeModeUseCase> : std::true_type {};
+
+template<>
+struct UnifiedDependencyProvider::is_boost_di_managed<domain::usecases::ToggleThemeUseCase> : std::true_type {};
+
+// Recent Tab domain - migrated to Boost.DI in Phase 3
+template<>
+struct UnifiedDependencyProvider::is_boost_di_managed<domain::usecases::GetRecentTabUseCase> : std::true_type {};
+
+template<>
+struct UnifiedDependencyProvider::is_boost_di_managed<domain::usecases::SetRecentTabUseCase> : std::true_type {};
+
 // Template specialization declarations for legacy services
-template<>
-std::shared_ptr<domain::usecases::GetSettingsUseCase> 
-UnifiedDependencyProvider::resolveLegacyService<domain::usecases::GetSettingsUseCase>() const;
-
-template<>
-std::shared_ptr<domain::usecases::UpdateSettingsUseCase> 
-UnifiedDependencyProvider::resolveLegacyService<domain::usecases::UpdateSettingsUseCase>() const;
-
-template<>
-std::shared_ptr<domain::usecases::ToggleThemeUseCase> 
-UnifiedDependencyProvider::resolveLegacyService<domain::usecases::ToggleThemeUseCase>() const;
-
-template<>
-std::shared_ptr<domain::usecases::GetThemeModeUseCase> 
-UnifiedDependencyProvider::resolveLegacyService<domain::usecases::GetThemeModeUseCase>() const;
-
-template<>
-std::shared_ptr<domain::usecases::SetThemeModeUseCase> 
-UnifiedDependencyProvider::resolveLegacyService<domain::usecases::SetThemeModeUseCase>() const;
-
-template<>
-std::shared_ptr<domain::usecases::GetRecentTabUseCase> 
-UnifiedDependencyProvider::resolveLegacyService<domain::usecases::GetRecentTabUseCase>() const;
-
-template<>
-std::shared_ptr<domain::usecases::SetRecentTabUseCase> 
-UnifiedDependencyProvider::resolveLegacyService<domain::usecases::SetRecentTabUseCase>() const;
+// Note: All use cases migrated to Boost.DI in Phase 3 - only IFormulaService fallback remains
 
 template<>
 std::shared_ptr<domain::services::IFormulaService> 
