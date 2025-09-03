@@ -27,7 +27,7 @@ namespace UI {
 	std::shared_ptr<Widget> Widget::onHover(std::function<void(bool)> h) { m_decorations.onHover = std::move(h); return self<Widget>(); }
 
 	void Widget::applyDecorations(IUiComponent* /*component*/) const {
-		// 保留给可以直接吃属性的组件（比如 UiBoxLayout 可直接 setMargins/setBackground）
+		// 保留给可以直接吃属性的组件（可直接 setMargins/setBackground）
 		// 通用场景交给 decorate()
 	}
 

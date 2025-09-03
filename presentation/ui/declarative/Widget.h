@@ -53,7 +53,7 @@ namespace UI {
 			std::function<void(bool)> onHover;
 		} m_decorations;
 
-		// 仍保留（对 UiBoxLayout 这类直接可改属性的组件可以在里面直接设置）
+		// 仍保留（对可以直接改属性的组件在里面直接设置）
 		void applyDecorations(IUiComponent* component) const;
 
 		// 新增：统一包裹装饰器
