@@ -1,6 +1,6 @@
 #include "FormulaRepository.h"
 #include "SqliteDatabase.h"
-#include <entities/Formula.h>
+#include "entities/Formula.h"
 #include <exception>
 #include <memory>
 #include <qlogging.h>

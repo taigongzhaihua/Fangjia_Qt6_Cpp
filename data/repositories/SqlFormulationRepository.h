@@ -1,5 +1,5 @@
 #pragma once
-#include "domain/repositories/IFormulationRepository.h"
+#include "repositories/IFormulationRepository.h"
 #include <QSqlDatabase>
 
 class SqlFormulationRepository final : public IFormulationRepository {

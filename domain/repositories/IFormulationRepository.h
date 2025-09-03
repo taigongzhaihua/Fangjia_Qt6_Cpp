@@ -1,5 +1,5 @@
 #pragma once
-#include "domain/entities/Formulation.h"
+#include "entities/Formulation.h"
 #include <qvector.h>
 #include <optional>
 
