@@ -115,11 +115,20 @@ bool SqliteDatabase::ensureSchema(QSqlDatabase& db)
 {
     if (!db.isValid() || !db.isOpen()) return false;
 
-    // Execute the schema as a batch; SQLite allows multiple statements per exec.
+    // Split schema into individual statements and execute them separately
+    // This avoids "Unable to execute multiple statements at a time" error
+    QString schemaStr = QString::fromUtf8(kSchemaSql);
+    QStringList statements = schemaStr.split(';', Qt::SkipEmptyParts);
+    
     QSqlQuery q(db);
-    if (!q.exec(QString::fromUtf8(kSchemaSql))) {
-        qWarning() << "Schema exec error:" << q.lastError();
-        return false;
+    for (const QString& statement : statements) {
+        QString trimmedStatement = statement.trimmed();
+        if (trimmedStatement.isEmpty()) continue;
+        
+        if (!q.exec(trimmedStatement)) {
+            qWarning() << "Schema exec error:" << q.lastError() << "for statement:" << trimmedStatement.left(50) + "...";
+            return false;
+        }
     }
     return true;
 }

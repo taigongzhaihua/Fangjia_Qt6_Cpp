@@ -53,9 +53,9 @@ bool DatabasePopulator::populateSampleData(QSqlDatabase& db)
 bool DatabasePopulator::createSampleCategories(QSqlDatabase& db)
 {
     QSqlQuery query(db);
-    query.prepare("INSERT INTO Category (FirstCategory, SecondCategory) VALUES (?, ?)");
-
+    
     // 解表剂分类
+    query.prepare("INSERT INTO Category (FirstCategory, SecondCategory) VALUES (?, ?)");
     query.addBindValue("解表剂");
     query.addBindValue("辛温解表");
     if (!query.exec()) {
@@ -63,6 +63,7 @@ bool DatabasePopulator::createSampleCategories(QSqlDatabase& db)
         return false;
     }
 
+    query.prepare("INSERT INTO Category (FirstCategory, SecondCategory) VALUES (?, ?)");
     query.addBindValue("解表剂");
     query.addBindValue("辛凉解表");
     if (!query.exec()) {
@@ -71,6 +72,7 @@ bool DatabasePopulator::createSampleCategories(QSqlDatabase& db)
     }
 
     // 泻下剂分类
+    query.prepare("INSERT INTO Category (FirstCategory, SecondCategory) VALUES (?, ?)");
     query.addBindValue("泻下剂");
     query.addBindValue("寒下");
     if (!query.exec()) {
@@ -84,12 +86,12 @@ bool DatabasePopulator::createSampleCategories(QSqlDatabase& db)
 bool DatabasePopulator::createSampleFormulations(QSqlDatabase& db)
 {
     QSqlQuery query(db);
+    
+    // 麻黄汤 (CategoryId = 1, 解表剂-辛温解表)
     query.prepare(R"(
         INSERT INTO Formulation (Name, CategoryId, Usage, Effect, Indication, Source, Notes) 
         VALUES (?, ?, ?, ?, ?, ?, ?)
     )");
-
-    // 麻黄汤 (CategoryId = 1, 解表剂-辛温解表)
     query.addBindValue("麻黄汤");
     query.addBindValue(1);
     query.addBindValue("水煎服，温覆取微汗");
@@ -103,6 +105,10 @@ bool DatabasePopulator::createSampleFormulations(QSqlDatabase& db)
     }
 
     // 桂枝汤 (CategoryId = 1, 解表剂-辛温解表)
+    query.prepare(R"(
+        INSERT INTO Formulation (Name, CategoryId, Usage, Effect, Indication, Source, Notes) 
+        VALUES (?, ?, ?, ?, ?, ?, ?)
+    )");
     query.addBindValue("桂枝汤");
     query.addBindValue(1);
     query.addBindValue("温服，啜粥，温覆取微汗");
@@ -116,6 +122,10 @@ bool DatabasePopulator::createSampleFormulations(QSqlDatabase& db)
     }
 
     // 桑菊饮 (CategoryId = 2, 解表剂-辛凉解表)
+    query.prepare(R"(
+        INSERT INTO Formulation (Name, CategoryId, Usage, Effect, Indication, Source, Notes) 
+        VALUES (?, ?, ?, ?, ?, ?, ?)
+    )");
     query.addBindValue("桑菊饮");
     query.addBindValue(2);
     query.addBindValue("水煎服");
@@ -134,14 +144,14 @@ bool DatabasePopulator::createSampleFormulations(QSqlDatabase& db)
 bool DatabasePopulator::createSampleCompositions(QSqlDatabase& db)
 {
     QSqlQuery query(db);
-    query.prepare(R"(
-        INSERT INTO FormulationComposition (FormulationId, DrugName, Position) 
-        VALUES (?, ?, ?)
-    )");
 
     // 麻黄汤组成 (FormulationId = 1)
     const QStringList mahuangTangDrugs = {"麻黄9g", "桂枝6g", "杏仁9g", "甘草3g"};
     for (int i = 0; i < mahuangTangDrugs.size(); ++i) {
+        query.prepare(R"(
+            INSERT INTO FormulationComposition (FormulationId, DrugName, Position) 
+            VALUES (?, ?, ?)
+        )");
         query.addBindValue(1);
         query.addBindValue(mahuangTangDrugs[i]);
         query.addBindValue(i + 1);
@@ -154,6 +164,10 @@ bool DatabasePopulator::createSampleCompositions(QSqlDatabase& db)
     // 桂枝汤组成 (FormulationId = 2)
     const QStringList guizhiTangDrugs = {"桂枝9g", "芍药9g", "生姜9g", "大枣12枚", "甘草6g"};
     for (int i = 0; i < guizhiTangDrugs.size(); ++i) {
+        query.prepare(R"(
+            INSERT INTO FormulationComposition (FormulationId, DrugName, Position) 
+            VALUES (?, ?, ?)
+        )");
         query.addBindValue(2);
         query.addBindValue(guizhiTangDrugs[i]);
         query.addBindValue(i + 1);
@@ -166,6 +180,10 @@ bool DatabasePopulator::createSampleCompositions(QSqlDatabase& db)
     // 桑菊饮组成 (FormulationId = 3)
     const QStringList sangjuYinDrugs = {"桑叶7.5g", "菊花3g", "杏仁6g", "连翘5g", "薄荷2.5g", "苦桔梗6g", "甘草2.5g", "芦根6g"};
     for (int i = 0; i < sangjuYinDrugs.size(); ++i) {
+        query.prepare(R"(
+            INSERT INTO FormulationComposition (FormulationId, DrugName, Position) 
+            VALUES (?, ?, ?)
+        )");
         query.addBindValue(3);
         query.addBindValue(sangjuYinDrugs[i]);
         query.addBindValue(i + 1);
