@@ -105,7 +105,11 @@ namespace UI {
 				m_popup->updateLayout(windowSize);
 			}
 			else {
-				// 如果还没有窗口上下文，尝试创建
+				// 如果弹出窗口尚未创建，更新触发器布局
+				if (m_config.trigger) {
+					m_config.trigger->updateLayout(windowSize);
+				}
+				// 尝试创建弹出窗口
 				tryCreatePopup();
 			}
 		}
@@ -120,6 +124,12 @@ namespace UI {
 
 			if (m_popup) {
 				m_popup->updateResourceContext(cache, gl, devicePixelRatio);
+			}
+			else {
+				// 如果弹出窗口尚未创建，更新触发器资源上下文
+				if (m_config.trigger) {
+					m_config.trigger->updateResourceContext(cache, gl, devicePixelRatio);
+				}
 			}
 		}
 
@@ -136,15 +146,46 @@ namespace UI {
 		}
 
 		bool onMousePress(const QPoint& pos) override {
-			return m_popup ? m_popup->onMousePress(pos) : false;
+			if (m_popup) {
+				return m_popup->onMousePress(pos);
+			}
+			// 如果弹出窗口尚未创建，将鼠标事件转发给触发器
+			else if (m_config.trigger) {
+				return m_config.trigger->onMousePress(pos);
+			}
+			return false;
 		}
 
 		bool onMouseMove(const QPoint& pos) override {
-			return m_popup ? m_popup->onMouseMove(pos) : false;
+			if (m_popup) {
+				return m_popup->onMouseMove(pos);
+			}
+			// 如果弹出窗口尚未创建，将鼠标事件转发给触发器
+			else if (m_config.trigger) {
+				return m_config.trigger->onMouseMove(pos);
+			}
+			return false;
 		}
 
 		bool onMouseRelease(const QPoint& pos) override {
-			return m_popup ? m_popup->onMouseRelease(pos) : false;
+			if (m_popup) {
+				return m_popup->onMouseRelease(pos);
+			}
+			// 如果弹出窗口尚未创建，将鼠标事件转发给触发器
+			else if (m_config.trigger) {
+				bool handled = m_config.trigger->onMouseRelease(pos);
+				// 当触发器被点击时，尝试创建并显示弹出窗口
+				if (handled) {
+					tryCreatePopup();
+					if (m_popup) {
+						// 触发器被点击，显示弹出窗口
+						// 这里可以添加弹出窗口的显示逻辑
+						qDebug() << "PopupHost: 触发器被点击，弹出窗口已创建";
+					}
+				}
+				return handled;
+			}
+			return false;
 		}
 
 		bool onWheel(const QPoint& pos, const QPoint& angleDelta) override {
@@ -152,7 +193,13 @@ namespace UI {
 		}
 
 		bool tick() override {
-			return m_popup ? m_popup->tick() : false;
+			if (m_popup) {
+				return m_popup->tick();
+			}
+			else if (m_config.trigger) {
+				return m_config.trigger->tick();
+			}
+			return false;
 		}
 
 		QRect bounds() const override {
@@ -163,6 +210,9 @@ namespace UI {
 			if (m_popup) {
 				m_popup->onThemeChanged(isDark);
 			}
+			else if (m_config.trigger) {
+				m_config.trigger->onThemeChanged(isDark);
+			}
 		}
 
 		// IUiContent
@@ -170,6 +220,12 @@ namespace UI {
 			m_viewport = r;
 			if (m_popup) {
 				m_popup->setViewportRect(r);
+			}
+			else if (m_config.trigger) {
+				// 如果弹出窗口尚未创建，设置触发器视口（如果触发器实现了IUiContent接口）
+				if (auto* triggerContent = dynamic_cast<IUiContent*>(m_config.trigger.get())) {
+					triggerContent->setViewportRect(r);
+				}
 			}
 		}
 
