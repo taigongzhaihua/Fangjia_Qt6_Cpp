@@ -11,7 +11,7 @@
 #include <qstring.h>
 #include <qstylehints.h>
 #include <qtmetamacros.h>
-#include <qtversionchecks.h>
+#include <qglobal.h>
 #include <utility>
 
 namespace {
