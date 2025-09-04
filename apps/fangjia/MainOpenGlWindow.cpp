@@ -414,7 +414,10 @@ void MainOpenGlWindow::initializePages()
 	try
 	{
 		// 注册页面工厂（支持懒加载）
-		m_pageRouter.registerPage("home", [] { return std::make_unique<HomePage>(); });
+		m_pageRouter.registerPage("home", [this] { 
+			HomePage::setWindowContext(this);
+			return std::make_unique<HomePage>(); 
+		});
 		m_pageRouter.registerPage("data", [this] { return std::make_unique<DataPage>(m_config.get()); });
 		m_pageRouter.registerPage("explore", [] { return std::make_unique<ExplorePage>(); });
 		m_pageRouter.registerPage("favorites", [] { return std::make_unique<FavoritesPage>(); });

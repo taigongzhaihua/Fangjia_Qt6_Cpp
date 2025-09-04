@@ -3,6 +3,8 @@
 #include <memory>
 #include <QObject>
 
+class QWindow; // forward declaration
+
 // 简单的计数器 ViewModel 用于演示绑定功能
 class CounterViewModel : public QObject
 {
@@ -26,6 +28,9 @@ class HomePage : public UiPage
 public:
     HomePage();
     ~HomePage() override;
+
+    // 设置窗口上下文（用于弹出窗口演示）
+    static void setWindowContext(QWindow* window);
 
 protected:
     void initializeContent() override;
