@@ -179,8 +179,8 @@ namespace UI {
 					tryCreatePopup();
 					if (m_popup) {
 						// 触发器被点击，显示弹出窗口
-						// 这里可以添加弹出窗口的显示逻辑
-						qDebug() << "PopupHost: 触发器被点击，弹出窗口已创建";
+						m_popup->showPopup();
+						qDebug() << "PopupHost: 触发器被点击，弹出窗口已创建并显示";
 					}
 				}
 				return handled;
@@ -189,7 +189,14 @@ namespace UI {
 		}
 
 		bool onWheel(const QPoint& pos, const QPoint& angleDelta) override {
-			return m_popup ? m_popup->onWheel(pos, angleDelta) : false;
+			if (m_popup) {
+				return m_popup->onWheel(pos, angleDelta);
+			}
+			// 如果弹出窗口尚未创建，将滚轮事件转发给触发器
+			else if (m_config.trigger) {
+				return m_config.trigger->onWheel(pos, angleDelta);
+			}
+			return false;
 		}
 
 		bool tick() override {
