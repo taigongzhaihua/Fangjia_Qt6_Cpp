@@ -21,6 +21,7 @@
 #include <qsize.h>
 #include <qwindow.h>
 #include <qtimer.h>
+#include <qelapsedtimer.h>  // 添加缺失的包含
 #include <RenderData.hpp>
 
 /// 简化的弹出窗口实现

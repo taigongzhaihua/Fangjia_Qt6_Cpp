@@ -259,4 +259,4 @@ int main(int argc, char *argv[])
     return app.exec();
 }
 
-//#include "minimal_popup_test.moc"
+#include "minimal_popup_test.moc"

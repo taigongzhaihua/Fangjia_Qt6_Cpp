@@ -7,7 +7,7 @@
 // #include "UiRoot.h"  // 暂时注释掉，测试时不需要
 // #include "Renderer.h" // 暂时注释掉，使用简化渲染
 #include <QApplication>
-#include <QDesktopWidget>
+// #include <QDesktopWidget>  // Qt6中已弃用
 #include <QScreen>
 #include <QMouseEvent>
 #include <QKeyEvent>
