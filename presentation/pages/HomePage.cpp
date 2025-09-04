@@ -20,7 +20,6 @@
 #include <Widget.h>
 
 #include "BasicWidgets_Button.h"
-#include <qsize.h>
 using namespace UI;
 
 // CounterViewModel 实现
@@ -206,7 +205,7 @@ private:
 				->fontSize(13)
 				->fontWeight(QFont::Medium)
 				->themeColor(QColor(50, 120, 50), QColor(120, 200, 120)),
-				
+
 				spacer(8),
 
 				text("• 弹出窗口只维护开启/关闭状态")
@@ -228,8 +227,7 @@ private:
 			})->vertical()
 			->crossAxisAlignment(Alignment::Start)
 			->spacing(4)
-			->padding(12)
-			->backgroundTheme(QColor(245, 250, 245), QColor(25, 35, 25)),
+			->padding(12),
 
 			spacer(12),
 
@@ -248,17 +246,17 @@ private:
 					->add(
 						button("控制器 1 📋")
 						->primary()
-						->onTap([] { 
-							qDebug() << "外部控制：控制器1 将显示弹出窗口"; 
+						->onTap([] {
+							qDebug() << "外部控制：控制器1 将显示弹出窗口";
 							qDebug() << "实际实现中，这里会调用 popup->showPopupAt(position)";
 						}),
 						0, 0
 					)
 					->add(
-						button("控制器 2 🔧") 
+						button("控制器 2 🔧")
 						->secondary()
-						->onTap([] { 
-							qDebug() << "外部控制：控制器2 将显示弹出窗口"; 
+						->onTap([] {
+							qDebug() << "外部控制：控制器2 将显示弹出窗口";
 							qDebug() << "实际实现中，这里会调用 popup->showPopupAt(position)";
 						}),
 						0, 1
@@ -275,8 +273,7 @@ private:
 			})->vertical()
 			->crossAxisAlignment(Alignment::Stretch)
 			->spacing(6)
-			->padding(12)
-			->backgroundTheme(QColor(250, 250, 255), QColor(20, 25, 35)),
+			->padding(12),
 
 			spacer(12),
 
@@ -291,21 +288,18 @@ private:
 
 				text("// 创建弹出窗口（无触发器）\nauto myPopup = popup()\n    ->content(panel({...}))\n    ->size(QSize(200, 150))\n    ->placement(Popup::Placement::Bottom);")
 				->fontSize(11)
-				->themeColor(QColor(60, 60, 60), QColor(200, 200, 200))
-				->fontFamily("Consolas, Monaco, monospace"),
+				->themeColor(QColor(60, 60, 60), QColor(200, 200, 200)),
 
 				spacer(4),
 
 				text("// 外部控制显示\nbutton(\"触发器\")\n    ->onTap([popup]() {\n        popup->showPopupAt(position);\n    });")
 				->fontSize(11)
-				->themeColor(QColor(60, 60, 60), QColor(200, 200, 200))
-				->fontFamily("Consolas, Monaco, monospace"),
+				->themeColor(QColor(60, 60, 60), QColor(200, 200, 200)),
 
 			})->vertical()
 			->crossAxisAlignment(Alignment::Start)
 			->spacing(4)
-			->padding(12)
-			->backgroundTheme(QColor(248, 245, 252), QColor(25, 22, 32)),
+			->padding(12),
 
 			spacer(8),
 
