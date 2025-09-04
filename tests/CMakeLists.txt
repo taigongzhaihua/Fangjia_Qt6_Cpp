@@ -68,3 +68,20 @@ add_custom_target(perf_tests
     WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
     COMMENT "Running performance tests..."
 )
+
+# 弹出控件演示程序（可选）
+add_executable(simple_popup_demo simple_popup_demo.cpp)
+target_include_directories(simple_popup_demo PRIVATE
+    ${CMAKE_SOURCE_DIR}
+    ${CMAKE_SOURCE_DIR}/presentation/ui/base
+    ${CMAKE_SOURCE_DIR}/presentation/ui/containers
+    ${CMAKE_SOURCE_DIR}/presentation/ui/widgets
+    ${CMAKE_SOURCE_DIR}/infrastructure/gfx
+)
+target_link_libraries(simple_popup_demo PRIVATE
+    Qt6::Core
+    Qt6::Gui
+    Qt6::OpenGL
+    fj_infra_gfx
+    fj_presentation_ui
+)
