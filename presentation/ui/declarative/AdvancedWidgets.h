@@ -148,5 +148,89 @@ namespace UI
 		std::function<void(int)> m_onActivated;
 	};
 
+	// 新的简洁弹出组件
+	class Popup : public Widget
+	{
+	public:
+		/// 弹出位置策略
+		enum class Placement {
+			Bottom,      // 在触发器下方
+			Top,         // 在触发器上方
+			Right,       // 在触发器右侧
+			Left,        // 在触发器左侧
+			BottomLeft,  // 在触发器左下方
+			BottomRight, // 在触发器右下方
+			TopLeft,     // 在触发器左上方
+			TopRight,    // 在触发器右上方
+			Center       // 屏幕中央
+		};
+
+		Popup() = default;
+
+		/// 设置触发器内容
+		std::shared_ptr<Popup> trigger(WidgetPtr trigger) {
+			m_trigger = std::move(trigger);
+			return self<Popup>();
+		}
+
+		/// 设置弹出内容
+		std::shared_ptr<Popup> content(WidgetPtr content) {
+			m_content = std::move(content);
+			return self<Popup>();
+		}
+
+		/// 设置弹出窗口大小
+		std::shared_ptr<Popup> size(const QSize& size) {
+			m_popupSize = size;
+			return self<Popup>();
+		}
+
+		/// 设置弹出位置策略
+		std::shared_ptr<Popup> placement(Placement placement) {
+			m_placement = placement;
+			return self<Popup>();
+		}
+
+		/// 设置位置偏移
+		std::shared_ptr<Popup> offset(const QPoint& offset) {
+			m_offset = offset;
+			return self<Popup>();
+		}
+
+		/// 设置背景样式
+		std::shared_ptr<Popup> backgroundColor(const QColor& color) {
+			m_backgroundColor = color;
+			return self<Popup>();
+		}
+
+		/// 设置圆角半径
+		std::shared_ptr<Popup> cornerRadius(float radius) {
+			m_cornerRadius = radius;
+			return self<Popup>();
+		}
+
+		/// 设置可见性变化回调
+		std::shared_ptr<Popup> onVisibilityChanged(std::function<void(bool)> callback) {
+			m_onVisibilityChanged = std::move(callback);
+			return self<Popup>();
+		}
+
+		/// 构建弹出组件 - 需要父窗口上下文
+		std::unique_ptr<IUiComponent> buildWithWindow(QWindow* parentWindow) const;
+
+		// 保持向后兼容的build()方法
+		std::unique_ptr<IUiComponent> build() const override;
+
+	private:
+		WidgetPtr m_trigger;
+		WidgetPtr m_content;
+		QSize m_popupSize{200, 150};
+		Placement m_placement{Placement::Bottom};
+		QPoint m_offset{0, 0};
+		QColor m_backgroundColor{255, 255, 255, 240};
+		float m_cornerRadius{8.0f};
+		std::function<void(bool)> m_onVisibilityChanged;
+	};
+
 
 } // namespace UI

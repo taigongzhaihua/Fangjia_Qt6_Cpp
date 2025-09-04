@@ -2,6 +2,7 @@
 #include "Decorators.h"   // 新增
 #include "UiComponent.hpp"
 #include "UiListBox.h"    // 新增
+#include "Popup.h"        // 新增弹出组件
 
 #include <algorithm>
 #include <functional>
@@ -79,6 +80,62 @@ namespace UI {
 
 		// 应用声明式装饰器（padding, margin, background等）
 		return decorate(std::move(listBox));
+	}
+
+	// 新弹出组件实现
+	std::unique_ptr<IUiComponent> Popup::build() const
+	{
+		// build()方法不提供父窗口上下文，返回nullptr
+		// 用户应该使用buildWithWindow()方法
+		qWarning() << "Popup::build() called without window context. Use buildWithWindow() instead.";
+		return nullptr;
+	}
+
+	std::unique_ptr<IUiComponent> Popup::buildWithWindow(QWindow* parentWindow) const
+	{
+		if (!parentWindow) {
+			qWarning() << "Popup::buildWithWindow() called with null parent window";
+			return nullptr;
+		}
+
+		// 创建新的弹出组件
+		auto popup = std::make_unique<::Popup>(parentWindow);
+
+		// 设置触发器和内容
+		if (m_trigger) {
+			popup->setTrigger(m_trigger->build());
+		}
+		
+		if (m_content) {
+			popup->setContent(m_content->build());
+		}
+
+		// 配置弹出窗口
+		popup->setPopupSize(m_popupSize);
+		popup->setOffset(m_offset);
+		popup->setBackgroundColor(m_backgroundColor);
+		popup->setCornerRadius(m_cornerRadius);
+		
+		// 转换位置枚举
+		switch (m_placement) {
+		case Placement::Bottom:      popup->setPlacement(::Popup::Placement::Bottom); break;
+		case Placement::Top:         popup->setPlacement(::Popup::Placement::Top); break;
+		case Placement::Right:       popup->setPlacement(::Popup::Placement::Right); break;
+		case Placement::Left:        popup->setPlacement(::Popup::Placement::Left); break;
+		case Placement::BottomLeft:  popup->setPlacement(::Popup::Placement::BottomLeft); break;
+		case Placement::BottomRight: popup->setPlacement(::Popup::Placement::BottomRight); break;
+		case Placement::TopLeft:     popup->setPlacement(::Popup::Placement::TopLeft); break;
+		case Placement::TopRight:    popup->setPlacement(::Popup::Placement::TopRight); break;
+		case Placement::Center:      popup->setPlacement(::Popup::Placement::Center); break;
+		}
+
+		// 设置回调
+		if (m_onVisibilityChanged) {
+			popup->setOnVisibilityChanged(m_onVisibilityChanged);
+		}
+
+		// 应用装饰器并返回
+		return decorate(std::move(popup));
 	}
 
 

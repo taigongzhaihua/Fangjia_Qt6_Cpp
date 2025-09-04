@@ -30,6 +30,9 @@ namespace UI {
 	// ListBox
 	inline auto listBox() { return make_widget<ListBox>(); }
 
+	// Popup - 新的简洁弹出组件
+	inline auto popup() { return make_widget<Popup>(); }
+
 
 	// ScrollView
 	inline auto scrollView(WidgetPtr child = nullptr) { 
