@@ -1,13 +1,13 @@
-# 新弹出系统使用指南
+# 外部控制弹出系统使用指南
 
 ## 概述
 
-全新设计的弹出系统采用外部控制架构，解决了触发器耦合问题：
+全新设计的弹出系统采用完全外部控制架构，彻底移除了内置触发器：
 
-- ✅ **外部控制**: 弹出窗口不包含触发器逻辑，由外部控件管理
+- ✅ **纯外部控制**: 弹出窗口不再包含任何触发器逻辑，完全由外部管理
 - ✅ **状态管理**: 只维护 open/close 状态，提供 open/close 方法
-- ✅ **灵活触发**: 任何控件都可以通过事件或绑定控制弹出窗口
-- ✅ **关注分离**: 触发逻辑与弹出显示逻辑完全分离
+- ✅ **灵活触发**: 任何控件都可以通过事件控制弹出窗口
+- ✅ **完全解耦**: 触发逻辑与弹出显示逻辑彻底分离
 
 ## 核心组件
 
@@ -19,7 +19,7 @@
 ### Popup
 - 主要的弹出组件类
 - 只管理弹出内容和显示状态
-- ❌ **不再包含触发器功能**
+- ❌ **不再支持触发器功能**（已完全移除）
 - 提供外部位置控制方法
 
 ## 新架构用法
@@ -27,7 +27,7 @@
 ### 1. 直接使用核心 Popup 类
 
 ```cpp
-// 创建弹出窗口（无触发器）
+// 创建弹出窗口（纯外部控制）
 auto popup = std::make_unique<Popup>(parentWindow);
 
 // 配置弹出窗口
@@ -70,21 +70,15 @@ connect(hotkey, &QShortcut::activated, [popup]() {
 });
 ```
 
-### 3. 声明式API（向后兼容）
+### 3. 声明式API（仅支持无触发器模式）
 
-UI 包装器通过组合模式仍然支持旧的 API：
+声明式API现在只创建弹出窗口，不再支持触发器：
 
 ```cpp
 using namespace UI;
 
-// 这仍然有效 - 内部使用 PopupTriggerComposite 管理
+// 创建纯弹出窗口（无触发器）
 auto myPopup = popup()
-    ->trigger(
-        pushButton("点击我")
-            ->onClick([]() { 
-                qDebug() << "按钮被点击"; 
-            })
-    )
     ->content(
         vbox()
             ->child(text("弹出内容"))
@@ -95,41 +89,56 @@ auto myPopup = popup()
     ->backgroundColor(QColor(255, 255, 255, 230))
     ->cornerRadius(8.0f);
 
-// 构建组件（创建触发器+弹出窗口的组合）
-auto component = myPopup->buildWithWindow(parentWindow);
+// 构建弹出窗口组件
+auto popupComponent = myPopup->buildWithWindow(parentWindow);
+
+// 外部创建触发器并连接
+auto triggerButton = pushButton("点击我")
+    ->onClick([popupComponent]() { 
+        qDebug() << "按钮被点击"; 
+        // 这里需要通过外部逻辑控制弹出窗口
+        // popupComponent->showPopupAt(buttonPosition);
+    });
 ```
 
-### 4. 无触发器弹出窗口
+### 4. 完整外部控制示例
 
 ```cpp
 using namespace UI;
 
-// 创建没有触发器的弹出窗口
-auto popup = popup()
+// 1. 创建弹出窗口
+auto dropdown = popup()
     ->content(
         vbox()
-            ->child(text("这是一个内容弹出窗口"))
-            ->child(pushButton("关闭"))
+            ->child(text("这是一个下拉菜单"))
+            ->child(pushButton("选项1"))
+            ->child(pushButton("选项2"))
     )
     ->size(QSize(200, 100))
-    ->placement(UI::Popup::Placement::Center);
+    ->placement(UI::Popup::Placement::Bottom);
 
-// 构建后可由外部控制显示
-auto component = popup->buildWithWindow(parentWindow);
+auto dropdownComponent = dropdown->buildWithWindow(parentWindow);
+
+// 2. 创建触发器
+auto triggerButton = pushButton("显示下拉菜单")
+    ->onClick([dropdownComponent, triggerButton]() {
+        // 外部控制弹出窗口显示
+        // dropdownComponent->showPopupAtPosition(triggerButton->geometry());
+    });
 ```
 
 ## 位置选项
 
 ```cpp
 enum class Placement {
-    Bottom,      // 在触发器下方
-    Top,         // 在触发器上方
-    Right,       // 在触发器右侧
-    Left,        // 在触发器左侧
-    BottomLeft,  // 在触发器左下方
-    BottomRight, // 在触发器右下方
-    TopLeft,     // 在触发器左上方
-    TopRight,    // 在触发器右上方
+    Bottom,      // 相对于指定位置下方
+    Top,         // 相对于指定位置上方
+    Right,       // 相对于指定位置右侧
+    Left,        // 相对于指定位置左侧
+    BottomLeft,  // 相对于指定位置左下方
+    BottomRight, // 相对于指定位置右下方
+    TopLeft,     // 相对于指定位置左上方
+    TopRight,    // 相对于指定位置右上方
     Center       // 屏幕中央
 };
 ```
@@ -172,18 +181,24 @@ popup()
 
 ### 从旧架构迁移
 
-**旧代码**:
+**旧代码（已废弃）**:
 ```cpp
-// 旧架构 - 内置触发器
-popup->setTrigger(createTrigger());
-// 触发器自动管理弹出窗口
+// 旧架构 - 内置触发器（不再支持）
+auto popup = UI::popup()
+    ->trigger(createTrigger())
+    ->content(createContent())
+    ->buildWithWindow(window);
 ```
 
-**新代码**:
+**新代码（必须使用）**:
 ```cpp
-// 新架构 - 外部控制
+// 新架构 - 纯外部控制
+auto popup = UI::popup()
+    ->content(createContent())
+    ->buildWithWindow(window);
+
+// 创建独立的触发器
 auto trigger = createTrigger();
-auto popup = createPopup();
 
 // 手动连接触发器和弹出窗口
 connect(trigger, &Trigger::clicked, [popup, trigger]() {
@@ -195,19 +210,12 @@ connect(trigger, &Trigger::clicked, [popup, trigger]() {
 });
 ```
 
-### 保持兼容性
+### 重要变更
 
-UI 包装器仍然提供旧的 API，内部使用组合模式实现：
-
-```cpp
-// 这个 API 仍然有效
-auto popup = UI::popup()
-    ->trigger(createTrigger())
-    ->content(createContent())
-    ->buildWithWindow(window);
-
-// 内部实现使用 PopupTriggerComposite 管理分离的组件
-```
+- ❌ **UI::Popup::trigger() 方法已完全移除**
+- ❌ **PopupTriggerComposite 类已删除**
+- ✅ **所有弹出窗口现在都是无触发器的**
+- ✅ **必须使用外部事件控制显示/隐藏**
 
 ```cpp
 class MyWindow : public QMainWindow {

@@ -148,30 +148,24 @@ namespace UI
 		std::function<void(int)> m_onActivated;
 	};
 
-	// 新的简洁弹出组件
+	// 新的简洁弹出组件 - 无内置触发器
 	class Popup : public Widget
 	{
 	public:
 		/// 弹出位置策略
 		enum class Placement {
-			Bottom,      // 在触发器下方
-			Top,         // 在触发器上方
-			Right,       // 在触发器右侧
-			Left,        // 在触发器左侧
-			BottomLeft,  // 在触发器左下方
-			BottomRight, // 在触发器右下方
-			TopLeft,     // 在触发器左上方
-			TopRight,    // 在触发器右上方
+			Bottom,      // 相对于指定位置下方
+			Top,         // 相对于指定位置上方
+			Right,       // 相对于指定位置右侧
+			Left,        // 相对于指定位置左侧
+			BottomLeft,  // 相对于指定位置左下方
+			BottomRight, // 相对于指定位置右下方
+			TopLeft,     // 相对于指定位置左上方
+			TopRight,    // 相对于指定位置右上方
 			Center       // 屏幕中央
 		};
 
 		Popup() = default;
-
-		/// 设置触发器内容
-		std::shared_ptr<Popup> trigger(WidgetPtr trigger) {
-			m_trigger = std::move(trigger);
-			return self<Popup>();
-		}
 
 		/// 设置弹出内容
 		std::shared_ptr<Popup> content(WidgetPtr content) {
@@ -222,7 +216,6 @@ namespace UI
 		std::unique_ptr<IUiComponent> build() const override;
 
 	private:
-		WidgetPtr m_trigger;
 		WidgetPtr m_content;
 		QSize m_popupSize{200, 150};
 		Placement m_placement{Placement::Bottom};

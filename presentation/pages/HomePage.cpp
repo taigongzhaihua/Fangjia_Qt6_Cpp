@@ -183,139 +183,133 @@ private:
 			;
 	}
 
-	// 新增：构建弹出控件演示区域
+	// 新增：构建弹出控件演示区域 - 外部控制模式
 	[[nodiscard]] WidgetPtr buildPopupDemo() const
 	{
 		return card(panel({
-			text("弹出控件演示")
+			text("外部控制弹出窗口演示")
 			->fontSize(18)->fontWeight(QFont::Medium)
 			->align(Qt::AlignHCenter),
 
 			spacer(10),
 
-			text("点击按钮体验弹出菜单功能")
+			text("演示新架构：弹出窗口不再包含触发器，由外部控制")
 			->fontSize(14)
 			->themeColor(QColor(100, 110, 120), QColor(150, 160, 155))
 			->align(Qt::AlignHCenter),
 
 			spacer(15),
 
-			// 弹出控件示例 - 基础菜单
-			popup()
-				->trigger(
-					button("显示菜单 📋")
-					->primary()
-				)
-				->content(
-					panel({
-						text("菜单选项")
-						->fontSize(14)
-						->fontWeight(QFont::Medium)
-						->themeColor(QColor(50, 60, 70), QColor(200, 210, 220))
-						->align(Qt::AlignHCenter),
+			// 说明文字
+			panel({
+				text("✅ 新架构特性：")
+				->fontSize(13)
+				->fontWeight(QFont::Medium)
+				->themeColor(QColor(50, 120, 50), QColor(120, 200, 120)),
+				
+				spacer(8),
 
-						spacer(8),
+				text("• 弹出窗口只维护开启/关闭状态")
+				->fontSize(12)
+				->themeColor(QColor(80, 90, 100), QColor(170, 180, 190)),
 
-						// 菜单项
-						button("📄 新建文档")
-						->onTap([] { qDebug() << "新建文档被点击"; }),
+				text("• 外部组件通过事件控制显示/隐藏")
+				->fontSize(12)
+				->themeColor(QColor(80, 90, 100), QColor(170, 180, 190)),
 
-						button("📁 打开文件")
-						->onTap([] { qDebug() << "打开文件被点击"; }),
+				text("• 支持多个控件控制同一弹出窗口")
+				->fontSize(12)
+				->themeColor(QColor(80, 90, 100), QColor(170, 180, 190)),
 
-						button("💾 保存")
-						->onTap([] { qDebug() << "保存被点击"; }),
+				text("• 触发器与弹出内容完全解耦")
+				->fontSize(12)
+				->themeColor(QColor(80, 90, 100), QColor(170, 180, 190)),
 
-						spacer(5),
-
-						// 分隔线
-						coloredBox(QColor(220, 220, 220, 100))
-						->size(0, 1),
-
-						spacer(5),
-
-						button("❌ 退出")
-						->destructive()
-						->onTap([] { qDebug() << "退出被点击"; })
-					})->vertical()
-					->crossAxisAlignment(Alignment::Stretch)
-					->spacing(4)
-					->padding(12)
-				)
-				->size(QSize(160, 200))
-				->placement(UI::Popup::Placement::Bottom),
+			})->vertical()
+			->crossAxisAlignment(Alignment::Start)
+			->spacing(4)
+			->padding(12)
+			->backgroundTheme(QColor(245, 250, 245), QColor(25, 35, 25)),
 
 			spacer(12),
 
-			// 第二个弹出示例 - 工具面板
-			grid()->columns({1_fr, 1_fr})
-				->add(
-					popup()
-					->trigger(
-						button("工具箱 🔧")
+			// 示例区域 - 只展示概念，不包含实际弹出功能
+			panel({
+				text("外部控制示例 (概念演示)")
+				->fontSize(14)
+				->fontWeight(QFont::Medium)
+				->themeColor(QColor(60, 70, 80), QColor(190, 200, 210))
+				->align(Qt::AlignHCenter),
+
+				spacer(10),
+
+				// 模拟的触发器按钮
+				grid()->columns({1_fr, 1_fr})
+					->add(
+						button("控制器 1 📋")
+						->primary()
+						->onTap([] { 
+							qDebug() << "外部控制：控制器1 将显示弹出窗口"; 
+							qDebug() << "实际实现中，这里会调用 popup->showPopupAt(position)";
+						}),
+						0, 0
+					)
+					->add(
+						button("控制器 2 🔧") 
 						->secondary()
-						->size(UI::Button::Size::L)
+						->onTap([] { 
+							qDebug() << "外部控制：控制器2 将显示弹出窗口"; 
+							qDebug() << "实际实现中，这里会调用 popup->showPopupAt(position)";
+						}),
+						0, 1
 					)
-					->content(
-						panel({
-							text("常用工具")
-							->fontSize(12)
-							->fontWeight(QFont::Medium)
-							->align(Qt::AlignHCenter),
+					->colSpacing(15),
 
-							spacer(8),
+				spacer(8),
 
-							grid()->columns({1_fr, 1_fr})
-								->add(button("✂️")->onTap([] { qDebug() << "剪切"; }), 0, 0)
-								->add(button("📋")->onTap([] { qDebug() << "复制"; }), 0, 1)
-								->add(button("📌")->onTap([] { qDebug() << "粘贴"; }), 1, 0)
-								->add(button("🔍")->onTap([] { qDebug() << "查找"; }), 1, 1)
-								->colSpacing(4)
-								->rowSpacing(4)
-						})->vertical()
-						->crossAxisAlignment(Alignment::Stretch)
-						->spacing(6)
-						->padding(10)
-					)
-					->size(QSize(100, 80))
-					->placement(Popup::Placement::TopRight),
-					0, 0
-				)
-				->add(
-					popup()
-					->trigger(
-						button("设置 ⚙️")
-					)
-					->content(
-						panel({
-							text("快速设置")
-							->fontSize(12)
-							->fontWeight(QFont::Medium),
+				text("💡 查看控制台输出了解控制流程")
+				->fontSize(11)
+				->themeColor(QColor(120, 120, 120), QColor(160, 160, 160))
+				->align(Qt::AlignCenter),
 
-							spacer(6),
+			})->vertical()
+			->crossAxisAlignment(Alignment::Stretch)
+			->spacing(6)
+			->padding(12)
+			->backgroundTheme(QColor(250, 250, 255), QColor(20, 25, 35)),
 
-							button("🌙 暗色主题")
-							->onTap([] { qDebug() << "切换主题"; }),
+			spacer(12),
 
-							button("🔊 音效")
-							->onTap([] { qDebug() << "音效设置"; }),
+			// 代码示例区域
+			panel({
+				text("代码示例：")
+				->fontSize(13)
+				->fontWeight(QFont::Medium)
+				->themeColor(QColor(80, 50, 120), QColor(180, 150, 220)),
 
-							button("📊 性能")
-							->onTap([] { qDebug() << "性能设置"; })
-						})->vertical()
-						->crossAxisAlignment(Alignment::Stretch)
-						->spacing(4)
-						->padding(10)
-					)
-					->size(QSize(120, 100))
-					->placement(UI::Popup::Placement::TopLeft),
-					0, 1
-				)
-				->colSpacing(15),
+				spacer(6),
+
+				text("// 创建弹出窗口（无触发器）\nauto myPopup = popup()\n    ->content(panel({...}))\n    ->size(QSize(200, 150))\n    ->placement(Popup::Placement::Bottom);")
+				->fontSize(11)
+				->themeColor(QColor(60, 60, 60), QColor(200, 200, 200))
+				->fontFamily("Consolas, Monaco, monospace"),
+
+				spacer(4),
+
+				text("// 外部控制显示\nbutton(\"触发器\")\n    ->onTap([popup]() {\n        popup->showPopupAt(position);\n    });")
+				->fontSize(11)
+				->themeColor(QColor(60, 60, 60), QColor(200, 200, 200))
+				->fontFamily("Consolas, Monaco, monospace"),
+
+			})->vertical()
+			->crossAxisAlignment(Alignment::Start)
+			->spacing(4)
+			->padding(12)
+			->backgroundTheme(QColor(248, 245, 252), QColor(25, 22, 32)),
 
 			spacer(8),
 
-			text("提示：弹出窗口支持多种位置和样式配置")
+			text("📚 详细用法请参阅 NEW_POPUP_GUIDE.md")
 			->fontSize(11)
 			->themeColor(QColor(120, 120, 120), QColor(160, 160, 160))
 			->align(Qt::AlignCenter)
