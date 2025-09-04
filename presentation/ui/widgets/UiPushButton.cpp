@@ -18,7 +18,7 @@
 #include <qrect.h>
 #include <qsize.h>
 #include <qstring.h>
-#include <qtpreprocessorsupport.h>
+#include <qglobal.h>
 
 UiPushButton::UiPushButton() {
 	// 设置默认圆角半径
