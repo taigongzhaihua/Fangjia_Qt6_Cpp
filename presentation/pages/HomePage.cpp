@@ -97,13 +97,14 @@ public:
 							":/icons/settings_dark.svg",
 							"系统设置",
 							"自定义应用偏好"),
-						1, 1, 1, 1, Grid::Center, Grid::Center),
+						1, 1, 1, 1, Grid::Center, Grid::Center)->padding(20),
 
 			// 留白
 			spacer(8)
 			})->vertical()
 			->crossAxisAlignment(Alignment::Center)
-			->spacing(20);
+			->spacing(20)
+			;
 
 		// 使用声明式 ScrollView 包装主内容
 		return scrollView(mainContent);
@@ -170,8 +171,9 @@ private:
 			})->vertical()
 					->crossAxisAlignment(Alignment::Stretch)
 					->padding(15))
-			->elevation(1.0f)
-			->backgroundTheme(QColor(250, 250, 255), QColor(20, 25, 35));
+			->elevation(3.0f)
+			->backgroundTheme(QColor(250, 250, 255), QColor(20, 25, 35))
+			;
 	}
 
 	[[nodiscard]] WidgetPtr buildFeatureCard(const QString& iconLight, const QString& iconDark, const QString& title,
@@ -195,7 +197,7 @@ private:
 				->spacing(10)
 				->size(200, 140)
 				->padding(10)
-			)->elevation(2.0f)
+			)->elevation(3.0f)
 			->backgroundTheme(QColor(240, 245, 255), QColor(10, 15, 25)); // 固定“卡片外层”尺寸，保证大小稳定
 	}
 };

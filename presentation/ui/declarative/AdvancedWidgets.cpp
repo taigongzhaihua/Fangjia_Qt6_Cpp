@@ -1,9 +1,11 @@
 #include "AdvancedWidgets.h"
 #include "Decorators.h"   // 新增
+#include "UiComponent.hpp"
 #include "UiListBox.h"    // 新增
 #include <algorithm>
 #include <memory>
-#include "UiComponent.hpp"
+#include <qcolor.h>
+#include <qpoint.h>
 #include <utility>
 
 namespace UI {
@@ -35,7 +37,7 @@ namespace UI {
 		// 将 elevation 映射为阴影效果
 		if (m_elevation > 0.0f) {
 			p.useShadow = true;
-			p.shadowColor = QColor(0, 0, 0, static_cast<int>(std::clamp(30 + m_elevation * 10, 30.0f, 120.0f))); // 降低阴影透明度：30-120 范围，更加透明
+			p.shadowColor = QColor(100, 100, 100, static_cast<int>(std::clamp(10 + m_elevation * 5, 15.0f, 60.0f))); // 降低阴影透明度：30-120 范围，更加透明
 			p.shadowBlurPx = std::clamp(m_elevation * 2.0f, 2.0f, 24.0f);  // 模糊半径：elevation * 2，范围 2-24px
 			p.shadowOffset = QPoint(0, static_cast<int>(std::clamp(m_elevation * 0.5f, 1.0f, 8.0f))); // Y 偏移：elevation * 0.5，范围 1-8px
 			p.shadowSpreadPx = std::clamp(m_elevation * 0.25f, 0.0f, 4.0f); // 扩展：elevation * 0.25，范围 0-4px
@@ -56,12 +58,12 @@ namespace UI {
 	std::unique_ptr<IUiComponent> ListBox::build() const
 	{
 		auto listBox = std::make_unique<UiListBox>();
-		
+
 		// 应用配置
 		listBox->setItems(m_items);
 		listBox->setItemHeight(m_itemHeight);
 		listBox->setSelectedIndex(m_selectedIndex);
-		
+
 		if (m_onActivated) {
 			listBox->setOnActivated(m_onActivated);
 		}
