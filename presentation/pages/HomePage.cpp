@@ -19,6 +19,7 @@
 #include <RebuildHost.h>
 #include <UiComponent.hpp>
 #include <Widget.h>
+#include "Popup.h"
 
 #include "BasicWidgets_Button.h"
 using namespace UI;
@@ -50,9 +51,9 @@ public:
 	std::unique_ptr<IUiComponent> builtComponent;
 	std::unique_ptr<CounterViewModel> counterVM; // 计数器ViewModel
 	
-	// 弹出窗口演示的存储
-	std::unique_ptr<IUiComponent> popup1;
-	std::unique_ptr<IUiComponent> popup2;
+	// 弹出窗口演示的存储 - 直接使用核心Popup类
+	std::unique_ptr<::Popup> popup1;
+	std::unique_ptr<::Popup> popup2;
 
 	Impl()
 	{
@@ -69,6 +70,8 @@ private:
 		}
 		
 		// 创建弹出窗口1 - 带丰富内容
+		popup1 = std::make_unique<::Popup>(s_windowContext);
+		
 		auto popupContent1 = panel({
 			text("🎉 弹出窗口演示 1")
 				->fontSize(16)
@@ -89,8 +92,8 @@ private:
 				->secondary()
 				->onTap([this] {
 					if (popup1) {
-						// 这里应该调用popup的hide方法，但由于架构限制，我们只能打印
-						qDebug() << "弹出窗口1 应该被关闭";
+						qDebug() << "关闭弹出窗口1";
+						popup1->hidePopup();
 					}
 				})
 		})->vertical()
@@ -98,18 +101,18 @@ private:
 		->spacing(4)
 		->padding(16);
 		
-		popup1 = popup()
-			->content(popupContent1)
-			->size(QSize(280, 160))
-			->placement(UI::Popup::Placement::Bottom)
-			->backgroundColor(QColor(255, 255, 255, 245))
-			->cornerRadius(12.0f)
-			->onVisibilityChanged([](bool visible) {
-				qDebug() << "弹出窗口1 可见性变化:" << visible;
-			})
-			->buildWithWindow(s_windowContext);
+		popup1->setContent(popupContent1->build());
+		popup1->setPopupSize(QSize(280, 160));
+		popup1->setPlacement(::Popup::Placement::Bottom);
+		popup1->setBackgroundColor(QColor(255, 255, 255, 245));
+		popup1->setCornerRadius(12.0f);
+		popup1->setOnVisibilityChanged([](bool visible) {
+			qDebug() << "弹出窗口1 可见性变化:" << visible;
+		});
 		
 		// 创建弹出窗口2 - 简单列表内容
+		popup2 = std::make_unique<::Popup>(s_windowContext);
+		
 		auto popupContent2 = panel({
 			text("📋 选项列表")
 				->fontSize(14)
@@ -138,16 +141,14 @@ private:
 		->spacing(4)
 		->padding(12);
 		
-		popup2 = popup()
-			->content(popupContent2)
-			->size(QSize(200, 140))
-			->placement(UI::Popup::Placement::Bottom)
-			->backgroundColor(QColor(248, 252, 255, 240))
-			->cornerRadius(8.0f)
-			->onVisibilityChanged([](bool visible) {
-				qDebug() << "弹出窗口2 可见性变化:" << visible;
-			})
-			->buildWithWindow(s_windowContext);
+		popup2->setContent(popupContent2->build());
+		popup2->setPopupSize(QSize(200, 140));
+		popup2->setPlacement(::Popup::Placement::Bottom);
+		popup2->setBackgroundColor(QColor(248, 252, 255, 240));
+		popup2->setCornerRadius(8.0f);
+		popup2->setOnVisibilityChanged([](bool visible) {
+			qDebug() << "弹出窗口2 可见性变化:" << visible;
+		});
 	}
 
 public:
@@ -350,13 +351,8 @@ private:
 						->onTap([this] {
 							qDebug() << "外部控制：控制器1 被点击";
 							if (popup1) {
-								qDebug() << "弹出窗口1 已创建，尝试显示";
-								// 由于架构限制，我们目前只能展示概念
-								// 在实际实现中应该调用: 
-								// if (auto popup = dynamic_cast<::Popup*>(popup1.get())) {
-								//     popup->showPopup();
-								// }
-								qDebug() << "实际实现中应调用 popup1->showPopupAt(buttonPosition)";
+								qDebug() << "弹出窗口1 已创建，正在显示...";
+								popup1->showPopup();
 							} else {
 								qDebug() << "弹出窗口1 未创建 - 需要窗口上下文";
 							}
@@ -369,13 +365,8 @@ private:
 						->onTap([this] {
 							qDebug() << "外部控制：控制器2 被点击";
 							if (popup2) {
-								qDebug() << "弹出窗口2 已创建，尝试显示";
-								// 由于架构限制，我们目前只能展示概念
-								// 在实际实现中应该调用:
-								// if (auto popup = dynamic_cast<::Popup*>(popup2.get())) {
-								//     popup->showPopup();
-								// }
-								qDebug() << "实际实现中应调用 popup2->showPopupAt(buttonPosition)";
+								qDebug() << "弹出窗口2 已创建，正在显示...";
+								popup2->showPopup();
 							} else {
 								qDebug() << "弹出窗口2 未创建 - 需要窗口上下文";
 							}
@@ -387,7 +378,7 @@ private:
 				spacer(8),
 
 				text(s_windowContext ? 
-					"✅ 弹出窗口已创建，点击按钮查看控制台输出" :
+					"🎉 弹出窗口已创建并可以显示！点击按钮测试" :
 					"⚠️  需要窗口上下文才能创建弹出窗口")
 				->fontSize(11)
 				->themeColor(s_windowContext ? QColor(50, 120, 50) : QColor(120, 50, 50), 
