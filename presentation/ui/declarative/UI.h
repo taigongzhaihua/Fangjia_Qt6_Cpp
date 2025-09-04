@@ -30,15 +30,9 @@ namespace UI {
 	// ListBox
 	inline auto listBox() { return make_widget<ListBox>(); }
 
-	// Popup
+	// Popup - 新的简洁弹出组件
 	inline auto popup() { return make_widget<Popup>(); }
 
-	// 便捷函数：创建并配置弹出窗口
-	// 注意：由于技术限制，弹出窗口需要窗口上下文，使用时需要额外配置
-	// 使用示例：auto popupWidget = popup()->trigger(button)->content(menu);
-	//          auto component = popupWidget->build();
-	//          Popup::configurePopupWindow(component.get(), parentWindow);
-	//          uiRoot.add(component.release());
 
 	// ScrollView
 	inline auto scrollView(WidgetPtr child = nullptr) { 

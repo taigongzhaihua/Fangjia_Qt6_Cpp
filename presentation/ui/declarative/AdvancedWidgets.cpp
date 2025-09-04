@@ -2,7 +2,8 @@
 #include "Decorators.h"   // 新增
 #include "UiComponent.hpp"
 #include "UiListBox.h"    // 新增
-#include "SimplePopup.h"  // 使用简化的弹出实现替代UiPopup.h
+#include "Popup.h"        // 新增弹出组件
+
 #include <algorithm>
 #include <functional>
 #include <IconCache.h>
@@ -81,165 +82,61 @@ namespace UI {
 		return decorate(std::move(listBox));
 	}
 
-	// SimplePopupHost: 简化的弹出主机，替代复杂的PopupHost
-	// 直接使用SimplePopup，避免延迟创建和复杂的资源依赖问题
-	class SimplePopupHost : public IUiComponent, public IUiContent {
-	public:
-		struct Config {
-			std::unique_ptr<IUiComponent> trigger;
-			std::unique_ptr<IUiComponent> content;
-			QSize popupSize{ 200, 150 };
-			SimplePopup::Placement placement{ SimplePopup::Placement::Bottom };
-			QPoint offset{ 0, 0 };
-			QColor backgroundColor{ 255, 255, 255, 240 };
-			float cornerRadius{ 8.0f };
-			bool closeOnClickOutside{ true };
-			std::function<void(bool)> onVisibilityChanged;
-		};
-
-		explicit SimplePopupHost(Config config, QWindow* parentWindow) 
-			: m_config(std::move(config))
-		{
-			// 立即创建SimplePopup（不延迟）
-			m_popup = std::make_unique<SimplePopup>(parentWindow);
-			
-			// 立即配置SimplePopup
-			if (m_config.trigger) {
-				m_popup->setTrigger(std::move(m_config.trigger));
-			}
-			
-			if (m_config.content) {
-				m_popup->setPopupContent(std::move(m_config.content));
-			}
-			
-			// 应用配置
-			m_popup->setPopupSize(m_config.popupSize);
-			m_popup->setPlacement(m_config.placement);
-			m_popup->setOffset(m_config.offset);
-			m_popup->setBackgroundStyle(m_config.backgroundColor, m_config.cornerRadius);
-			m_popup->setCloseOnClickOutside(m_config.closeOnClickOutside);
-			
-			if (m_config.onVisibilityChanged) {
-				m_popup->setOnPopupVisibilityChanged(m_config.onVisibilityChanged);
-			}
-		}
-
-		// IUiComponent - 直接委托给SimplePopup
-		void updateLayout(const QSize& windowSize) override {
-			if (m_popup) {
-				m_popup->updateLayout(windowSize);
-			}
-		}
-
-		void updateResourceContext(IconCache& cache, QOpenGLFunctions* gl, float devicePixelRatio) override {
-			if (m_popup) {
-				m_popup->updateResourceContext(cache, gl, devicePixelRatio);
-			}
-		}
-
-		void append(Render::FrameData& fd) const override {
-			if (m_popup) {
-				m_popup->append(fd);
-			}
-		}
-
-		bool onMousePress(const QPoint& pos) override {
-			return m_popup ? m_popup->onMousePress(pos) : false;
-		}
-
-		bool onMouseMove(const QPoint& pos) override {
-			return m_popup ? m_popup->onMouseMove(pos) : false;
-		}
-
-		bool onMouseRelease(const QPoint& pos) override {
-			return m_popup ? m_popup->onMouseRelease(pos) : false;
-		}
-
-		bool onWheel(const QPoint& pos, const QPoint& angleDelta) override {
-			return m_popup ? m_popup->onWheel(pos, angleDelta) : false;
-		}
-
-		bool tick() override {
-			return m_popup ? m_popup->tick() : false;
-		}
-
-		QRect bounds() const override {
-			return m_popup ? m_popup->bounds() : QRect();
-		}
-
-		void onThemeChanged(bool isDark) override {
-			if (m_popup) {
-				m_popup->onThemeChanged(isDark);
-			}
-		}
-
-		// IUiContent
-		void setViewportRect(const QRect& r) override {
-			m_viewport = r;
-			if (m_popup) {
-				m_popup->setViewportRect(r);
-			}
-		}
-
-		// 获取底层SimplePopup实例（供高级用法）
-		SimplePopup* getPopup() const { return m_popup.get(); }
-
-	private:
-		Config m_config;
-		std::unique_ptr<SimplePopup> m_popup;
-		QRect m_viewport;
-	};
-
+	// 新弹出组件实现
 	std::unique_ptr<IUiComponent> Popup::build() const
 	{
-		// 注意：由于我们需要父窗口来创建SimplePopupHost，
-		// 但build()方法不接受参数，我们需要一个不同的方法
-		// 这里暂时返回nullptr，实际应该使用buildWithWindow()方法
+		// build()方法不提供父窗口上下文，返回nullptr
+		// 用户应该使用buildWithWindow()方法
+		qWarning() << "Popup::build() called without window context. Use buildWithWindow() instead.";
 		return nullptr;
 	}
-	
+
 	std::unique_ptr<IUiComponent> Popup::buildWithWindow(QWindow* parentWindow) const
 	{
-		// 准备配置
-		SimplePopupHost::Config config;
-		config.trigger = m_trigger ? m_trigger->build() : nullptr;
-		config.content = m_content ? m_content->build() : nullptr;
-		config.popupSize = m_popupSize;
+		if (!parentWindow) {
+			qWarning() << "Popup::buildWithWindow() called with null parent window";
+			return nullptr;
+		}
 
-		// 转换枚举类型
+		// 创建新的弹出组件
+		auto popup = std::make_unique<::Popup>(parentWindow);
+
+		// 设置触发器和内容
+		if (m_trigger) {
+			popup->setTrigger(m_trigger->build());
+		}
+		
+		if (m_content) {
+			popup->setContent(m_content->build());
+		}
+
+		// 配置弹出窗口
+		popup->setPopupSize(m_popupSize);
+		popup->setOffset(m_offset);
+		popup->setBackgroundColor(m_backgroundColor);
+		popup->setCornerRadius(m_cornerRadius);
+		
+		// 转换位置枚举
 		switch (m_placement) {
-		case Placement::Bottom:      config.placement = SimplePopup::Placement::Bottom; break;
-		case Placement::Top:         config.placement = SimplePopup::Placement::Top; break;
-		case Placement::Right:       config.placement = SimplePopup::Placement::Right; break;
-		case Placement::Left:        config.placement = SimplePopup::Placement::Left; break;
-		case Placement::BottomLeft:  config.placement = SimplePopup::Placement::BottomLeft; break;
-		case Placement::BottomRight: config.placement = SimplePopup::Placement::BottomRight; break;
-		case Placement::TopLeft:     config.placement = SimplePopup::Placement::TopLeft; break;
-		case Placement::TopRight:    config.placement = SimplePopup::Placement::TopRight; break;
-		case Placement::Custom:      config.placement = SimplePopup::Placement::Custom; break;
+		case Placement::Bottom:      popup->setPlacement(::Popup::Placement::Bottom); break;
+		case Placement::Top:         popup->setPlacement(::Popup::Placement::Top); break;
+		case Placement::Right:       popup->setPlacement(::Popup::Placement::Right); break;
+		case Placement::Left:        popup->setPlacement(::Popup::Placement::Left); break;
+		case Placement::BottomLeft:  popup->setPlacement(::Popup::Placement::BottomLeft); break;
+		case Placement::BottomRight: popup->setPlacement(::Popup::Placement::BottomRight); break;
+		case Placement::TopLeft:     popup->setPlacement(::Popup::Placement::TopLeft); break;
+		case Placement::TopRight:    popup->setPlacement(::Popup::Placement::TopRight); break;
+		case Placement::Center:      popup->setPlacement(::Popup::Placement::Center); break;
 		}
 
-		config.offset = m_offset;
-		config.backgroundColor = m_backgroundColor;
-		config.cornerRadius = m_cornerRadius;
-		config.closeOnClickOutside = m_closeOnClickOutside;
-		config.onVisibilityChanged = m_onVisibilityChanged;
-
-		// 创建 SimplePopupHost 并应用装饰器
-		auto host = std::make_unique<SimplePopupHost>(std::move(config), parentWindow);
-		return decorate(std::move(host));
-	}
-
-	void Popup::configurePopupWindow(IUiComponent* component, QWindow* parentWindow)
-	{
-		// 尝试向下转换到SimplePopupHost（可能经过装饰器包装）
-		// 注意：由于我们现在在构造时就传递了parentWindow，这个方法主要用于兼容性
-		if (auto* host = dynamic_cast<SimplePopupHost*>(component)) {
-			// SimplePopupHost在构造时已经设置了父窗口，这里不需要额外操作
-			qDebug() << "Popup::configurePopupWindow: SimplePopupHost已经配置了父窗口";
+		// 设置回调
+		if (m_onVisibilityChanged) {
+			popup->setOnVisibilityChanged(m_onVisibilityChanged);
 		}
-		// 如果组件被装饰器包装，可能需要额外的逻辑来访问内部的SimplePopupHost
-		// 这里为了简单起见，假设用户直接传递了正确的组件
+
+		// 应用装饰器并返回
+		return decorate(std::move(popup));
 	}
+
 
 } // namespace UI
