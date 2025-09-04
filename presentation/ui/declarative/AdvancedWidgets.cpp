@@ -2,11 +2,19 @@
 #include "Decorators.h"   // 新增
 #include "UiComponent.hpp"
 #include "UiListBox.h"    // 新增
-#include "../widgets/UiPopup.h"  // 新增
+#include "UiPopup.h"  // 新增
 #include <algorithm>
+#include <functional>
+#include <IconCache.h>
 #include <memory>
 #include <qcolor.h>
+#include <qopenglfunctions.h>
 #include <qpoint.h>
+#include <qrect.h>
+#include <qsize.h>
+#include <qwindow.h>
+#include <RenderData.hpp>
+#include <UiContent.hpp>
 #include <utility>
 
 namespace UI {
@@ -95,7 +103,8 @@ namespace UI {
 		void updateLayout(const QSize& windowSize) override {
 			if (m_popup) {
 				m_popup->updateLayout(windowSize);
-			} else {
+			}
+			else {
 				// 如果还没有窗口上下文，尝试创建
 				tryCreatePopup();
 			}
@@ -117,7 +126,8 @@ namespace UI {
 		void append(Render::FrameData& fd) const override {
 			if (m_popup) {
 				m_popup->append(fd);
-			} else {
+			}
+			else {
 				// 如果弹出窗口尚未创建，可以绘制占位符或触发器
 				if (m_config.trigger) {
 					m_config.trigger->append(fd);
@@ -184,7 +194,7 @@ namespace UI {
 
 		void createPopup() {
 			m_popup = std::make_unique<UiPopup>(m_parentWindow);
-			
+
 			// 设置触发器
 			if (m_config.trigger) {
 				m_popup->setTrigger(m_config.trigger.get());
@@ -234,7 +244,7 @@ namespace UI {
 		config.trigger = m_trigger ? m_trigger->build() : nullptr;
 		config.content = m_content ? m_content->build() : nullptr;
 		config.popupSize = m_popupSize;
-		
+
 		// 转换枚举类型
 		switch (m_placement) {
 		case Placement::Bottom:      config.placement = UiPopup::Placement::Bottom; break;

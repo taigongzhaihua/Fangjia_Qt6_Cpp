@@ -70,8 +70,8 @@ public:
 			spacer(15),
 
 			// 功能卡片网格
-			grid()->columns({1_fr, 1_fr})
-				  ->rows({1_fr, 1_fr})
+			grid()->columns({15_px, 1_fr, 1_fr,15_px})
+				  ->rows({15_px, 1_fr, 1_fr,15_px})
 				  ->colSpacing(30)
 				  ->rowSpacing(35)
 				  ->add(buildFeatureCard(
@@ -79,25 +79,25 @@ public:
 							":/icons/data_dark.svg",
 							"方剂数据",
 							"查看和管理中医方剂"),
-						0, 0, 1, 1, Grid::Center, Grid::Center)
+						1, 1, 1, 1, Grid::Center, Grid::Center)
 				  ->add(buildFeatureCard(
 							":/icons/explore_light.svg",
 							":/icons/explore_dark.svg",
 							"探索发现",
 							"发现新的方剂组合"),
-						0, 1, 1, 1, Grid::Center, Grid::Center)
+						1, 2, 1, 1, Grid::Center, Grid::Center)
 				  ->add(buildFeatureCard(
 							":/icons/fav_light.svg",
 							":/icons/fav_dark.svg",
 							"我的收藏",
 							"管理收藏的方剂"),
-						1, 0, 1, 1, Grid::Center, Grid::Center)
+						2, 1, 1, 1, Grid::Center, Grid::Center)
 				  ->add(buildFeatureCard(
 							":/icons/settings_light.svg",
 							":/icons/settings_dark.svg",
 							"系统设置",
 							"自定义应用偏好"),
-						1, 1, 1, 1, Grid::Center, Grid::Center)->padding(20),
+						2, 2, 1, 1, Grid::Center, Grid::Center)->padding(20),
 
 			// 留白
 			spacer(8)
