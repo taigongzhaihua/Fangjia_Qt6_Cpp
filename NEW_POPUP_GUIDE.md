@@ -2,12 +2,12 @@
 
 ## 概述
 
-全新设计的弹出系统采用简单直接的架构，解决了原有实现的复杂性问题：
+全新设计的弹出系统采用外部控制架构，解决了触发器耦合问题：
 
-- ✅ **立即初始化**: 所有组件立即创建，避免延迟初始化问题
-- ✅ **简单架构**: 只有两个核心类，减少抽象层次
-- ✅ **直接集成**: 与现有UI框架无缝集成
-- ✅ **声明式API**: 清晰的链式调用语法
+- ✅ **外部控制**: 弹出窗口不包含触发器逻辑，由外部控件管理
+- ✅ **状态管理**: 只维护 open/close 状态，提供 open/close 方法
+- ✅ **灵活触发**: 任何控件都可以通过事件或绑定控制弹出窗口
+- ✅ **关注分离**: 触发逻辑与弹出显示逻辑完全分离
 
 ## 核心组件
 
@@ -18,16 +18,66 @@
 
 ### Popup
 - 主要的弹出组件类
-- 管理触发器和弹出内容
-- 处理位置计算和显示逻辑
+- 只管理弹出内容和显示状态
+- ❌ **不再包含触发器功能**
+- 提供外部位置控制方法
 
-## 基本用法
+## 新架构用法
 
-### 1. 声明式API创建
+### 1. 直接使用核心 Popup 类
+
+```cpp
+// 创建弹出窗口（无触发器）
+auto popup = std::make_unique<Popup>(parentWindow);
+
+// 配置弹出窗口
+popup->setContent(createContent());
+popup->setPopupSize(QSize(200, 120));
+popup->setPlacement(Popup::Placement::Bottom);
+
+// 外部控制显示/隐藏
+popup->showPopupAt(QPoint(100, 100));         // 在指定位置显示
+popup->showPopupAtPosition(triggerRect);       // 基于触发器矩形显示
+popup->hidePopup();                            // 隐藏
+
+// 查询状态
+bool isOpen = popup->isPopupVisible();
+```
+
+### 2. 外部触发器管理
+
+```cpp
+// 任何控件都可以控制弹出窗口
+QPushButton* trigger1 = new QPushButton("触发器1");
+QPushButton* trigger2 = new QPushButton("触发器2");
+QShortcut* hotkey = new QShortcut(QKeySequence("Ctrl+P"), window);
+
+// 连接到同一个弹出窗口
+connect(trigger1, &QPushButton::clicked, [popup, trigger1]() {
+    if (popup->isPopupVisible()) {
+        popup->hidePopup();
+    } else {
+        popup->showPopupAtPosition(trigger1->geometry());
+    }
+});
+
+connect(trigger2, &QPushButton::clicked, [popup, trigger2]() {
+    popup->showPopupAtPosition(trigger2->geometry());
+});
+
+connect(hotkey, &QShortcut::activated, [popup]() {
+    popup->showPopupAt(QPoint(200, 200));  // 显示在固定位置
+});
+```
+
+### 3. 声明式API（向后兼容）
+
+UI 包装器通过组合模式仍然支持旧的 API：
 
 ```cpp
 using namespace UI;
 
+// 这仍然有效 - 内部使用 PopupTriggerComposite 管理
 auto myPopup = popup()
     ->trigger(
         pushButton("点击我")
@@ -45,26 +95,27 @@ auto myPopup = popup()
     ->backgroundColor(QColor(255, 255, 255, 230))
     ->cornerRadius(8.0f);
 
-// 构建组件（需要父窗口上下文）
+// 构建组件（创建触发器+弹出窗口的组合）
 auto component = myPopup->buildWithWindow(parentWindow);
 ```
 
-### 2. 直接创建
+### 4. 无触发器弹出窗口
 
 ```cpp
-// 直接创建Popup实例
-auto popup = std::make_unique<Popup>(parentWindow);
+using namespace UI;
 
-// 设置触发器
-popup->setTrigger(createButton("触发器"));
+// 创建没有触发器的弹出窗口
+auto popup = popup()
+    ->content(
+        vbox()
+            ->child(text("这是一个内容弹出窗口"))
+            ->child(pushButton("关闭"))
+    )
+    ->size(QSize(200, 100))
+    ->placement(UI::Popup::Placement::Center);
 
-// 设置内容
-popup->setContent(createContent());
-
-// 配置
-popup->setPopupSize(QSize(250, 150));
-popup->setPlacement(Popup::Placement::Right);
-popup->setBackgroundColor(QColor(240, 240, 240));
+// 构建后可由外部控制显示
+auto component = popup->buildWithWindow(parentWindow);
 ```
 
 ## 位置选项
@@ -96,7 +147,67 @@ popup()
     })
 ```
 
-## 完整示例
+## 新架构优势
+
+### 关注分离
+- **之前**: 弹出窗口内置触发器逻辑，耦合度高
+- **现在**: 触发器和弹出窗口完全分离，各自专注单一职责
+
+### 灵活性
+- **多触发器**: 多个控件可以控制同一个弹出窗口
+- **多样化触发**: 按钮、快捷键、手势等都可以作为触发器
+- **条件控制**: 可以根据应用状态决定是否显示弹出窗口
+
+### 可重用性
+- **独立组件**: 弹出窗口不依赖特定的触发器实现
+- **通用接口**: 提供统一的 open/close 接口
+- **状态透明**: isOpen 状态可以被任何组件查询
+
+### 测试友好
+- **单元测试**: 触发器和弹出窗口可以独立测试
+- **模拟控制**: 测试时可以直接调用 showPopup/hidePopup 方法
+- **状态验证**: 可以直接检查 isPopupVisible 状态
+
+## 迁移指南
+
+### 从旧架构迁移
+
+**旧代码**:
+```cpp
+// 旧架构 - 内置触发器
+popup->setTrigger(createTrigger());
+// 触发器自动管理弹出窗口
+```
+
+**新代码**:
+```cpp
+// 新架构 - 外部控制
+auto trigger = createTrigger();
+auto popup = createPopup();
+
+// 手动连接触发器和弹出窗口
+connect(trigger, &Trigger::clicked, [popup, trigger]() {
+    if (popup->isPopupVisible()) {
+        popup->hidePopup();
+    } else {
+        popup->showPopupAtPosition(trigger->geometry());
+    }
+});
+```
+
+### 保持兼容性
+
+UI 包装器仍然提供旧的 API，内部使用组合模式实现：
+
+```cpp
+// 这个 API 仍然有效
+auto popup = UI::popup()
+    ->trigger(createTrigger())
+    ->content(createContent())
+    ->buildWithWindow(window);
+
+// 内部实现使用 PopupTriggerComposite 管理分离的组件
+```
 
 ```cpp
 class MyWindow : public QMainWindow {

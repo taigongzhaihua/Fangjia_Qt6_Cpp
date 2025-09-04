@@ -27,10 +27,7 @@ Popup::Popup(QWindow* parentWindow)
     });
 }
 
-void Popup::setTrigger(std::unique_ptr<IUiComponent> trigger)
-{
-    m_trigger = std::move(trigger);
-}
+
 
 void Popup::setContent(std::unique_ptr<IUiComponent> content)
 {
@@ -50,15 +47,32 @@ void Popup::setCornerRadius(float radius)
 
 void Popup::showPopup()
 {
+    // Show at center by default when no position is specified
+    showPopupAt(QPoint(100, 100));
+}
+
+void Popup::showPopupAt(const QPoint& position)
+{
     if (m_popupVisible) {
         return;
     }
     
-    // 计算弹出位置
-    QPoint globalPos = calculatePopupPosition();
+    // Show popup at specified position
+    m_overlay->showAt(position, m_popupSize);
+    m_popupVisible = true;
+}
+
+void Popup::showPopupAtPosition(const QRect& triggerRect)
+{
+    if (m_popupVisible) {
+        return;
+    }
     
-    // 显示弹出窗口
-    m_overlay->showAt(globalPos, m_popupSize);
+    // Calculate popup position based on trigger rectangle
+    QPoint popupPos = calculatePopupPosition(triggerRect);
+    
+    // Show popup at calculated position
+    m_overlay->showAt(popupPos, m_popupSize);
     m_popupVisible = true;
 }
 
@@ -84,100 +98,63 @@ void Popup::setViewportRect(const QRect& rect)
 
 void Popup::updateLayout(const QSize& windowSize)
 {
-    // 更新触发器布局
-    if (m_trigger) {
-        m_trigger->updateLayout(windowSize);
-    }
+    // Popup layout updated - no trigger to update
 }
 
 void Popup::updateResourceContext(IconCache& cache, QOpenGLFunctions* gl, float devicePixelRatio)
 {
-    // 更新触发器资源上下文
-    if (m_trigger) {
-        m_trigger->updateResourceContext(cache, gl, devicePixelRatio);
-    }
+    // Popup resources updated - no trigger to update
 }
 
 void Popup::append(Render::FrameData& frameData) const
 {
-    // 只渲染触发器，弹出内容由覆盖窗口自己渲染
-    if (m_trigger) {
-        m_trigger->append(frameData);
-    }
+    // Popup itself doesn't render anything - content is rendered by overlay window
 }
 
 bool Popup::onMousePress(const QPoint& pos)
 {
-    // 检查是否点击了触发器
-    if (m_trigger && m_trigger->onMousePress(pos)) {
-        // 切换弹出窗口显示状态
-        if (m_popupVisible) {
-            hidePopup();
-        } else {
-            showPopup();
-        }
-        return true;
-    }
-    
+    // Popup no longer handles trigger interactions - external controls should manage popup state
     return false;
 }
 
 bool Popup::onMouseMove(const QPoint& pos)
 {
-    if (m_trigger) {
-        return m_trigger->onMouseMove(pos);
-    }
+    // Popup no longer handles trigger interactions
     return false;
 }
 
 bool Popup::onMouseRelease(const QPoint& pos)
 {
-    if (m_trigger) {
-        return m_trigger->onMouseRelease(pos);
-    }
+    // Popup no longer handles trigger interactions
     return false;
 }
 
 bool Popup::onWheel(const QPoint& pos, const QPoint& angleDelta)
 {
-    if (m_trigger) {
-        return m_trigger->onWheel(pos, angleDelta);
-    }
+    // Popup no longer handles trigger interactions
     return false;
 }
 
 bool Popup::tick()
 {
-    bool needsUpdate = false;
-    
-    // 更新触发器
-    if (m_trigger) {
-        needsUpdate |= m_trigger->tick();
-    }
-    
-    return needsUpdate;
+    // Popup no longer handles trigger updates
+    return false;
 }
 
 void Popup::onThemeChanged(bool isDark)
 {
-    // 更新触发器主题
-    if (m_trigger) {
-        m_trigger->onThemeChanged(isDark);
-    }
+    // Popup no longer handles trigger theme changes
 }
 
-QPoint Popup::calculatePopupPosition() const
+QPoint Popup::calculatePopupPosition(const QRect& triggerRect) const
 {
-    if (!m_trigger || !m_parentWindow) {
+    if (!m_parentWindow) {
         return QPoint(100, 100); // 默认位置
     }
     
-    // 获取触发器的边界
-    QRect triggerBounds = m_trigger->bounds();
-    
-    // 转换到全局坐标
+    // Convert trigger rect to global coordinates
     QPoint parentGlobalPos = m_parentWindow->position();
-    QPoint triggerGlobalPos = parentGlobalPos + triggerBounds.topLeft();
+    QPoint triggerGlobalPos = parentGlobalPos + triggerRect.topLeft();
     
     // 根据位置策略计算弹出位置
     QPoint popupPos;
@@ -185,7 +162,7 @@ QPoint Popup::calculatePopupPosition() const
     switch (m_placement) {
     case Placement::Bottom:
         popupPos = QPoint(triggerGlobalPos.x(), 
-                         triggerGlobalPos.y() + triggerBounds.height());
+                         triggerGlobalPos.y() + triggerRect.height());
         break;
         
     case Placement::Top:
@@ -194,7 +171,7 @@ QPoint Popup::calculatePopupPosition() const
         break;
         
     case Placement::Right:
-        popupPos = QPoint(triggerGlobalPos.x() + triggerBounds.width(), 
+        popupPos = QPoint(triggerGlobalPos.x() + triggerRect.width(), 
                          triggerGlobalPos.y());
         break;
         
@@ -205,12 +182,12 @@ QPoint Popup::calculatePopupPosition() const
         
     case Placement::BottomLeft:
         popupPos = QPoint(triggerGlobalPos.x() - m_popupSize.width(),
-                         triggerGlobalPos.y() + triggerBounds.height());
+                         triggerGlobalPos.y() + triggerRect.height());
         break;
         
     case Placement::BottomRight:
-        popupPos = QPoint(triggerGlobalPos.x() + triggerBounds.width(),
-                         triggerGlobalPos.y() + triggerBounds.height());
+        popupPos = QPoint(triggerGlobalPos.x() + triggerRect.width(),
+                         triggerGlobalPos.y() + triggerRect.height());
         break;
         
     case Placement::TopLeft:
@@ -219,7 +196,7 @@ QPoint Popup::calculatePopupPosition() const
         break;
         
     case Placement::TopRight:
-        popupPos = QPoint(triggerGlobalPos.x() + triggerBounds.width(),
+        popupPos = QPoint(triggerGlobalPos.x() + triggerRect.width(),
                          triggerGlobalPos.y() - m_popupSize.height());
         break;
         

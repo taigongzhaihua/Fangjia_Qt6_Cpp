@@ -41,8 +41,7 @@ public:
     explicit Popup(QWindow* parentWindow);
     ~Popup() override = default;
 
-    /// 设置触发器组件
-    void setTrigger(std::unique_ptr<IUiComponent> trigger);
+
     
     /// 设置弹出内容
     void setContent(std::unique_ptr<IUiComponent> content);
@@ -58,6 +57,10 @@ public:
     void showPopup();
     void hidePopup();
     bool isPopupVisible() const;
+    
+    /// 程序控制显示/隐藏 - 带位置参数
+    void showPopupAt(const QPoint& position);
+    void showPopupAtPosition(const QRect& triggerRect);
     
     /// 设置可见性变化回调
     void setOnVisibilityChanged(std::function<void(bool)> callback) {
@@ -81,7 +84,7 @@ public:
 
 private:
     /// 计算弹出窗口的全局位置
-    QPoint calculatePopupPosition() const;
+    QPoint calculatePopupPosition(const QRect& triggerRect) const;
     
     /// 处理弹出窗口隐藏
     void onPopupHidden();
@@ -91,7 +94,6 @@ private:
     QWindow* m_parentWindow;
     
     // 组件
-    std::unique_ptr<IUiComponent> m_trigger;
     std::unique_ptr<PopupOverlay> m_overlay;
     
     // 配置
