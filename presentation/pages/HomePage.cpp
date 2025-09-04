@@ -243,9 +243,7 @@ private:
 					->padding(12)
 				)
 				->size(QSize(160, 200))
-				->placement(UI::Popup::Placement::Bottom)
-				->style(QColor(255, 255, 255, 250), 8.0f)
-				->closeOnClickOutside(),
+				->placement(UI::Popup::Placement::Bottom),
 
 			spacer(12),
 
@@ -280,8 +278,7 @@ private:
 						->padding(10)
 					)
 					->size(QSize(100, 80))
-					->placement(UI::Popup::Placement::TopRight)
-					->style(QColor(245, 248, 252, 240), 6.0f),
+					->placement(Popup::Placement::TopRight),
 					0, 0
 				)
 				->add(
@@ -311,8 +308,7 @@ private:
 						->padding(10)
 					)
 					->size(QSize(120, 100))
-					->placement(UI::Popup::Placement::TopLeft)
-					->style(QColor(252, 248, 245, 240), 6.0f),
+					->placement(UI::Popup::Placement::TopLeft),
 					0, 1
 				)
 				->colSpacing(15),
