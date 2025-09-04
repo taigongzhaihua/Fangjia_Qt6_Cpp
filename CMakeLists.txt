@@ -128,6 +128,7 @@ target_link_libraries(fj_presentation_ui PUBLIC
     fj_presentation_binding
     Qt6::Core 
     Qt6::Gui 
+    Qt6::OpenGL
     Qt6::Widgets
 )
 # Remove dependency on presentation/viewmodels (Stage 5)

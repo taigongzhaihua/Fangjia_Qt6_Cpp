@@ -18,7 +18,7 @@ class SimplePopupWindow : public QOpenGLWindow, protected QOpenGLFunctions
     Q_OBJECT
 
 public:
-    SimplePopupWindow(QWindow* parent = nullptr) : QOpenGLWindow(parent) {
+    SimplePopupWindow(QWindow* parent = nullptr) : QOpenGLWindow(NoPartialUpdate, parent) {
         setFlags(Qt::Tool | Qt::FramelessWindowHint | Qt::WindowStaysOnTopHint);
         if (parent) {
             setParent(parent);
@@ -80,7 +80,7 @@ class PopupDemoWindow : public QOpenGLWindow, protected QOpenGLFunctions
     Q_OBJECT
 
 public:
-    PopupDemoWindow() {
+    PopupDemoWindow() : QOpenGLWindow(NoPartialUpdate) {
         setTitle("弹出控件演示 - 点击窗口显示弹出");
         resize(400, 300);
         
