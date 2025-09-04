@@ -82,128 +82,7 @@ namespace UI {
 		return decorate(std::move(listBox));
 	}
 
-	// PopupTriggerComposite: Combines trigger and popup components
-	class PopupTriggerComposite : public IUiComponent, public IUiContent 
-	{
-	public:
-		PopupTriggerComposite(
-			std::unique_ptr<IUiComponent> trigger,
-			std::unique_ptr<::Popup> popup
-		) : m_trigger(std::move(trigger)), m_popup(std::move(popup))
-		{
-		}
-
-		void updateResourceContext(IconCache& cache, QOpenGLFunctions* gl, float devicePixelRatio) override
-		{
-			if (m_trigger) {
-				m_trigger->updateResourceContext(cache, gl, devicePixelRatio);
-			}
-			if (m_popup) {
-				m_popup->updateResourceContext(cache, gl, devicePixelRatio);
-			}
-		}
-
-		void append(Render::FrameData& frameData) const override
-		{
-			if (m_trigger) {
-				m_trigger->append(frameData);
-			}
-			// Popup content is rendered by overlay window, not here
-		}
-
-		bool onMousePress(const QPoint& pos) override
-		{
-			if (m_trigger && m_trigger->onMousePress(pos)) {
-				// Toggle popup visibility based on trigger interaction
-				if (m_popup->isPopupVisible()) {
-					m_popup->hidePopup();
-				} else {
-					// Show popup at trigger position
-					m_popup->showPopupAtPosition(m_trigger->bounds());
-				}
-				return true;
-			}
-			return false;
-		}
-
-		bool onMouseMove(const QPoint& pos) override
-		{
-			if (m_trigger) {
-				return m_trigger->onMouseMove(pos);
-			}
-			return false;
-		}
-
-		bool onMouseRelease(const QPoint& pos) override
-		{
-			if (m_trigger) {
-				return m_trigger->onMouseRelease(pos);
-			}
-			return false;
-		}
-
-		bool onWheel(const QPoint& pos, const QPoint& angleDelta) override
-		{
-			if (m_trigger) {
-				return m_trigger->onWheel(pos, angleDelta);
-			}
-			return false;
-		}
-
-		bool tick() override
-		{
-			bool needsUpdate = false;
-			if (m_trigger) {
-				needsUpdate |= m_trigger->tick();
-			}
-			if (m_popup) {
-				needsUpdate |= m_popup->tick();
-			}
-			return needsUpdate;
-		}
-
-		QRect bounds() const override
-		{
-			return m_trigger ? m_trigger->bounds() : QRect();
-		}
-
-		void onThemeChanged(bool isDark) override
-		{
-			if (m_trigger) {
-				m_trigger->onThemeChanged(isDark);
-			}
-			if (m_popup) {
-				m_popup->onThemeChanged(isDark);
-			}
-		}
-
-		// IUiContent interface
-		void setViewportRect(const QRect& rect) override
-		{
-			if (auto* triggerContent = dynamic_cast<IUiContent*>(m_trigger.get())) {
-				triggerContent->setViewportRect(rect);
-			}
-			if (auto* popupContent = dynamic_cast<IUiContent*>(m_popup.get())) {
-				popupContent->setViewportRect(rect);
-			}
-		}
-
-		void updateLayout(const QSize& windowSize) override
-		{
-			if (m_trigger) {
-				m_trigger->updateLayout(windowSize);
-			}
-			if (m_popup) {
-				m_popup->updateLayout(windowSize);
-			}
-		}
-
-	private:
-		std::unique_ptr<IUiComponent> m_trigger;
-		std::unique_ptr<::Popup> m_popup;
-	};
-
-	// 新弹出组件实现
+	// 新弹出组件实现 - 只返回弹出窗口，无触发器逻辑
 	std::unique_ptr<IUiComponent> Popup::build() const
 	{
 		// build()方法不提供父窗口上下文，返回nullptr
@@ -251,19 +130,8 @@ namespace UI {
 			popup->setOnVisibilityChanged(m_onVisibilityChanged);
 		}
 
-		// If no trigger is provided, return the popup directly
-		if (!m_trigger) {
-			return decorate(std::move(popup));
-		}
-
-		// Create composite that manages both trigger and popup
-		auto composite = std::make_unique<PopupTriggerComposite>(
-			m_trigger->build(),
-			std::move(popup)
-		);
-
-		// 应用装饰器并返回
-		return decorate(std::move(composite));
+		// 直接返回弹出窗口组件，无触发器逻辑
+		return decorate(std::move(popup));
 	}
 
 
