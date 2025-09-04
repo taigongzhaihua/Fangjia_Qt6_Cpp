@@ -127,12 +127,12 @@ namespace UI {
 			if (m_popup) {
 				m_popup->append(fd);
 			}
-			else {
-				// 如果弹出窗口尚未创建，可以绘制占位符或触发器
-				if (m_config.trigger) {
-					m_config.trigger->append(fd);
-				}
+
+			// 如果弹出窗口尚未创建，可以绘制占位符或触发器
+			if (m_config.trigger) {
+				m_config.trigger->append(fd);
 			}
+
 		}
 
 		bool onMousePress(const QPoint& pos) override {
