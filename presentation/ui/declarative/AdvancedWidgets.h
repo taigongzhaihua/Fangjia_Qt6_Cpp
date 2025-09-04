@@ -236,6 +236,11 @@ namespace UI
 		}
 
 		std::unique_ptr<IUiComponent> build() const override;
+		
+		/// 使用父窗口构建弹出组件（推荐使用）
+		/// 参数：parentWindow — 父窗口指针
+		/// 返回：构建的弹出组件
+		std::unique_ptr<IUiComponent> buildWithWindow(QWindow* parentWindow) const;
 
 		/// 辅助函数：配置弹出窗口上下文
 		/// 参数：component — build()返回的组件

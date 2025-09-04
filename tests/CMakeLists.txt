@@ -85,3 +85,19 @@ target_link_libraries(simple_popup_demo PRIVATE
     fj_infra_gfx
     fj_presentation_ui
 )
+
+# 简化弹出控件测试程序（新的架构验证）
+add_executable(simplified_popup_test ${CMAKE_SOURCE_DIR}/minimal_popup_test.cpp)
+target_include_directories(simplified_popup_test PRIVATE
+    ${CMAKE_SOURCE_DIR}
+    ${CMAKE_SOURCE_DIR}/presentation/ui/base
+    ${CMAKE_SOURCE_DIR}/presentation/ui/widgets
+    ${CMAKE_SOURCE_DIR}/infrastructure/gfx
+)
+target_link_libraries(simplified_popup_test PRIVATE
+    Qt6::Core
+    Qt6::Gui
+    Qt6::OpenGL
+    fj_infra_gfx
+    fj_presentation_ui
+)
