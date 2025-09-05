@@ -3,6 +3,7 @@
  */
 
 #include "PopupOverlay.h"
+#include "Renderer.h"
 #include <QMouseEvent>
 #include <QKeyEvent>
 #include <QFocusEvent>
@@ -18,6 +19,16 @@ PopupOverlay::PopupOverlay(QWindow* parent)
     m_renderTimer.setSingleShot(false);
     m_renderTimer.setInterval(16); // ~60 FPS
     connect(&m_renderTimer, &QTimer::timeout, this, &PopupOverlay::onRenderTick);
+}
+
+PopupOverlay::~PopupOverlay()
+{
+    // 确保在正确的OpenGL上下文中释放资源
+    if (m_initialized) {
+        makeCurrent();
+        m_renderer.releaseGL();
+        m_iconCache.releaseAll(this);
+    }
 }
 
 void PopupOverlay::setContent(std::unique_ptr<IUiComponent> content)
@@ -74,6 +85,9 @@ void PopupOverlay::initializeGL()
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     
+    // 初始化渲染器
+    m_renderer.initializeGL(this);
+    
     m_initialized = true;
     
     // 如果有内容，立即更新布局
@@ -89,6 +103,9 @@ void PopupOverlay::resizeGL(int w, int h)
     
     // 更新内容矩形
     m_contentRect = QRect(0, 0, w, h);
+    
+    // 更新渲染器视口
+    m_renderer.resize(w, h);
     
     // 更新内容布局
     updateContentLayout();
@@ -206,15 +223,17 @@ void PopupOverlay::updateContentLayout()
 
 void PopupOverlay::renderBackground()
 {
-    // 简单的背景渲染 - 目前只是设置清除颜色
-    // TODO: 实现圆角矩形背景渲染
-    float r = m_backgroundColor.redF();
-    float g = m_backgroundColor.greenF(); 
-    float b = m_backgroundColor.blueF();
-    float a = m_backgroundColor.alphaF();
+    // 使用渲染器绘制圆角背景矩形
+    Render::RoundedRectCmd bgCmd;
+    bgCmd.rect = QRectF(0, 0, width(), height());  // 填充整个窗口
+    bgCmd.radiusPx = m_cornerRadius;
+    bgCmd.color = m_backgroundColor;
+    bgCmd.clipRect = QRectF();  // 不需要剪裁
     
-    glClearColor(r, g, b, a);
-    glClear(GL_COLOR_BUFFER_BIT);
+    Render::FrameData bgFrameData;
+    bgFrameData.roundedRects.push_back(bgCmd);
+    
+    m_renderer.drawFrame(bgFrameData, m_iconCache, devicePixelRatio());
 }
 
 void PopupOverlay::renderContent()
@@ -223,13 +242,19 @@ void PopupOverlay::renderContent()
         return;
     }
     
-    // 创建简单的渲染数据
+    // 创建渲染数据容器
     Render::FrameData frameData;
     
     // 让内容添加渲染数据
     m_content->append(frameData);
     
-    // TODO: 实际渲染frameData
-    // 这里需要使用现有的渲染器来绘制frameData
-    // 暂时跳过实际渲染，专注于架构设计
+    // 使用渲染器绘制frameData
+    m_renderer.drawFrame(frameData, m_iconCache, devicePixelRatio());
+}
+
+void PopupOverlay::forwardThemeChange(bool isDark)
+{
+    if (m_content) {
+        m_content->onThemeChanged(isDark);
+    }
 }

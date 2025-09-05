@@ -104,6 +104,7 @@ private:
     // 状态
     QRect m_viewport;
     bool m_popupVisible{false};
+    bool m_hasContent{false};  // Track if content has been set
     
     // 回调
     std::function<void(bool)> m_onVisibilityChanged;
