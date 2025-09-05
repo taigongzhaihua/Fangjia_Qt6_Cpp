@@ -5,22 +5,23 @@
  * - 包装基础 Popup 类，添加依附对象功能
  * - 自动根据依附对象计算弹出位置
  * - 维护依附对象与弹出窗口的关联关系
- * - 不继承UI接口，纯粹的控制类
+ * - 继承UI组件接口以融入UI系统，但不在父窗口渲染内容
  */
 
 #pragma once
 
 #include "UiComponent.hpp"
+#include "UiContent.hpp"
 #include "Popup.h"
 #include <memory>
 #include <functional>
 
-class PopupWithAttachment
+class PopupWithAttachment : public IUiComponent, public IUiContent
 {
 public:
     /// 构造函数 - 创建带依附对象支持的弹出组件
     explicit PopupWithAttachment(QWindow* parentWindow);
-    ~PopupWithAttachment() = default;
+    ~PopupWithAttachment() override = default;
 
     /// 设置弹出内容
     void setContent(std::unique_ptr<IUiComponent> content);
@@ -48,6 +49,21 @@ public:
     /// 设置可见性变化回调
     void setOnVisibilityChanged(std::function<void(bool)> callback);
 
+    // IUiContent interface - 不在父窗口渲染内容
+    void setViewportRect(const QRect& rect) override;
+
+    // IUiComponent interface - 不在父窗口渲染内容
+    void updateLayout(const QSize& windowSize) override;
+    void updateResourceContext(IconCache& cache, QOpenGLFunctions* gl, float devicePixelRatio) override;
+    void append(Render::FrameData& frameData) const override;
+    bool onMousePress(const QPoint& pos) override;
+    bool onMouseMove(const QPoint& pos) override;
+    bool onMouseRelease(const QPoint& pos) override;
+    bool onWheel(const QPoint& pos, const QPoint& angleDelta) override;
+    bool tick() override;
+    QRect bounds() const override;
+    void onThemeChanged(bool isDark) override;
+
 private:
     /// 根据依附对象计算弹出位置
     QRect calculateAttachmentRect() const;
@@ -58,4 +74,7 @@ private:
     
     // 依附对象引用
     IUiComponent* m_attachmentObject{nullptr};
+    
+    // 视口状态（用于UI接口兼容）
+    QRect m_viewport;
 };

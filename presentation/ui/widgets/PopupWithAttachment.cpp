@@ -98,3 +98,65 @@ QRect PopupWithAttachment::calculateAttachmentRect() const
     // 使用依附对象的边界作为参考矩形
     return m_attachmentObject->bounds();
 }
+
+// IUiContent interface - 不在父窗口渲染内容
+void PopupWithAttachment::setViewportRect(const QRect& rect)
+{
+    m_viewport = rect;
+}
+
+// IUiComponent interface - 不在父窗口渲染内容
+void PopupWithAttachment::updateLayout(const QSize& windowSize)
+{
+    // PopupWithAttachment本身不需要布局更新，弹出内容由PopupOverlay独立处理
+}
+
+void PopupWithAttachment::updateResourceContext(IconCache& cache, QOpenGLFunctions* gl, float devicePixelRatio)
+{
+    // PopupWithAttachment本身不需要资源更新，弹出内容由PopupOverlay独立处理
+}
+
+void PopupWithAttachment::append(Render::FrameData& frameData) const
+{
+    // PopupWithAttachment不在父窗口渲染任何内容，所有渲染由PopupOverlay独立处理
+}
+
+bool PopupWithAttachment::onMousePress(const QPoint& pos)
+{
+    // PopupWithAttachment不处理父窗口的鼠标事件
+    return false;
+}
+
+bool PopupWithAttachment::onMouseMove(const QPoint& pos)
+{
+    // PopupWithAttachment不处理父窗口的鼠标事件
+    return false;
+}
+
+bool PopupWithAttachment::onMouseRelease(const QPoint& pos)
+{
+    // PopupWithAttachment不处理父窗口的鼠标事件
+    return false;
+}
+
+bool PopupWithAttachment::onWheel(const QPoint& pos, const QPoint& angleDelta)
+{
+    // PopupWithAttachment不处理父窗口的滚轮事件
+    return false;
+}
+
+bool PopupWithAttachment::tick()
+{
+    // PopupWithAttachment不需要动画更新
+    return false;
+}
+
+QRect PopupWithAttachment::bounds() const
+{
+    return m_viewport;
+}
+
+void PopupWithAttachment::onThemeChanged(bool isDark)
+{
+    // PopupWithAttachment不需要主题更新，弹出内容主题由PopupOverlay独立处理
+}

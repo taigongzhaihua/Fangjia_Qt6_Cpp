@@ -137,8 +137,8 @@ namespace UI {
 				popupWithAttachment->setOnVisibilityChanged(m_onVisibilityChanged);
 			}
 
-			// 返回包装组件 - TODO: 需要将PopupWithAttachment包装成IUiComponent
-			// 暂时返回基础popup以保持兼容性
+			// 返回带依附对象支持的弹出组件
+			return decorate(std::move(popupWithAttachment));
 		}
 
 		// 创建基础弹出组件（无依附对象）
