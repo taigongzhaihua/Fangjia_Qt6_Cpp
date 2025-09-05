@@ -58,6 +58,9 @@ public:
     void hidePopup();
     bool isPopupVisible() const;
     
+    /// 状态查询接口 - 别名方法
+    bool isOpen() const { return isPopupVisible(); }
+    
     /// 程序控制显示/隐藏 - 带位置参数
     void showPopupAt(const QPoint& position);
     void showPopupAtPosition(const QRect& triggerRect);

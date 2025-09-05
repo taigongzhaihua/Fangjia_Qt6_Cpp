@@ -21,6 +21,12 @@
 - 只管理弹出内容和显示状态
 - ❌ **不再支持触发器功能**（已完全移除）
 - 提供外部位置控制方法
+- 🆕 **提供 isOpen() 接口**用于状态查询
+
+### PopupWithAttachment  
+- 🆕 **支持依附对象的弹出组件包装器**
+- 自动根据依附对象计算弹出位置
+- 纯控制类，不继承UI渲染接口
 
 ## 新架构用法
 
@@ -70,20 +76,26 @@ connect(hotkey, &QShortcut::activated, [popup]() {
 });
 ```
 
-### 3. 声明式API（仅支持无触发器模式）
+### 3. 声明式API（支持依附对象模式）
 
-声明式API现在只创建弹出窗口，不再支持触发器：
+声明式API现在创建弹出窗口，并支持依附对象自动位置计算：
 
 ```cpp
 using namespace UI;
 
-// 创建纯弹出窗口（无触发器）
+// 创建触发器按钮
+auto triggerButton = pushButton("点击触发弹出窗口")
+    ->padding(12, 8)
+    ->backgroundColor(QColor(70, 130, 180));
+
+// 创建弹出窗口并设置依附对象
 auto myPopup = popup()
     ->content(
         vbox()
-            ->child(text("弹出内容"))
+            ->child(text("依附弹出内容"))
             ->child(pushButton("确定"))
     )
+    ->attachTo(triggerButton)  // 🆕 设置依附对象，作为弹出位置参考
     ->size(QSize(200, 120))
     ->placement(UI::Popup::Placement::Bottom)
     ->backgroundColor(QColor(255, 255, 255, 230))
@@ -92,13 +104,14 @@ auto myPopup = popup()
 // 构建弹出窗口组件
 auto popupComponent = myPopup->buildWithWindow(parentWindow);
 
-// 外部创建触发器并连接
-auto triggerButton = pushButton("点击我")
-    ->onClick([popupComponent]() { 
-        qDebug() << "按钮被点击"; 
-        // 这里需要通过外部逻辑控制弹出窗口
-        // popupComponent->showPopupAt(buttonPosition);
-    });
+// 外部控制弹出窗口 - 会自动基于依附对象位置显示
+triggerButton->onClick([popupComponent]() { 
+    if (popupComponent->isOpen()) {
+        popupComponent->hidePopup();
+    } else {
+        popupComponent->showPopup();  // 自动在triggerButton位置显示
+    }
+});
 ```
 
 ### 4. 完整外部控制示例
@@ -143,6 +156,33 @@ enum class Placement {
 };
 ```
 
+## 🆕 依附对象功能
+
+新架构支持将弹出窗口依附到特定UI组件，自动计算最佳弹出位置：
+
+```cpp
+// 依附对象模式 - 自动位置计算
+auto dropdown = popup()
+    ->content(createMenuContent())
+    ->attachTo(triggerButton)  // 设置依附对象
+    ->placement(UI::Popup::Placement::Bottom)
+    ->buildWithWindow(parentWindow);
+
+// 显示时会自动基于triggerButton的位置和bounds计算位置
+dropdown->showPopup();  // 自动位置
+dropdown->isOpen();     // 新增状态查询接口
+
+// 同样支持手动位置控制
+dropdown->showPopupAt(QPoint(100, 100));  // 手动位置
+```
+
+### 依附对象优势
+
+- **自动位置**: 无需手动计算触发器位置
+- **动态调整**: 依附对象移动时弹出位置自动跟随
+- **边界检测**: 自动处理屏幕边界溢出（计划中）
+- **多重依附**: 同一弹出窗口可以依附到不同对象
+
 ## 回调支持
 
 ```cpp
@@ -158,7 +198,10 @@ popup()
 
 ## 新架构优势
 
-### 关注分离
+### 🆕 架构完整性
+- **三层分离**: PopupWindow + 包装器 + 声明式包装器
+- **职责清晰**: 各层专注单一职责，不越界
+- **依附支持**: 声明式包装器支持依附对象设置
 - **之前**: 弹出窗口内置触发器逻辑，耦合度高
 - **现在**: 触发器和弹出窗口完全分离，各自专注单一职责
 

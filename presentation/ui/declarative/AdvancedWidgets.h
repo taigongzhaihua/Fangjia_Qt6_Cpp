@@ -209,6 +209,12 @@ namespace UI
 			return self<Popup>();
 		}
 
+		/// 设置依附对象，作为弹出位置参考
+		std::shared_ptr<Popup> attachTo(WidgetPtr attachmentObject) {
+			m_attachmentObject = std::move(attachmentObject);
+			return self<Popup>();
+		}
+
 		/// 构建弹出组件 - 需要父窗口上下文
 		std::unique_ptr<IUiComponent> buildWithWindow(QWindow* parentWindow) const;
 
@@ -217,6 +223,7 @@ namespace UI
 
 	private:
 		WidgetPtr m_content;
+		WidgetPtr m_attachmentObject;  // 依附对象，作为弹出位置参考
 		QSize m_popupSize{200, 150};
 		Placement m_placement{Placement::Bottom};
 		QPoint m_offset{0, 0};

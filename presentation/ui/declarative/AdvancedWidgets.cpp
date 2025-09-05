@@ -3,6 +3,7 @@
 #include "UiComponent.hpp"
 #include "UiListBox.h"    // 新增
 #include "Popup.h"        // 新增弹出组件
+#include "PopupWithAttachment.h"  // 新增带依附对象的弹出组件
 
 #include <algorithm>
 #include <functional>
@@ -98,7 +99,49 @@ namespace UI {
 			return nullptr;
 		}
 
-		// 创建新的弹出组件
+		// 检查是否有依附对象
+		if (m_attachmentObject) {
+			// 创建带依附对象支持的弹出组件
+			auto popupWithAttachment = std::make_unique<PopupWithAttachment>(parentWindow);
+			
+			// 设置内容
+			if (m_content) {
+				popupWithAttachment->setContent(m_content->build());
+			}
+			
+			// 设置依附对象
+			auto attachmentComponent = m_attachmentObject->build();
+			popupWithAttachment->setAttachmentObject(attachmentComponent.get());
+			
+			// 配置弹出窗口
+			popupWithAttachment->setPopupSize(m_popupSize);
+			popupWithAttachment->setOffset(m_offset);
+			popupWithAttachment->setBackgroundColor(m_backgroundColor);
+			popupWithAttachment->setCornerRadius(m_cornerRadius);
+			
+			// 转换位置枚举
+			switch (m_placement) {
+			case Placement::Bottom:      popupWithAttachment->setPlacement(::Popup::Placement::Bottom); break;
+			case Placement::Top:         popupWithAttachment->setPlacement(::Popup::Placement::Top); break;
+			case Placement::Right:       popupWithAttachment->setPlacement(::Popup::Placement::Right); break;
+			case Placement::Left:        popupWithAttachment->setPlacement(::Popup::Placement::Left); break;
+			case Placement::BottomLeft:  popupWithAttachment->setPlacement(::Popup::Placement::BottomLeft); break;
+			case Placement::BottomRight: popupWithAttachment->setPlacement(::Popup::Placement::BottomRight); break;
+			case Placement::TopLeft:     popupWithAttachment->setPlacement(::Popup::Placement::TopLeft); break;
+			case Placement::TopRight:    popupWithAttachment->setPlacement(::Popup::Placement::TopRight); break;
+			case Placement::Center:      popupWithAttachment->setPlacement(::Popup::Placement::Center); break;
+			}
+
+			// 设置回调
+			if (m_onVisibilityChanged) {
+				popupWithAttachment->setOnVisibilityChanged(m_onVisibilityChanged);
+			}
+
+			// 返回包装组件 - TODO: 需要将PopupWithAttachment包装成IUiComponent
+			// 暂时返回基础popup以保持兼容性
+		}
+
+		// 创建基础弹出组件（无依附对象）
 		auto popup = std::make_unique<::Popup>(parentWindow);
 
 		// 设置内容
