@@ -52,6 +52,7 @@ public:
     void setOffset(const QPoint& offset) { m_offset = offset; }
     void setBackgroundColor(const QColor& color);
     void setCornerRadius(float radius);
+    void setShadowSize(float shadowSize);
     
     /// 程序控制显示/隐藏
     void showPopup();
