@@ -20,6 +20,7 @@
 #include "UiContent.hpp"
 #include "IconCache.h"
 #include "RenderData.hpp"
+#include "Renderer.h"
 
 class PopupOverlay : public QOpenGLWindow, protected QOpenGLFunctions
 {
@@ -28,7 +29,7 @@ class PopupOverlay : public QOpenGLWindow, protected QOpenGLFunctions
 public:
     /// 构造函数 - 立即创建所有必要资源
     explicit PopupOverlay(QWindow* parent = nullptr);
-    ~PopupOverlay() override = default;
+    ~PopupOverlay() override;
 
     /// 设置弹出内容（立即设置，不延迟）
     void setContent(std::unique_ptr<IUiComponent> content);
@@ -50,6 +51,9 @@ public:
     void setOnVisibilityChanged(std::function<void(bool)> callback) {
         m_onVisibilityChanged = std::move(callback);
     }
+    
+    /// 转发主题变化到内容
+    void forwardThemeChange(bool isDark);
 
 signals:
     /// 弹出窗口被隐藏
@@ -87,6 +91,7 @@ private:
     
     // Rendering
     IconCache m_iconCache;
+    Renderer m_renderer;
     QRect m_contentRect;
     bool m_initialized{false};
     

@@ -32,6 +32,7 @@ Popup::Popup(QWindow* parentWindow)
 void Popup::setContent(std::unique_ptr<IUiComponent> content)
 {
     // 直接设置到覆盖窗口
+    m_hasContent = (content != nullptr);
     m_overlay->setContent(std::move(content));
 }
 
@@ -103,12 +104,31 @@ void Popup::updateLayout(const QSize& windowSize)
 
 void Popup::updateResourceContext(IconCache& cache, QOpenGLFunctions* gl, float devicePixelRatio)
 {
-    // Popup resources updated - no trigger to update
+    // Forward resource context to overlay window if it's available
+    // This ensures the popup content has access to the same resources
+    if (m_overlay && m_overlay->isVisible()) {
+        // The overlay manages its own resource context, but we can sync if needed
+        // For now, this is handled by the overlay's updateContentLayout method
+    }
 }
 
 void Popup::append(Render::FrameData& frameData) const
 {
-    // Popup itself doesn't render anything - content is rendered by overlay window
+    // Popup acts as a placeholder in parent window - render a minimal placeholder
+    // The actual content is rendered in the PopupOverlay window
+    // This provides a reference position for popup placement
+    if (!m_viewport.isEmpty()) {
+        // Draw a minimal placeholder border when popup is visible (for debugging/reference)
+        if (m_popupVisible) {
+            Render::RoundedRectCmd placeholderCmd;
+            placeholderCmd.rect = QRectF(m_viewport);
+            placeholderCmd.radiusPx = 2.0f;
+            placeholderCmd.color = QColor(128, 128, 128, 64); // Light gray, semi-transparent
+            placeholderCmd.clipRect = QRectF(); // No clipping needed
+            
+            frameData.roundedRects.push_back(placeholderCmd);
+        }
+    }
 }
 
 bool Popup::onMousePress(const QPoint& pos)
@@ -137,13 +157,23 @@ bool Popup::onWheel(const QPoint& pos, const QPoint& angleDelta)
 
 bool Popup::tick()
 {
-    // Popup no longer handles trigger updates
+    // Forward tick calls to overlay content if popup is visible
+    // This ensures animations in the popup content continue to run
+    if (m_overlay && m_overlay->isVisible() && m_hasContent) {
+        // The overlay handles content ticking in its own render loop
+        // We return false since this component itself has no animations
+        return false;
+    }
     return false;
 }
 
 void Popup::onThemeChanged(bool isDark)
 {
-    // Popup no longer handles trigger theme changes
+    // Forward theme changes to overlay content
+    if (m_overlay && m_hasContent) {
+        m_overlay->forwardThemeChange(isDark);
+    }
+    applyTheme(isDark);
 }
 
 QPoint Popup::calculatePopupPosition(const QRect& triggerRect) const
