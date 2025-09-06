@@ -37,6 +37,7 @@ public:
     /// 设置背景样式
     void setBackgroundColor(const QColor& color) { m_backgroundColor = color; }
     void setCornerRadius(float radius) { m_cornerRadius = radius; }
+    void setShadowSize(float shadowSize) { m_shadowSize = shadowSize; }
     
     /// 显示弹出窗口
     void showAt(const QPoint& globalPos, const QSize& size);
@@ -80,6 +81,7 @@ private:
     void updateContentLayout();
     void renderBackground();
     void renderContent();
+    bool eventFilter(QObject* obj, QEvent* event) override; // For global mouse events
 
 private:
     // Content
@@ -88,16 +90,22 @@ private:
     // Visual style
     QColor m_backgroundColor{255, 255, 255, 240};
     float m_cornerRadius{8.0f};
+    float m_shadowSize{12.0f}; // Shadow size for calculating window margins
     
     // Rendering
     IconCache m_iconCache;
     Renderer m_renderer;
     QRect m_contentRect;
+    QRect m_actualContentRect; // The actual content area within the expanded window
     bool m_initialized{false};
+    bool m_needsContentLayoutUpdate{false}; // Track if content layout needs update
     
     // Animation timer
     QTimer m_renderTimer;
     
     // Callbacks
     std::function<void(bool)> m_onVisibilityChanged;
+    
+    // Global mouse event filter for click-outside detection
+    bool m_installEventFilter{false};
 };

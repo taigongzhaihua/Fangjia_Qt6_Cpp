@@ -46,6 +46,11 @@ void Popup::setCornerRadius(float radius)
     m_overlay->setCornerRadius(radius);
 }
 
+void Popup::setShadowSize(float shadowSize)
+{
+    m_overlay->setShadowSize(shadowSize);
+}
+
 void Popup::showPopup()
 {
     // Show at center by default when no position is specified
