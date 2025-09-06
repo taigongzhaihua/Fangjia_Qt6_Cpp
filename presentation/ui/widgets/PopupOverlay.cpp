@@ -12,7 +12,9 @@
 #include <qevent.h>
 #include <qnamespace.h>
 #include <qobject.h>
-#include <qopenglwindow.h>
+#include <QWidget>
+#include <QOpenGLWidget>
+#include <QVBoxLayout>
 #include <qpoint.h>
 #include <qrect.h>
 #include <qsize.h>
@@ -20,30 +22,30 @@
 #include <qtimer.h>
 #include <qtmetamacros.h>
 
-#include <qtpreprocessorsupport.h>
-#include <qwindow.h>
 #include <RenderData.hpp>
 #include <UiComponent.hpp>
 #include <UiContent.hpp>
 #include <utility>
 
-PopupOverlay::PopupOverlay(QWindow* parent)
-	: QOpenGLWindow(NoPartialUpdate, parent)
+PopupOverlay::PopupOverlay(QWidget* parent)
+	: QWidget(parent)
 {
-	// 设置OpenGL格式以支持透明度
-	QSurfaceFormat format = QSurfaceFormat::defaultFormat();
-	format.setAlphaBufferSize(8); // 确保有alpha通道
-	format.setSamples(4); // 抗锯齿
-	format.setRenderableType(QSurfaceFormat::OpenGL);
-	format.setProfile(QSurfaceFormat::CoreProfile);
-	format.setVersion(3, 3);
-	setFormat(format);
-
-	// 设置窗口属性
-	setFlags(Qt::Tool | Qt::FramelessWindowHint | Qt::WindowStaysOnTopHint);
-
+	// 设置窗口属性 - this is now a top-level widget with window flags
+	setWindowFlags(Qt::Tool | Qt::FramelessWindowHint | Qt::WindowStaysOnTopHint);
+	
 	// 设置透明背景支持
-	setBackgroundColor(QColor(Qt::transparent));
+	setAttribute(Qt::WA_TranslucentBackground, true);
+	setAttribute(Qt::WA_NoSystemBackground, true);
+	
+	// Create the OpenGL renderer widget
+	m_openglRenderer = new PopupOpenGLRenderer(this);
+	
+	// Setup layout - the renderer fills the entire widget
+	auto* layout = new QVBoxLayout(this);
+	layout->setContentsMargins(0, 0, 0, 0);
+	layout->setSpacing(0);
+	layout->addWidget(m_openglRenderer);
+	setLayout(layout);
 
 	// 设置渲染定时器
 	m_renderTimer.setSingleShot(false);
@@ -62,10 +64,10 @@ PopupOverlay::~PopupOverlay()
 	}
 
 	// 确保在正确的OpenGL上下文中释放资源
-	if (m_initialized) {
-		makeCurrent();
+	if (m_initialized && m_openglRenderer) {
+		m_openglRenderer->makeCurrent();
 		m_renderer.releaseGL();
-		m_iconCache.releaseAll(this);
+		m_iconCache.releaseAll(m_openglRenderer);
 	}
 }
 
@@ -115,7 +117,8 @@ void PopupOverlay::showAt(const QPoint& globalPos, const QSize& size)
 	}
 
 	// Ensure window gets focus to receive key events
-	requestActivate();
+	activateWindow();
+	setFocus();
 
 	// 开始渲染循环
 	if (!m_renderTimer.isActive()) {
@@ -153,14 +156,15 @@ void PopupOverlay::hidePopup()
 
 void PopupOverlay::initializeGL()
 {
-	initializeOpenGLFunctions();
+	// Initialize OpenGL functions through the renderer widget
+	m_openglRenderer->initializeOpenGLFunctions();
 
 	// 启用混合以支持透明度
 	glEnable(GL_BLEND);
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
 	// 初始化渲染器
-	m_renderer.initializeGL(this);
+	m_renderer.initializeGL(m_openglRenderer);
 
 	m_initialized = true;
 
@@ -267,7 +271,7 @@ void PopupOverlay::keyPressEvent(QKeyEvent* event)
 		return;
 	}
 
-	QOpenGLWindow::keyPressEvent(event);
+	QWidget::keyPressEvent(event);
 }
 
 void PopupOverlay::focusOutEvent(QFocusEvent* event)
@@ -312,7 +316,9 @@ void PopupOverlay::onRenderTick()
 
 	// 如果需要更新，触发重绘
 	if (needsUpdate || m_needsContentLayoutUpdate) {
-		update();
+		if (m_openglRenderer) {
+			m_openglRenderer->update();
+		}
 	}
 }
 
@@ -323,7 +329,7 @@ void PopupOverlay::updateContentLayout()
 	}
 
 	// 更新资源上下文 - maintain persistent UI root
-	m_content->updateResourceContext(m_iconCache, this, devicePixelRatio());
+	m_content->updateResourceContext(m_iconCache, m_openglRenderer, devicePixelRatio());
 
 	// Use actual content size for layout, not expanded window size
 	QSize contentSize = m_actualContentRect.isValid() ? m_actualContentRect.size() : size();
@@ -456,5 +462,37 @@ bool PopupOverlay::eventFilter(QObject* obj, QEvent* event)
 	}
 
 	// Call parent event filter
-	return QOpenGLWindow::eventFilter(obj, event);
+	return QWidget::eventFilter(obj, event);
+}
+
+// Implementation of PopupOpenGLRenderer
+PopupOverlay::PopupOpenGLRenderer::PopupOpenGLRenderer(PopupOverlay* parent)
+	: QOpenGLWidget(parent), m_popup(parent)
+{
+	// 设置OpenGL格式以支持透明度
+	QSurfaceFormat format = QSurfaceFormat::defaultFormat();
+	format.setAlphaBufferSize(8); // 确保有alpha通道
+	format.setSamples(4); // 抗锯齿
+	format.setRenderableType(QSurfaceFormat::OpenGL);
+	format.setProfile(QSurfaceFormat::CoreProfile);
+	format.setVersion(3, 3);
+	setFormat(format);
+}
+
+void PopupOverlay::PopupOpenGLRenderer::initializeGL()
+{
+	// Delegate to the main popup's initialization
+	m_popup->initializeGL();
+}
+
+void PopupOverlay::PopupOpenGLRenderer::resizeGL(int w, int h)
+{
+	// Delegate to the main popup's resize handling
+	m_popup->resizeGL(w, h);
+}
+
+void PopupOverlay::PopupOpenGLRenderer::paintGL()
+{
+	// Delegate to the main popup's paint handling
+	m_popup->paintGL();
 }

@@ -16,7 +16,7 @@ set(CMAKE_CXX_STANDARD 23)    # 使用C++23标准
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 # 查找Qt6依赖组件
-find_package(Qt6 REQUIRED COMPONENTS Core Gui OpenGL Widgets Svg Sql)
+find_package(Qt6 REQUIRED COMPONENTS Core Gui OpenGL OpenGLWidgets Widgets Svg Sql)
 
 # ========================================
 # 外部依赖 - 依赖注入库
@@ -129,6 +129,7 @@ target_link_libraries(fj_presentation_ui PUBLIC
     Qt6::Core 
     Qt6::Gui 
     Qt6::OpenGL
+    Qt6::OpenGLWidgets
     Qt6::Widgets
 )
 # Remove dependency on presentation/viewmodels (Stage 5)
@@ -231,6 +232,7 @@ set(APP_LIBS
     Qt6::Core
     Qt6::Gui
     Qt6::OpenGL
+    Qt6::OpenGLWidgets
     Qt6::Widgets
     Qt6::Svg
 )
