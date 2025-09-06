@@ -20,6 +20,7 @@
 #include <qtimer.h>
 #include <qtmetamacros.h>
 
+#include <qtpreprocessorsupport.h>
 #include <qwindow.h>
 #include <RenderData.hpp>
 #include <UiComponent.hpp>
@@ -33,6 +34,9 @@ PopupOverlay::PopupOverlay(QWindow* parent)
 	QSurfaceFormat format = QSurfaceFormat::defaultFormat();
 	format.setAlphaBufferSize(8); // 确保有alpha通道
 	format.setSamples(4); // 抗锯齿
+	format.setRenderableType(QSurfaceFormat::OpenGL);
+	format.setProfile(QSurfaceFormat::CoreProfile);
+	format.setVersion(3, 3);
 	setFormat(format);
 
 	// 设置窗口属性
@@ -187,8 +191,9 @@ void PopupOverlay::resizeGL(int w, int h)
 void PopupOverlay::paintGL()
 {
 	// 清除背景为透明
-	glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
-	glClear(GL_COLOR_BUFFER_BIT);
+	glClearColor(1.0f, 1.0f, 1.0f, 0.0f);
+	// 清除颜色缓冲区和深度缓冲区
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 	if (!m_content) {
 		return;

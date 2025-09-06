@@ -66,7 +66,8 @@ private:
 	void createPopupDemos()
 	{
 		// 只有在有窗口上下文时才创建弹出窗口
-		if (!s_windowContext) {
+		if (!s_windowContext)
+		{
 			return;
 		}
 
@@ -74,25 +75,27 @@ private:
 		popup1 = std::make_unique<::Popup>(s_windowContext);
 
 		auto popupContent1 = panel({
-			text("🎉 弹出窗口演示 1")
+				text("🎉 弹出窗口演示 1")
 				->fontSize(16)
 				->fontWeight(QFont::Medium)
 				->themeColor(QColor(70, 130, 180), QColor(120, 180, 230))
 				->align(Qt::AlignHCenter),
 
-			spacer(10),
+				spacer(10),
 
-			text("这是一个实际工作的弹出窗口！")
+				text("这是一个实际工作的弹出窗口！")
 				->fontSize(12)
 				->themeColor(QColor(60, 60, 60), QColor(200, 200, 200))
 				->align(Qt::AlignHCenter),
 
-			spacer(8),
+				spacer(8),
 
-			button("关闭")
-				->secondary()
-				->onTap([this] {
-					if (popup1) {
+				button("关闭")
+				->destructive()
+				->onTap([this]
+				{
+					if (popup1)
+					{
 						qDebug() << "关闭弹出窗口1";
 						popup1->hidePopup();
 					}
@@ -107,29 +110,30 @@ private:
 		popup1->setPlacement(::Popup::Placement::Bottom);
 		popup1->setBackgroundColor(QColor(255, 255, 255, 245));
 		popup1->setCornerRadius(12.0f);
-		popup1->setOnVisibilityChanged([](bool visible) {
-			qDebug() << "弹出窗口1 可见性变化:" << visible;
+		popup1->setOnVisibilityChanged([](bool visible)
+			{
+				qDebug() << "弹出窗口1 可见性变化:" << visible;
 			});
 
 		// 创建弹出窗口2 - 简单列表内容
 		popup2 = std::make_unique<::Popup>(s_windowContext);
 
 		auto popupContent2 = panel({
-			text("📋 选项列表")
+				text("📋 选项列表")
 				->fontSize(14)
 				->fontWeight(QFont::Medium)
 				->themeColor(QColor(100, 50, 150), QColor(180, 130, 230))
 				->align(Qt::AlignHCenter),
 
-			spacer(8),
+				spacer(8),
 
-			button("选项 A ✓")
+				button("选项 A ✓")
 				->onTap([] { qDebug() << "选择了选项 A"; }),
 
-			button("选项 B")
+				button("选项 B")
 				->onTap([] { qDebug() << "选择了选项 B"; }),
 
-			button("选项 C")
+				button("选项 C")
 				->onTap([] { qDebug() << "选择了选项 C"; })
 			})->vertical()
 			->crossAxisAlignment(Alignment::Stretch)
@@ -137,12 +141,12 @@ private:
 			->padding(12);
 
 		popup2->setContent(popupContent2->build());
-		popup2->setPopupSize(QSize(200, 140));
 		popup2->setPlacement(::Popup::Placement::Bottom);
 		popup2->setBackgroundColor(QColor(248, 252, 255, 240));
 		popup2->setCornerRadius(8.0f);
-		popup2->setOnVisibilityChanged([](bool visible) {
-			qDebug() << "弹出窗口2 可见性变化:" << visible;
+		popup2->setOnVisibilityChanged([](bool visible)
+			{
+				qDebug() << "弹出窗口2 可见性变化:" << visible;
 			});
 	}
 
@@ -172,8 +176,8 @@ public:
 			spacer(15),
 
 			// 功能卡片网格
-			grid()->columns({15_px, 1_fr, 1_fr,15_px})
-				  ->rows({15_px, 1_fr, 1_fr,15_px})
+			grid()->columns({15_px, 1_fr, 1_fr, 15_px})
+				  ->rows({15_px, 1_fr, 1_fr, 15_px})
 				  ->colSpacing(30)
 				  ->rowSpacing(35)
 				  ->add(buildFeatureCard(
@@ -205,8 +209,7 @@ public:
 			spacer(8)
 			})->vertical()
 			->crossAxisAlignment(Alignment::Center)
-			->spacing(20)
-			;
+			->spacing(20);
 
 		// 使用声明式 ScrollView 包装主内容
 		return scrollView(mainContent);
@@ -274,26 +277,25 @@ private:
 					->crossAxisAlignment(Alignment::Stretch)
 					->padding(15))
 			->elevation(3.0f)
-			->backgroundTheme(QColor(250, 250, 255), QColor(20, 25, 35))
-			;
+			->backgroundTheme(QColor(250, 250, 255), QColor(20, 25, 35));
 	}
 
 	// 新增：构建弹出控件演示区域 - 外部控制模式
 	[[nodiscard]] WidgetPtr buildPopupDemo() const
 	{
 		return card(panel({
-			text("外部控制弹出窗口演示")
-			->fontSize(18)->fontWeight(QFont::Medium)
-			->align(Qt::AlignHCenter),
+					   text("外部控制弹出窗口演示")
+					   ->fontSize(18)->fontWeight(QFont::Medium)
+					   ->align(Qt::AlignHCenter),
 
-			spacer(10),
+					   spacer(10),
 
-			text("演示新架构：弹出窗口不再包含触发器，由外部控制")
-			->fontSize(14)
-			->themeColor(QColor(100, 110, 120), QColor(150, 160, 155))
-			->align(Qt::AlignHCenter),
+					   text("演示新架构：弹出窗口不再包含触发器，由外部控制")
+					   ->fontSize(14)
+					   ->themeColor(QColor(100, 110, 120), QColor(150, 160, 155))
+					   ->align(Qt::AlignHCenter),
 
-			spacer(15),
+					   spacer(15),
 
 			// 说明文字
 			panel({
@@ -321,9 +323,9 @@ private:
 				->themeColor(QColor(80, 90, 100), QColor(170, 180, 190)),
 
 			})->vertical()
-			->crossAxisAlignment(Alignment::Start)
-			->spacing(4)
-			->padding(12),
+			  ->crossAxisAlignment(Alignment::Start)
+			  ->spacing(4)
+			  ->padding(12),
 
 			spacer(12),
 
@@ -333,100 +335,105 @@ private:
 				->fontSize(14)
 				->fontWeight(QFont::Medium)
 				->themeColor(s_windowContext ? QColor(50, 120, 50) : QColor(120, 50, 50),
-							s_windowContext ? QColor(120, 200, 120) : QColor(200, 120, 120))
+							 s_windowContext ? QColor(120, 200, 120) : QColor(200, 120, 120))
 				->align(Qt::AlignHCenter),
 
 				spacer(10),
 
 				// 模拟的触发器按钮
 				grid()->columns({1_fr, 1_fr})
-					->add(
-						button("控制器 1 📋")
-						->primary()
-						->onTap([this] {
-							qDebug() << "外部控制：控制器1 被点击";
-							if (popup1) {
-								qDebug() << "弹出窗口1 已创建，正在显示...";
-								popup1->showPopup();
-							}
- else {
-  qDebug() << "弹出窗口1 未创建 - 需要窗口上下文";
-}
-}),
-0, 0
-)
-->add(
-	button("控制器 2 🔧")
-	->secondary()
-	->onTap([this] {
-		qDebug() << "外部控制：控制器2 被点击";
-		if (popup2) {
-			qDebug() << "弹出窗口2 已创建，正在显示...";
-			popup2->showPopup();
-		}
-else {
- qDebug() << "弹出窗口2 未创建 - 需要窗口上下文";
-}
-}),
-0, 1
-)
-->colSpacing(15),
+					  ->add(
+						  button("控制器 1 📋")
+						  ->primary()
+						  ->onTap([this]
+						  {
+							  qDebug() << "外部控制：控制器1 被点击";
+							  if (popup1)
+							  {
+								  qDebug() << "弹出窗口1 已创建，正在显示...";
+								  popup1->showPopup();
+							  }
+							  else
+							  {
+								  qDebug() << "弹出窗口1 未创建 - 需要窗口上下文";
+							  }
+						  }),
+						  0, 0
+					  )
+					  ->add(
+						  button("控制器 2 🔧")
+						  ->secondary()
+						  ->onTap([this]
+						  {
+							  qDebug() << "外部控制：控制器2 被点击";
+							  if (popup2)
+							  {
+								  qDebug() << "弹出窗口2 已创建，正在显示...";
+								  popup2->showPopup();
+							  }
+							  else
+							  {
+								  qDebug() << "弹出窗口2 未创建 - 需要窗口上下文";
+							  }
+						  }),
+						  0, 1
+					  )
+					  ->colSpacing(15),
 
-spacer(8),
+				spacer(8),
 
-text(s_windowContext ?
-	"🎉 弹出窗口已创建并可以显示！点击按钮测试" :
-	"⚠️  需要窗口上下文才能创建弹出窗口")
-->fontSize(11)
-->themeColor(s_windowContext ? QColor(50, 120, 50) : QColor(120, 50, 50),
-			s_windowContext ? QColor(120, 200, 120) : QColor(200, 120, 120))
-->align(Qt::AlignCenter),
+				text(s_windowContext ? "🎉 弹出窗口已创建并可以显示！点击按钮测试" : "⚠️  需要窗口上下文才能创建弹出窗口")
+				->fontSize(11)
+				->themeColor(s_windowContext ? QColor(50, 120, 50) : QColor(120, 50, 50),
+							 s_windowContext ? QColor(120, 200, 120) : QColor(200, 120, 120))
+				->align(Qt::AlignCenter),
 
-})->vertical()
-->crossAxisAlignment(Alignment::Stretch)
-->spacing(6)
-->padding(12),
+			})->vertical()
+			  ->crossAxisAlignment(Alignment::Stretch)
+			  ->spacing(6)
+			  ->padding(12),
 
-spacer(12),
+			spacer(12),
 
-// 代码示例区域
-panel({
-	text("代码示例：")
-	->fontSize(13)
-	->fontWeight(QFont::Medium)
-	->themeColor(QColor(80, 50, 120), QColor(180, 150, 220)),
+			// 代码示例区域
+			panel({
+				text("代码示例：")
+				->fontSize(13)
+				->fontWeight(QFont::Medium)
+				->themeColor(QColor(80, 50, 120), QColor(180, 150, 220)),
 
-	spacer(6),
+				spacer(6),
 
-	text("// 创建弹出窗口（无触发器）\nauto myPopup = popup()\n    ->content(panel({...}))\n    ->size(QSize(200, 150))\n    ->placement(Popup::Placement::Bottom);")
-	->fontSize(11)
-	->themeColor(QColor(60, 60, 60), QColor(200, 200, 200)),
+				text(
+					"// 创建弹出窗口（无触发器）\nauto myPopup = popup()\n    ->content(panel({...}))\n    ->size(QSize(200, 150))\n    ->placement(Popup::Placement::Bottom);")
+				->fontSize(11)
+				->themeColor(QColor(60, 60, 60), QColor(200, 200, 200)),
 
-	spacer(4),
+				spacer(4),
 
-	text("// 外部控制显示\nbutton(\"触发器\")\n    ->onTap([popup]() {\n        popup->showPopupAt(position);\n    });")
-	->fontSize(11)
-	->themeColor(QColor(60, 60, 60), QColor(200, 200, 200)),
+				text(
+					"// 外部控制显示\nbutton(\"触发器\")\n    ->onTap([popup]() {\n        popup->showPopupAt(position);\n    });")
+				->fontSize(11)
+				->themeColor(QColor(60, 60, 60), QColor(200, 200, 200)),
 
-})->vertical()
-->crossAxisAlignment(Alignment::Start)
-->spacing(4)
-->padding(12),
+			})->vertical()
+			  ->crossAxisAlignment(Alignment::Start)
+			  ->spacing(4)
+			  ->padding(12),
 
-spacer(8),
+			spacer(8),
 
-text("📚 详细用法请参阅 NEW_POPUP_GUIDE.md")
-->fontSize(11)
-->themeColor(QColor(120, 120, 120), QColor(160, 160, 160))
-->align(Qt::AlignCenter)
+			text("📚 详细用法请参阅 NEW_POPUP_GUIDE.md")
+			->fontSize(11)
+			->themeColor(QColor(120, 120, 120), QColor(160, 160, 160))
+			->align(Qt::AlignCenter)
 
 			})->vertical()
 			->crossAxisAlignment(Alignment::Center)
 			->spacing(8)
 			->padding(15))
 			->elevation(3.0f)
-			->backgroundTheme(QColor(248, 252, 255), QColor(18, 22, 32))
-			;
+			->backgroundTheme(QColor(248, 252, 255), QColor(18, 22, 32));
 	}
 
 	[[nodiscard]] WidgetPtr buildFeatureCard(const QString& iconLight, const QString& iconDark, const QString& title,
