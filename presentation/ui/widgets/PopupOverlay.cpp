@@ -4,7 +4,7 @@
 
 #include "PopupOverlay.h"
 #include "Renderer.h"
-#include <gl/GL.h>
+#include <GL/gl.h>
 #include <memory>
 #include <qapplication.h>
 #include <qcolor.h>
@@ -16,9 +16,10 @@
 #include <qpoint.h>
 #include <qrect.h>
 #include <qsize.h>
+#include <qsurfaceformat.h>
 #include <qtimer.h>
 #include <qtmetamacros.h>
-#include <qtpreprocessorsupport.h>
+
 #include <qwindow.h>
 #include <RenderData.hpp>
 #include <UiComponent.hpp>
@@ -28,6 +29,12 @@
 PopupOverlay::PopupOverlay(QWindow* parent)
 	: QOpenGLWindow(NoPartialUpdate, parent)
 {
+	// 设置OpenGL格式以支持透明度
+	QSurfaceFormat format = QSurfaceFormat::defaultFormat();
+	format.setAlphaBufferSize(8); // 确保有alpha通道
+	format.setSamples(4); // 抗锯齿
+	setFormat(format);
+
 	// 设置窗口属性
 	setFlags(Qt::Tool | Qt::FramelessWindowHint | Qt::WindowStaysOnTopHint);
 
@@ -432,7 +439,7 @@ bool PopupOverlay::eventFilter(QObject* obj, QEvent* event)
 		QMouseEvent* mouseEvent = static_cast<QMouseEvent*>(event);
 
 		// Convert global position to window coordinates
-		QPoint globalPos = mouseEvent->globalPos();
+		QPoint globalPos = mouseEvent->globalPosition().toPoint();
 		QPoint localPos = mapFromGlobal(globalPos);
 
 		// If click is outside this window, hide the popup
