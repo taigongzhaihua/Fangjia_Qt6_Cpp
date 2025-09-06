@@ -17,6 +17,9 @@ PopupOverlay::PopupOverlay(QWindow* parent)
     // 设置窗口属性
     setFlags(Qt::Tool | Qt::FramelessWindowHint | Qt::WindowStaysOnTopHint);
     
+    // 设置透明背景支持
+    setColor(QColor(Qt::transparent));
+    
     // 设置渲染定时器
     m_renderTimer.setSingleShot(false);
     m_renderTimer.setInterval(16); // ~60 FPS
@@ -45,6 +48,11 @@ void PopupOverlay::setContent(std::unique_ptr<IUiComponent> content)
 {
     m_content = std::move(content);
     m_needsContentLayoutUpdate = true; // Mark for layout update
+    
+    // Apply current theme to new content
+    if (m_content) {
+        m_content->onThemeChanged(m_isDarkTheme);
+    }
     
     // 如果窗口已初始化，立即更新布局
     if (m_initialized) {
@@ -75,6 +83,11 @@ void PopupOverlay::showAt(const QPoint& globalPos, const QSize& size)
     
     // 显示窗口
     show();
+    
+    // Apply current theme to content when showing
+    if (m_content) {
+        m_content->onThemeChanged(m_isDarkTheme);
+    }
     
     // Ensure window gets focus to receive key events
     requestActivate();
@@ -185,13 +198,11 @@ void PopupOverlay::mousePressEvent(QMouseEvent* event)
         contentPos -= m_actualContentRect.topLeft();
     }
     
-    if (m_content && m_content->onMousePress(contentPos)) {
-        event->accept();
-        return;
+    if (m_content) {
+        m_content->onMousePress(contentPos);
     }
     
-    // 点击内容区域但内容没有处理时也隐藏弹出窗口
-    hidePopup();
+    // 点击内容区域内应该保持弹出窗口打开，不关闭
     event->accept();
 }
 
@@ -393,6 +404,7 @@ void PopupOverlay::renderContent()
 
 void PopupOverlay::forwardThemeChange(bool isDark)
 {
+    m_isDarkTheme = isDark;
     if (m_content) {
         m_content->onThemeChanged(isDark);
     }

@@ -55,6 +55,9 @@ public:
     
     /// 转发主题变化到内容
     void forwardThemeChange(bool isDark);
+    
+    /// 设置初始主题（用于首次显示时确保正确主题）
+    void setTheme(bool isDark) { m_isDarkTheme = isDark; }
 
 signals:
     /// 弹出窗口被隐藏
@@ -108,4 +111,7 @@ private:
     
     // Global mouse event filter for click-outside detection
     bool m_installEventFilter{false};
+    
+    // Theme state tracking
+    bool m_isDarkTheme{false};
 };
