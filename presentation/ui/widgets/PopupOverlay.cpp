@@ -4,7 +4,7 @@
 
 #include "PopupOverlay.h"
 #include "Renderer.h"
-#include <gl/GL.h>
+#include <GL/gl.h>
 #include <memory>
 #include <qapplication.h>
 #include <qcolor.h>
@@ -18,7 +18,7 @@
 #include <qsize.h>
 #include <qtimer.h>
 #include <qtmetamacros.h>
-#include <qtpreprocessorsupport.h>
+
 #include <qwindow.h>
 #include <RenderData.hpp>
 #include <UiComponent.hpp>
