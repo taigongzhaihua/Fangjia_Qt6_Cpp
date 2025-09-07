@@ -12,7 +12,7 @@ Popup::Popup(QWindow* parentWindow)
     : m_parentWindow(parentWindow)
 {
     // 立即创建弹出覆盖窗口
-    m_overlay = std::make_unique<PopupOverlay>(parentWindow);
+    m_overlay = std::make_unique<PopupOverlay>(nullptr);
     
     // 连接信号
     QObject::connect(m_overlay.get(), &PopupOverlay::popupHidden,

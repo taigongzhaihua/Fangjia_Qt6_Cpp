@@ -2,7 +2,7 @@
  * PopupOverlay.h - 简单直接的弹出窗口实现
  * 
  * 设计原则：
- * - 直接继承QOpenGLWindow，避免复杂包装
+ * - 使用 QOpenGLWidget 包装在透明 QWidget 中替代 QOpenGLWindow
  * - 立即初始化，无延迟创建
  * - 简单的事件处理和渲染
  * - 最小化API，专注核心功能
@@ -10,8 +10,9 @@
 
 #pragma once
 
-#include <qopenglwindow.h>
-#include <qopenglfunctions.h>
+#include <QWidget>
+#include <QOpenGLWidget>
+#include <QOpenGLFunctions>
 #include <qtimer.h>
 #include <qcolor.h>
 #include <memory>
@@ -22,13 +23,16 @@
 #include "RenderData.hpp"
 #include "Renderer.h"
 
-class PopupOverlay : public QOpenGLWindow, protected QOpenGLFunctions
+// Forward declaration
+class PopupOpenGLRenderer;
+
+class PopupOverlay : public QWidget
 {
     Q_OBJECT
 
 public:
     /// 构造函数 - 立即创建所有必要资源
-    explicit PopupOverlay(QWindow* parent = nullptr);
+    explicit PopupOverlay(QWidget* parent = nullptr);
     ~PopupOverlay() override;
 
     /// 设置弹出内容（立即设置，不延迟）
@@ -64,11 +68,6 @@ signals:
     void popupHidden();
 
 protected:
-    // OpenGL lifecycle
-    void initializeGL() override;
-    void resizeGL(int w, int h) override;
-    void paintGL() override;
-    
     // Event handling
     void mousePressEvent(QMouseEvent* event) override;
     void mouseMoveEvent(QMouseEvent* event) override;
@@ -81,6 +80,21 @@ private slots:
     void onRenderTick();
 
 private:
+    // Internal OpenGL widget for rendering
+    class PopupOpenGLRenderer : public QOpenGLWidget, public QOpenGLFunctions
+    {
+    public:
+        explicit PopupOpenGLRenderer(PopupOverlay* parent);
+        
+    protected:
+        void initializeGL() override;
+        void resizeGL(int w, int h) override;
+        void paintGL() override;
+        
+    private:
+        PopupOverlay* m_popup;
+    };
+    
     void updateContentLayout();
     void renderBackground();
     void renderContent();
@@ -89,6 +103,9 @@ private:
 private:
     // Content
     std::unique_ptr<IUiComponent> m_content;
+    
+    // OpenGL renderer widget
+    PopupOpenGLRenderer* m_openglRenderer;
     
     // Visual style
     QColor m_backgroundColor{255, 255, 255, 240};
@@ -114,4 +131,9 @@ private:
     
     // Theme state tracking
     bool m_isDarkTheme{false};
+
+    // Internal OpenGL rendering methods for use by PopupOpenGLRenderer
+    void initializeGL();
+    void resizeGL(int w, int h);
+    void paintGL();
 };
