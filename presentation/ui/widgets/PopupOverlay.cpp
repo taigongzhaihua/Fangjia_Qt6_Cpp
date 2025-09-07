@@ -159,9 +159,9 @@ void PopupOverlay::initializeGL()
 	// Initialize OpenGL functions through the renderer widget
 	m_openglRenderer->initializeOpenGLFunctions();
 
-	// 启用混合以支持透明度
-	glEnable(GL_BLEND);
-	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+	// 启用混合以支持透明度 - use QOpenGLFunctions interface through renderer
+	m_openglRenderer->glEnable(GL_BLEND);
+	m_openglRenderer->glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
 	// 初始化渲染器
 	m_renderer.initializeGL(m_openglRenderer);
@@ -176,8 +176,8 @@ void PopupOverlay::initializeGL()
 
 void PopupOverlay::resizeGL(int w, int h)
 {
-	// 设置视口
-	glViewport(0, 0, w, h);
+	// 设置视口 - use QOpenGLFunctions interface through renderer
+	m_openglRenderer->glViewport(0, 0, w, h);
 
 	// 更新内容矩形 - use full window size for m_contentRect (for OpenGL viewport)
 	m_contentRect = QRect(0, 0, w, h);
@@ -194,10 +194,10 @@ void PopupOverlay::resizeGL(int w, int h)
 
 void PopupOverlay::paintGL()
 {
-	// 清除背景为透明
-	glClearColor(1.0f, 1.0f, 1.0f, 0.0f);
+	// 清除背景为透明 - use QOpenGLFunctions interface through renderer
+	m_openglRenderer->glClearColor(1.0f, 1.0f, 1.0f, 0.0f);
 	// 清除颜色缓冲区和深度缓冲区
-	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+	m_openglRenderer->glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 	if (!m_content) {
 		return;
