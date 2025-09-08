@@ -176,6 +176,10 @@ private:
 	bool m_isDarkTheme{ false };
 	bool m_focused{ false };  // 焦点状态
 
+	// 状态跟踪，用于检测视觉变化
+	bool m_lastHovered{ false };
+	bool m_lastPressed{ false };
+
 	// === 渲染资源 ===
 	IconCache* m_cache{ nullptr };
 	QOpenGLFunctions* m_gl{ nullptr };

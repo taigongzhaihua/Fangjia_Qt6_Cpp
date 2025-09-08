@@ -220,7 +220,7 @@ namespace UI
 		QSize m_popupSize{200, 150};
 		Placement m_placement{Placement::Bottom};
 		QPoint m_offset{0, 0};
-		QColor m_backgroundColor{255, 255, 255, 240};
+		QColor m_backgroundColor{255, 255, 255, 255}; // 改为不透明以提升文字清晰度
 		float m_cornerRadius{8.0f};
 		std::function<void(bool)> m_onVisibilityChanged;
 	};

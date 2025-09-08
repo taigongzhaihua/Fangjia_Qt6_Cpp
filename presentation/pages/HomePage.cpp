@@ -52,9 +52,9 @@ public:
 	std::unique_ptr<IUiComponent> builtComponent;
 	std::unique_ptr<CounterViewModel> counterVM; // 计数器ViewModel
 
-	// 弹出窗口演示的存储 - 直接使用核心Popup类
-	std::unique_ptr<::Popup> popup1;
-	std::unique_ptr<::Popup> popup2;
+	// 弹出窗口演示的存储 - 使用声明式API
+	std::unique_ptr<IUiComponent> popup1;
+	std::unique_ptr<IUiComponent> popup2;
 
 	Impl()
 	{
@@ -71,83 +71,86 @@ private:
 			return;
 		}
 
-		// 创建弹出窗口1 - 带丰富内容
-		popup1 = std::make_unique<::Popup>(s_windowContext);
+		// 创建弹出窗口1 - 带丰富内容 (使用声明式API)
+		auto popup1Builder = popup()
+			->content(
+				panel({
+					text("🎉 弹出窗口演示 1")
+					->fontSize(16)
+					->fontWeight(QFont::Medium)
+					->themeColor(QColor(70, 130, 180), QColor(120, 180, 230))
+					->align(Qt::AlignHCenter),
 
-		auto popupContent1 = panel({
-				text("🎉 弹出窗口演示 1")
-				->fontSize(16)
-				->fontWeight(QFont::Medium)
-				->themeColor(QColor(70, 130, 180), QColor(120, 180, 230))
-				->align(Qt::AlignHCenter),
+					spacer(10),
 
-				spacer(10),
+					text("这是一个实际工作的弹出窗口！")
+					->fontSize(12)
+					->themeColor(QColor(60, 60, 60), QColor(200, 200, 200))
+					->align(Qt::AlignHCenter),
 
-				text("这是一个实际工作的弹出窗口！")
-				->fontSize(12)
-				->themeColor(QColor(60, 60, 60), QColor(200, 200, 200))
-				->align(Qt::AlignHCenter),
+					spacer(8),
 
-				spacer(8),
-
-				button("关闭")
-				->destructive()
-				->onTap([this]
-				{
-					if (popup1)
+					button("关闭")
+					->destructive()
+					->onTap([this]
 					{
-						qDebug() << "关闭弹出窗口1";
-						popup1->hidePopup();
-					}
-				})
-			})->vertical()
-			->crossAxisAlignment(Alignment::Center)
-			->spacing(4)
-			->padding(16);
-
-		popup1->setContent(popupContent1->build());
-		popup1->setPopupSize(QSize(280, 160));
-		popup1->setPlacement(::Popup::Placement::Bottom);
-		popup1->setBackgroundColor(QColor(255, 255, 255, 245));
-		popup1->setCornerRadius(12.0f);
-		popup1->setOnVisibilityChanged([](bool visible)
+						// 由于现在使用IUiComponent，需要转换为Popup来调用hidePopup
+						if (auto* popupPtr = dynamic_cast<::Popup*>(popup1.get()))
+						{
+							qDebug() << "关闭弹出窗口1";
+							popupPtr->hidePopup();
+						}
+					})
+				})->vertical()
+				  ->crossAxisAlignment(Alignment::Center)
+				  ->spacing(4)
+				  ->padding(16)
+			)
+			->size(QSize(280, 160))
+			->placement(UI::Popup::Placement::Bottom)
+			->backgroundColor(QColor(255, 255, 255, 255)) // 不透明背景
+			->cornerRadius(12.0f)
+			->onVisibilityChanged([](bool visible)
 			{
 				qDebug() << "弹出窗口1 可见性变化:" << visible;
 			});
 
-		// 创建弹出窗口2 - 简单列表内容
-		popup2 = std::make_unique<::Popup>(s_windowContext);
+		popup1 = popup1Builder->buildWithWindow(s_windowContext);
 
-		auto popupContent2 = panel({
-				text("📋 选项列表")
-				->fontSize(14)
-				->fontWeight(QFont::Medium)
-				->themeColor(QColor(100, 50, 150), QColor(180, 130, 230))
-				->align(Qt::AlignHCenter),
+		// 创建弹出窗口2 - 简单列表内容 (使用声明式API)
+		auto popup2Builder = popup()
+			->content(
+				panel({
+					text("📋 选项列表")
+					->fontSize(14)
+					->fontWeight(QFont::Medium)
+					->themeColor(QColor(100, 50, 150), QColor(180, 130, 230))
+					->align(Qt::AlignHCenter),
 
-				spacer(8),
+					spacer(8),
 
-				button("选项 A ✓")
-				->onTap([] { qDebug() << "选择了选项 A"; }),
+					button("选项 A ✓")
+					->onTap([] { qDebug() << "选择了选项 A"; }),
 
-				button("选项 B")
-				->onTap([] { qDebug() << "选择了选项 B"; }),
+					button("选项 B")
+					->onTap([] { qDebug() << "选择了选项 B"; }),
 
-				button("选项 C")
-				->onTap([] { qDebug() << "选择了选项 C"; })
-			})->vertical()
-			->crossAxisAlignment(Alignment::Stretch)
-			->spacing(4)
-			->padding(12);
-
-		popup2->setContent(popupContent2->build());
-		popup2->setPlacement(::Popup::Placement::Bottom);
-		popup2->setBackgroundColor(QColor(248, 252, 255, 240));
-		popup2->setCornerRadius(8.0f);
-		popup2->setOnVisibilityChanged([](bool visible)
+					button("选项 C")
+					->onTap([] { qDebug() << "选择了选项 C"; })
+				})->vertical()
+				  ->crossAxisAlignment(Alignment::Stretch)
+				  ->spacing(4)
+				  ->padding(12)
+			)
+			->placement(UI::Popup::Placement::Bottom)
+			->backgroundColor(QColor(248, 252, 255, 255)) // 不透明背景
+			->cornerRadius(8.0f)
+			->onVisibilityChanged([](bool visible)
 			{
 				qDebug() << "弹出窗口2 可见性变化:" << visible;
 			});
+
+		popup2 = popup2Builder->buildWithWindow(s_windowContext);
 	}
 
 public:
@@ -351,7 +354,11 @@ private:
 							  if (popup1)
 							  {
 								  qDebug() << "弹出窗口1 已创建，正在显示...";
-								  popup1->showPopup();
+								  // 由于现在使用IUiComponent，需要转换为Popup来调用showPopup
+								  if (auto* popupPtr = dynamic_cast<::Popup*>(popup1.get()))
+								  {
+									  popupPtr->showPopup();
+								  }
 							  }
 							  else
 							  {
@@ -369,7 +376,11 @@ private:
 							  if (popup2)
 							  {
 								  qDebug() << "弹出窗口2 已创建，正在显示...";
-								  popup2->showPopup();
+								  // 由于现在使用IUiComponent，需要转换为Popup来调用showPopup
+								  if (auto* popupPtr = dynamic_cast<::Popup*>(popup2.get()))
+								  {
+									  popupPtr->showPopup();
+								  }
 							  }
 							  else
 							  {
