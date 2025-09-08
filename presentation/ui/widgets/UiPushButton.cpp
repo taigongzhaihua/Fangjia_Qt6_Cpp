@@ -169,8 +169,18 @@ bool UiPushButton::onMouseRelease(const QPoint& pos) {
 }
 
 bool UiPushButton::tick() {
-	// 按钮目前不需要动画，返回false表示无需继续更新
-	return false;
+	// 检查按钮状态是否需要视觉更新
+	// 当鼠标悬停状态或按下状态发生变化时，需要重新渲染
+	bool currentHovered = m_button.hovered();
+	bool currentPressed = m_button.pressed();
+	
+	if (m_lastHovered != currentHovered || m_lastPressed != currentPressed) {
+		m_lastHovered = currentHovered;
+		m_lastPressed = currentPressed;
+		return true; // 状态发生变化，需要更新
+	}
+	
+	return false; // 状态无变化，无需更新
 }
 
 QRect UiPushButton::bounds() const {
