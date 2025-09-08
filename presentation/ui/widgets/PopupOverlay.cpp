@@ -37,8 +37,15 @@ PopupOverlay::PopupOverlay(QWidget* parent)
 	setAttribute(Qt::WA_TranslucentBackground, true);
 	setAttribute(Qt::WA_NoSystemBackground, true);
 
+	// Enable mouse tracking to receive mouseMoveEvent without button press
+	// This is essential for button hover effects to work properly
+	setMouseTracking(true);
+
 	// Create the OpenGL renderer widget
 	m_openglRenderer = new PopupOpenGLRenderer(this);
+
+	// Enable mouse tracking on the OpenGL renderer as well
+	m_openglRenderer->setMouseTracking(true);
 
 	// Setup layout - the renderer fills the entire widget
 	auto* layout = new QVBoxLayout(this);
@@ -356,8 +363,11 @@ void PopupOverlay::updateContentLayout()
 
 void PopupOverlay::renderBackground()
 {
-	// 使用渲染器绘制圆角背景矩形 with shadow
-	// First render shadow layers
+	// Create a single FrameData to render all background elements at once
+	// This prevents OpenGL state corruption from multiple drawFrame calls
+	Render::FrameData frameData;
+
+	// First add shadow layers (rendered from back to front)
 	if (m_shadowSize > 0) {
 		int numShadowLayers = static_cast<int>(std::round(m_shadowSize));
 		for (int i = 0; i < numShadowLayers; ++i) {
@@ -376,13 +386,12 @@ void PopupOverlay::renderBackground()
 			shadowCmd.color = QColor(0, 0, 0, static_cast<int>(alpha * 255));
 			shadowCmd.clipRect = QRectF();  // 不需要剪裁
 
-			Render::FrameData shadowFrameData;
-			shadowFrameData.roundedRects.push_back(shadowCmd);
-			m_renderer.drawFrame(shadowFrameData, m_iconCache, devicePixelRatio());
+			// Add shadow layer to the frame data
+			frameData.roundedRects.push_back(shadowCmd);
 		}
 	}
 
-	// Then render the main background
+	// Then add the main background (rendered on top of shadows)
 	Render::RoundedRectCmd bgCmd;
 	if (m_actualContentRect.isValid()) {
 		bgCmd.rect = QRectF(m_actualContentRect);
@@ -394,10 +403,11 @@ void PopupOverlay::renderBackground()
 	bgCmd.color = m_backgroundColor;
 	bgCmd.clipRect = QRectF();  // 不需要剪裁
 
-	Render::FrameData bgFrameData;
-	bgFrameData.roundedRects.push_back(bgCmd);
+	frameData.roundedRects.push_back(bgCmd);
 
-	m_renderer.drawFrame(bgFrameData, m_iconCache, devicePixelRatio());
+	// Render all background elements in a single drawFrame call
+	// This ensures proper OpenGL state management and prevents texture corruption
+	m_renderer.drawFrame(frameData, m_iconCache, devicePixelRatio());
 }
 
 void PopupOverlay::renderContent()
@@ -427,19 +437,41 @@ void PopupOverlay::renderContent()
 			std::round(m_actualContentRect.y())
 		);
 
-		// Translate all rounded rect commands
+		// Translate all rounded rect commands with pixel-perfect positioning
 		for (auto& rectCmd : frameData.roundedRects) {
-			rectCmd.rect.translate(offset);
+			// Round all rectangle coordinates to prevent subpixel positioning
+			rectCmd.rect = QRectF(
+				std::round(rectCmd.rect.x() + offset.x()),
+				std::round(rectCmd.rect.y() + offset.y()),
+				std::round(rectCmd.rect.width()),
+				std::round(rectCmd.rect.height())
+			);
 			if (rectCmd.clipRect.width() > 0 && rectCmd.clipRect.height() > 0) {
-				rectCmd.clipRect.translate(offset);
+				rectCmd.clipRect = QRectF(
+					std::round(rectCmd.clipRect.x() + offset.x()),
+					std::round(rectCmd.clipRect.y() + offset.y()),
+					std::round(rectCmd.clipRect.width()),
+					std::round(rectCmd.clipRect.height())
+				);
 			}
 		}
 
-		// Translate all image commands
+		// Translate all image commands with pixel-perfect positioning for text clarity
 		for (auto& imageCmd : frameData.images) {
-			imageCmd.dstRect.translate(offset);
+			// Round all image destination coordinates to prevent text blur
+			imageCmd.dstRect = QRectF(
+				std::round(imageCmd.dstRect.x() + offset.x()),
+				std::round(imageCmd.dstRect.y() + offset.y()),
+				std::round(imageCmd.dstRect.width()),
+				std::round(imageCmd.dstRect.height())
+			);
 			if (imageCmd.clipRect.width() > 0 && imageCmd.clipRect.height() > 0) {
-				imageCmd.clipRect.translate(offset);
+				imageCmd.clipRect = QRectF(
+					std::round(imageCmd.clipRect.x() + offset.x()),
+					std::round(imageCmd.clipRect.y() + offset.y()),
+					std::round(imageCmd.clipRect.width()),
+					std::round(imageCmd.clipRect.height())
+				);
 			}
 		}
 	}
