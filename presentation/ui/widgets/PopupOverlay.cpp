@@ -90,13 +90,15 @@ void PopupOverlay::setContent(std::unique_ptr<IUiComponent> content)
 void PopupOverlay::showAt(const QPoint& globalPos, const QSize& size)
 {
 	// Calculate expanded size to accommodate shadows
-	int shadowMargin = static_cast<int>(m_shadowSize);
+	// Round shadow size to ensure integer pixel alignment
+	int shadowMargin = static_cast<int>(std::round(m_shadowSize));
 	QSize expandedSize(size.width() + 2 * shadowMargin, size.height() + 2 * shadowMargin);
 
 	// Adjust position to account for shadow margin
 	QPoint adjustedPos(globalPos.x() - shadowMargin, globalPos.y() - shadowMargin);
 
 	// Set the actual content rect within the expanded window
+	// This ensures the content rect is pixel-aligned
 	m_actualContentRect = QRect(shadowMargin, shadowMargin, size.width(), size.height());
 
 	// 设置窗口位置和大小 (using expanded size)
@@ -114,6 +116,12 @@ void PopupOverlay::showAt(const QPoint& globalPos, const QSize& size)
 	// Apply current theme to content when showing
 	if (m_content) {
 		m_content->onThemeChanged(m_isDarkTheme);
+	}
+
+	// Ensure content layout is updated immediately when popup is shown
+	// This prevents timing issues with mouse event handling before first layout
+	if (m_content && m_initialized) {
+		updateContentLayout();
 	}
 
 	// Ensure window gets focus to receive key events
@@ -351,10 +359,11 @@ void PopupOverlay::renderBackground()
 	// 使用渲染器绘制圆角背景矩形 with shadow
 	// First render shadow layers
 	if (m_shadowSize > 0) {
-		int numShadowLayers = static_cast<int>(m_shadowSize);
+		int numShadowLayers = static_cast<int>(std::round(m_shadowSize));
 		for (int i = 0; i < numShadowLayers; ++i) {
 			float alpha = (1.0f - static_cast<float>(i) / numShadowLayers) * 0.3f; // Exponential falloff
-			float offset = static_cast<float>(i);
+			// Use integer offsets to maintain pixel alignment
+			int offset = i;
 
 			Render::RoundedRectCmd shadowCmd;
 			shadowCmd.rect = QRectF(
@@ -411,7 +420,12 @@ void PopupOverlay::renderContent()
 
 	// Translate all rendering commands to account for content positioning
 	if (m_actualContentRect.isValid() && (m_actualContentRect.x() != 0 || m_actualContentRect.y() != 0)) {
-		QPointF offset(m_actualContentRect.x(), m_actualContentRect.y());
+		// Round the offset to integer pixel boundaries to prevent subpixel rendering issues
+		// that cause font blurriness
+		QPointF offset(
+			std::round(m_actualContentRect.x()),
+			std::round(m_actualContentRect.y())
+		);
 
 		// Translate all rounded rect commands
 		for (auto& rectCmd : frameData.roundedRects) {
