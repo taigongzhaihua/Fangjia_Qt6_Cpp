@@ -21,7 +21,6 @@
 
 #include <qboxlayout.h>
 #include <qopenglwidget.h>
-#include <qtpreprocessorsupport.h>
 #include <qwidget.h>
 #include <RenderData.hpp>
 #include <UiComponent.hpp>
