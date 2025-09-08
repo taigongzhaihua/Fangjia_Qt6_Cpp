@@ -12,9 +12,6 @@
 #include <qevent.h>
 #include <qnamespace.h>
 #include <qobject.h>
-#include <QWidget>
-#include <QOpenGLWidget>
-#include <QVBoxLayout>
 #include <qpoint.h>
 #include <qrect.h>
 #include <qsize.h>
@@ -22,6 +19,10 @@
 #include <qtimer.h>
 #include <qtmetamacros.h>
 
+#include <qboxlayout.h>
+#include <qopenglwidget.h>
+#include <qtpreprocessorsupport.h>
+#include <qwidget.h>
 #include <RenderData.hpp>
 #include <UiComponent.hpp>
 #include <UiContent.hpp>
@@ -32,14 +33,14 @@ PopupOverlay::PopupOverlay(QWidget* parent)
 {
 	// 设置窗口属性 - this is now a top-level widget with window flags
 	setWindowFlags(Qt::Tool | Qt::FramelessWindowHint | Qt::WindowStaysOnTopHint);
-	
+
 	// 设置透明背景支持
 	setAttribute(Qt::WA_TranslucentBackground, true);
 	setAttribute(Qt::WA_NoSystemBackground, true);
-	
+
 	// Create the OpenGL renderer widget
 	m_openglRenderer = new PopupOpenGLRenderer(this);
-	
+
 	// Setup layout - the renderer fills the entire widget
 	auto* layout = new QVBoxLayout(this);
 	layout->setContentsMargins(0, 0, 0, 0);
@@ -195,9 +196,8 @@ void PopupOverlay::resizeGL(int w, int h)
 void PopupOverlay::paintGL()
 {
 	// 清除背景为透明 - use QOpenGLFunctions interface through renderer
-	m_openglRenderer->glClearColor(1.0f, 1.0f, 1.0f, 0.0f);
 	// 清除颜色缓冲区和深度缓冲区
-	m_openglRenderer->glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+	m_openglRenderer->glClear(GL_DEPTH_BUFFER_BIT);
 
 	if (!m_content) {
 		return;
@@ -354,15 +354,15 @@ void PopupOverlay::renderBackground()
 	if (m_shadowSize > 0) {
 		int numShadowLayers = static_cast<int>(m_shadowSize);
 		for (int i = 0; i < numShadowLayers; ++i) {
-			float alpha = (1.0f - static_cast<float>(i) / numShadowLayers) * 0.1f; // Exponential falloff
+			float alpha = (1.0f - static_cast<float>(i) / numShadowLayers) * 0.3f; // Exponential falloff
 			float offset = static_cast<float>(i);
 
 			Render::RoundedRectCmd shadowCmd;
 			shadowCmd.rect = QRectF(
-				m_actualContentRect.x() + offset,
-				m_actualContentRect.y() + offset,
-				m_actualContentRect.width(),
-				m_actualContentRect.height()
+				m_actualContentRect.x() - offset,
+				m_actualContentRect.y() - offset,
+				m_actualContentRect.width() + 2 * offset,
+				m_actualContentRect.height() + 2 * offset
 			);
 			shadowCmd.radiusPx = m_cornerRadius;
 			shadowCmd.color = QColor(0, 0, 0, static_cast<int>(alpha * 255));
