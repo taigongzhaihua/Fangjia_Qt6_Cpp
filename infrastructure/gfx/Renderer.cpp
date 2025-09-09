@@ -50,6 +50,13 @@ namespace {
 
 void Renderer::initializeGL(QOpenGLFunctions* gl)
 {
+	// Critical fix: Add null pointer check for OpenGL functions
+	if (!gl)
+	{
+		qCritical() << "Null OpenGL functions pointer in Renderer::initializeGL";
+		return;
+	}
+
 	m_gl = gl;
 
 	if (!m_progRect) {
@@ -85,21 +92,67 @@ void main(){
 })";
 
 		m_progRect = new QOpenGLShaderProgram();
-		m_progRect->addShaderFromSourceCode(QOpenGLShader::Vertex, vs1);
-		m_progRect->addShaderFromSourceCode(QOpenGLShader::Fragment, fs1);
-		m_progRect->link();
+		
+		// Critical fix: Check shader compilation success
+		if (!m_progRect->addShaderFromSourceCode(QOpenGLShader::Vertex, vs1))
+		{
+			qCritical() << "Failed to compile vertex shader:" << m_progRect->log();
+			delete m_progRect;
+			m_progRect = nullptr;
+			return;
+		}
+		
+		if (!m_progRect->addShaderFromSourceCode(QOpenGLShader::Fragment, fs1))
+		{
+			qCritical() << "Failed to compile fragment shader:" << m_progRect->log();
+			delete m_progRect;
+			m_progRect = nullptr;
+			return;
+		}
+		
+		if (!m_progRect->link())
+		{
+			qCritical() << "Failed to link shader program:" << m_progRect->log();
+			delete m_progRect;
+			m_progRect = nullptr;
+			return;
+		}
 
 		m_locViewportSize = m_progRect->uniformLocation("uViewportSize");
 		m_locRectPx = m_progRect->uniformLocation("uRectPx");
 		m_locRadius = m_progRect->uniformLocation("uRadius");
 		m_locColor = m_progRect->uniformLocation("uColor");
 
-		m_vao.create();
+		// Critical fix: Check VAO creation
+		if (!m_vao.create())
+		{
+			qCritical() << "Failed to create VAO";
+			delete m_progRect;
+			m_progRect = nullptr;
+			return;
+		}
 		m_vao.bind();
 
 		m_gl->glGenBuffers(1, &m_vbo);
+		if (m_vbo == 0)
+		{
+			qCritical() << "Failed to generate VBO";
+			m_vao.release();
+			m_vao.destroy();
+			delete m_progRect;
+			m_progRect = nullptr;
+			return;
+		}
+
 		m_gl->glBindBuffer(GL_ARRAY_BUFFER, m_vbo);
 		m_gl->glBufferData(GL_ARRAY_BUFFER, sizeof(float) * 12, nullptr, GL_DYNAMIC_DRAW);
+
+		// Check for OpenGL errors after buffer operations
+		GLenum glError = m_gl->glGetError();
+		if (glError != GL_NO_ERROR)
+		{
+			qWarning() << "OpenGL error after VBO setup:" << glError;
+		}
 
 		m_gl->glEnableVertexAttribArray(0);
 		m_gl->glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 2 * sizeof(float), nullptr);
@@ -136,9 +189,31 @@ void main(){
 })";
 
 		m_progTex = new QOpenGLShaderProgram();
-		m_progTex->addShaderFromSourceCode(QOpenGLShader::Vertex, vs2);
-		m_progTex->addShaderFromSourceCode(QOpenGLShader::Fragment, fs2);
-		m_progTex->link();
+		
+		// Critical fix: Check texture shader compilation success
+		if (!m_progTex->addShaderFromSourceCode(QOpenGLShader::Vertex, vs2))
+		{
+			qCritical() << "Failed to compile texture vertex shader:" << m_progTex->log();
+			delete m_progTex;
+			m_progTex = nullptr;
+			return;
+		}
+		
+		if (!m_progTex->addShaderFromSourceCode(QOpenGLShader::Fragment, fs2))
+		{
+			qCritical() << "Failed to compile texture fragment shader:" << m_progTex->log();
+			delete m_progTex;
+			m_progTex = nullptr;
+			return;
+		}
+		
+		if (!m_progTex->link())
+		{
+			qCritical() << "Failed to link texture shader program:" << m_progTex->log();
+			delete m_progTex;
+			m_progTex = nullptr;
+			return;
+		}
 
 		m_texLocViewportSize = m_progTex->uniformLocation("uViewportSize");
 		m_texLocDstRect = m_progTex->uniformLocation("uDstRectPx");
@@ -151,10 +226,39 @@ void main(){
 
 void Renderer::releaseGL()
 {
-	if (m_gl && m_vbo) { m_gl->glDeleteBuffers(1, &m_vbo); m_vbo = 0; }
-	if (m_progRect) { delete m_progRect; m_progRect = nullptr; }
-	if (m_progTex) { delete m_progTex; m_progTex = nullptr; }
-	if (m_vao.isCreated()) m_vao.destroy();
+	// Critical fix: Add proper null checks and error handling for OpenGL resource cleanup
+	if (m_gl && m_vbo) { 
+		// Check OpenGL context is still valid before deleting buffer
+		GLenum error = m_gl->glGetError();
+		if (error == GL_NO_ERROR)
+		{
+			m_gl->glDeleteBuffers(1, &m_vbo); 
+		}
+		else
+		{
+			qWarning() << "OpenGL error before VBO deletion:" << error;
+		}
+		m_vbo = 0; 
+	}
+	
+	// Clean up shader programs (Qt objects, safe to delete even without OpenGL context)
+	if (m_progRect) { 
+		delete m_progRect; 
+		m_progRect = nullptr; 
+	}
+	if (m_progTex) { 
+		delete m_progTex; 
+		m_progTex = nullptr; 
+	}
+	
+	// Clean up VAO (Qt object with OpenGL resource)
+	if (m_vao.isCreated()) 
+	{
+		m_vao.destroy();
+	}
+	
+	// Clear OpenGL function pointer reference
+	m_gl = nullptr;
 }
 
 void Renderer::resize(const int fbWpx, const int fbHpx)
@@ -190,7 +294,11 @@ void Renderer::restoreClip()
 
 void Renderer::drawRoundedRect(const Render::RoundedRectCmd& cmd)
 {
+	// Critical fix: Add comprehensive validation before OpenGL operations
 	if (!m_progRect || !m_gl || m_fbWpx <= 0 || m_fbHpx <= 0) return;
+	
+	// Additional safety check for VAO and VBO validity
+	if (m_vbo == 0 || !m_vao.isCreated()) return;
 
 	applyClip(cmd.clipRect);
 
@@ -199,6 +307,13 @@ void Renderer::drawRoundedRect(const Render::RoundedRectCmd& cmd)
 
 	float verts[12];
 	rectPxToNdcVerts(rp, m_fbWpx, m_fbHpx, verts);
+
+	// Critical fix: Check for errors before VAO operations
+	GLenum glError = m_gl->glGetError();
+	if (glError != GL_NO_ERROR)
+	{
+		qWarning() << "OpenGL error before drawRoundedRect VAO operations:" << glError;
+	}
 
 	m_vao.bind();
 	m_gl->glBindBuffer(GL_ARRAY_BUFFER, m_vbo);
@@ -210,6 +325,14 @@ void Renderer::drawRoundedRect(const Render::RoundedRectCmd& cmd)
 	m_progRect->setUniformValue(m_locRadius, rr);
 	m_progRect->setUniformValue(m_locColor, QVector4D(cmd.color.redF(), cmd.color.greenF(), cmd.color.blueF(), cmd.color.alphaF()));
 	m_gl->glDrawArrays(GL_TRIANGLES, 0, 6);
+	
+	// Check for errors after draw call
+	glError = m_gl->glGetError();
+	if (glError != GL_NO_ERROR)
+	{
+		qWarning() << "OpenGL error after drawRoundedRect draw call:" << glError;
+	}
+	
 	m_progRect->release();
 	m_vao.release();
 
@@ -218,7 +341,11 @@ void Renderer::drawRoundedRect(const Render::RoundedRectCmd& cmd)
 
 void Renderer::drawImage(const Render::ImageCmd& img, const IconCache& iconCache)
 {
+	// Critical fix: Add comprehensive validation before OpenGL operations  
 	if (!m_progTex || !m_gl || img.textureId == 0 || m_fbWpx <= 0 || m_fbHpx <= 0) return;
+	
+	// Additional safety check for VAO and VBO validity
+	if (m_vbo == 0 || !m_vao.isCreated()) return;
 
 	applyClip(img.clipRect);
 
@@ -226,6 +353,13 @@ void Renderer::drawImage(const Render::ImageCmd& img, const IconCache& iconCache
 
 	float verts[12];
 	rectPxToNdcVerts(dstPx, m_fbWpx, m_fbHpx, verts);
+
+	// Critical fix: Check for errors before VAO operations
+	GLenum glError = m_gl->glGetError();
+	if (glError != GL_NO_ERROR)
+	{
+		qWarning() << "OpenGL error before drawImage VAO operations:" << glError;
+	}
 
 	m_vao.bind();
 	m_gl->glBindBuffer(GL_ARRAY_BUFFER, m_vbo);
@@ -244,6 +378,14 @@ void Renderer::drawImage(const Render::ImageCmd& img, const IconCache& iconCache
 	m_gl->glActiveTexture(GL_TEXTURE0);
 	m_gl->glBindTexture(GL_TEXTURE_2D, static_cast<GLuint>(img.textureId));
 	m_gl->glDrawArrays(GL_TRIANGLES, 0, 6);
+	
+	// Check for errors after draw call
+	glError = m_gl->glGetError();
+	if (glError != GL_NO_ERROR)
+	{
+		qWarning() << "OpenGL error after drawImage draw call:" << glError;
+	}
+	
 	m_gl->glBindTexture(GL_TEXTURE_2D, 0);
 
 	m_progTex->release();

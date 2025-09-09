@@ -45,12 +45,24 @@ int main(int argc, char* argv[])
 		QCoreApplication::setOrganizationDomain(QStringLiteral("Fangjia.com"));
 		QCoreApplication::setApplicationName(QStringLiteral("Fangjia"));
 
-		// 设置默认的OpenGL上下文参数
+		// Critical fix: Enhanced OpenGL context configuration for NVIDIA driver compatibility
 		QSurfaceFormat fmt;
 		fmt.setDepthBufferSize(24);
 		fmt.setStencilBufferSize(16);
 		fmt.setVersion(3, 3);
 		fmt.setProfile(QSurfaceFormat::CoreProfile);
+		
+		// Add additional NVIDIA driver compatibility settings
+		fmt.setSwapBehavior(QSurfaceFormat::DoubleBuffer);
+		fmt.setSwapInterval(1);  // Enable VSync to reduce driver issues
+		fmt.setSamples(0);       // Disable multisampling to avoid driver conflicts
+		fmt.setRenderableType(QSurfaceFormat::OpenGL);
+		
+		// Request debug context in debug builds for better error reporting
+		#ifdef _DEBUG
+		fmt.setOption(QSurfaceFormat::DebugContext);
+		#endif
+		
 		QSurfaceFormat::setDefaultFormat(fmt);
 
 		qDebug() << "Creating shared dependencies...";

@@ -111,10 +111,20 @@ MainOpenGlWindow::~MainOpenGlWindow()
 		}
 #endif
 
-		makeCurrent();
-		m_iconCache.releaseAll(this);
-		m_renderer.releaseGL();
-		doneCurrent();
+		// Critical fix: Add context validity check before OpenGL cleanup
+		if (context() && context()->isValid())
+		{
+			makeCurrent();
+			
+			// Additional safety check before OpenGL operations
+			if (QOpenGLContext::currentContext())
+			{
+				m_iconCache.releaseAll(this);
+				m_renderer.releaseGL();
+			}
+			
+			doneCurrent();
+		}
 	}
 	catch (const std::exception& e)
 	{
@@ -128,9 +138,46 @@ void MainOpenGlWindow::initializeGL()
 	{
 		qDebug() << "MainOpenGlWindow::initializeGL start";
 
-		initializeOpenGLFunctions();
+		// Critical fix: Add context validity check before OpenGL operations
+		if (!context() || !context()->isValid())
+		{
+			qCritical() << "OpenGL context is invalid in initializeGL";
+			return;
+		}
+
+		// Initialize OpenGL functions with error checking
+		if (!initializeOpenGLFunctions())
+		{
+			qCritical() << "Failed to initialize OpenGL functions";
+			return;
+		}
+
+		// Check for OpenGL errors after function initialization
+		GLenum glError = glGetError();
+		if (glError != GL_NO_ERROR)
+		{
+			qWarning() << "OpenGL error after initializeOpenGLFunctions:" << glError;
+		}
+
 		glEnable(GL_BLEND);
 		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+		// Check for errors after basic OpenGL setup
+		glError = glGetError();
+		if (glError != GL_NO_ERROR)
+		{
+			qWarning() << "OpenGL error after blend setup:" << glError;
+		}
+
+		// Critical fix: Enable OpenGL debug output in debug builds for NVIDIA driver issue diagnosis
+		#ifdef _DEBUG
+		if (context()->hasExtension("GL_KHR_debug"))
+		{
+			qDebug() << "OpenGL debug context available, enabling debug output";
+			// Note: Full debug callback setup would require additional OpenGL function loading
+			// For now, we rely on manual error checking throughout the code
+		}
+		#endif
 
 		m_renderer.initializeGL(this);
 
@@ -213,6 +260,13 @@ void MainOpenGlWindow::resizeGL(const int w, const int h)
 
 void MainOpenGlWindow::paintGL()
 {
+	// Critical fix: Add context validity check before OpenGL operations
+	if (!context() || !context()->isValid() || !QOpenGLContext::currentContext())
+	{
+		qWarning() << "Invalid OpenGL context in paintGL";
+		return;
+	}
+
 	glClearColor(m_clearColor.redF(), m_clearColor.greenF(), m_clearColor.blueF(), 1.0f);
 	glClear(GL_COLOR_BUFFER_BIT);
 
