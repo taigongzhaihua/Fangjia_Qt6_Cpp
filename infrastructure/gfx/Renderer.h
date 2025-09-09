@@ -15,6 +15,7 @@
 #include "RenderData.hpp"
 #include "RenderPipeline.hpp"
 #include "TextureManager.hpp"
+#include "RenderOptimizer.hpp"
 
 /// 增强的OpenGL渲染器：支持多阶段渲染管线和批次优化
 /// 
@@ -63,9 +64,20 @@ public:
 	/// 返回：渲染的命令总数
 	int drawPipeline(Render::RenderPipeline& pipeline, float devicePixelRatio);
 
+	/// 功能：使用优化器绘制帧数据（高性能接口）
+	/// 参数：fd — 包含所有绘制命令的帧数据
+	/// 参数：iconCache — 图标纹理缓存  
+	/// 参数：devicePixelRatio — DPR（设备像素比）
+	/// 返回：渲染的命令总数
+	int drawOptimizedFrame(const Render::FrameData& fd, const IconCache& iconCache, float devicePixelRatio);
+
 	/// 功能：获取纹理管理器实例
 	/// 返回：纹理管理器的引用
 	Render::TextureManager& getTextureManager() { return *m_textureManager; }
+
+	/// 功能：获取渲染优化器实例
+	/// 返回：渲染优化器的引用
+	Render::RenderOptimizer& getOptimizer() { return *m_optimizer; }
 
 	/// 功能：启用/禁用渲染批次优化
 	/// 参数：enabled — true启用批次优化
@@ -133,6 +145,7 @@ private:
 
 	// 高级渲染功能
 	std::unique_ptr<Render::TextureManager> m_textureManager;
+	std::unique_ptr<Render::RenderOptimizer> m_optimizer;
 	QRect m_viewport;
 	bool m_batchingEnabled = true;
 	bool m_cullingEnabled = true;

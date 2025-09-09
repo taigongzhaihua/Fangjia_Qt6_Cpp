@@ -3,6 +3,7 @@
 #include "IconCache.h"
 #include "RenderData.hpp"
 #include "TextureManager.hpp"
+#include "RenderOptimizer.hpp"
 
 #include <algorithm>
 #include <cmath>
@@ -55,6 +56,9 @@ void Renderer::initializeGL(QOpenGLFunctions* gl)
 
 	// 创建纹理管理器
 	m_textureManager = std::make_unique<Render::TextureManager>(64); // 64MB限制
+
+	// 创建渲染优化器
+	m_optimizer = std::make_unique<Render::RenderOptimizer>(Render::RenderOptimizer::OptimizationFlags::All);
 
 	if (!m_progRect) {
 		static auto vs1 = R"(#version 330 core
@@ -160,6 +164,7 @@ void Renderer::releaseGL()
 		m_textureManager->releaseAllTextures(m_gl);
 	}
 	m_textureManager.reset();
+	m_optimizer.reset();
 
 	if (m_gl && m_vbo) { m_gl->glDeleteBuffers(1, &m_vbo); m_vbo = 0; }
 	if (m_progRect) { delete m_progRect; m_progRect = nullptr; }
@@ -172,6 +177,12 @@ void Renderer::resize(const int fbWpx, const int fbHpx)
 	m_fbWpx = fbWpx;
 	m_fbHpx = fbHpx;
 	if (m_gl) m_gl->glViewport(0, 0, m_fbWpx, m_fbHpx);
+	
+	// 更新视口设置
+	m_viewport = QRect(0, 0, fbWpx, fbHpx);
+	if (m_optimizer) {
+		m_optimizer->setViewport(m_viewport);
+	}
 }
 
 void Renderer::applyClip(const QRectF& clipLogical)
@@ -416,6 +427,53 @@ void Renderer::drawImagesBatch(int textureId, const std::vector<Render::ImageCmd
 	m_gl->glBindTexture(GL_TEXTURE_2D, 0);
 	m_progTex->release();
 	m_vao.release();
+}
+
+int Renderer::drawOptimizedFrame(const Render::FrameData& fd, const IconCache& iconCache, float devicePixelRatio)
+{
+	m_currentDpr = std::max(0.5f, devicePixelRatio);
+	
+	if (!m_optimizer) {
+		// 回退到传统渲染
+		drawFrame(fd, iconCache, devicePixelRatio);
+		return fd.roundedRects.size() + fd.images.size();
+	}
+	
+	// 使用优化器处理帧数据
+	const auto optimizedData = m_optimizer->optimizeFrameData(fd);
+	
+	// 渲染优化后的数据
+	int rendered = 0;
+	
+	// 使用批次渲染圆角矩形
+	if (!optimizedData.roundedRects.empty()) {
+		if (m_batchingEnabled) {
+			drawRoundedRectsBatch(optimizedData.roundedRects);
+		} else {
+			for (const auto& rect : optimizedData.roundedRects) {
+				drawRoundedRect(rect);
+			}
+		}
+		rendered += optimizedData.roundedRects.size();
+	}
+	
+	// 使用批次渲染图像（按纹理分组）
+	if (!optimizedData.images.empty()) {
+		auto imageBatches = m_optimizer->optimizeImages(optimizedData.images);
+		
+		for (const auto& [textureId, images] : imageBatches) {
+			if (m_batchingEnabled) {
+				drawImagesBatch(textureId, images);
+			} else {
+				for (const auto& img : images) {
+					drawImage(img, iconCache);
+				}
+			}
+			rendered += images.size();
+		}
+	}
+	
+	return rendered;
 }
 
 bool Renderer::isInViewport(const QRectF& rect) const

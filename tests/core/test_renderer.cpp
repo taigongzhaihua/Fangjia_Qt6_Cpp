@@ -8,6 +8,7 @@
 #include "../../infrastructure/gfx/DataBus.hpp"
 #include "../../infrastructure/gfx/RenderPipeline.hpp"
 #include "../../infrastructure/gfx/TextureManager.hpp"
+#include "../../infrastructure/gfx/RenderOptimizer.hpp"
 
 class TestRenderer : public QObject, protected QOpenGLFunctions
 {
@@ -228,6 +229,99 @@ private slots:
         
         // 清理
         textureManager.releaseAllTextures(this);
+    }
+    
+    void testRenderOptimizer() {
+        // 创建优化器
+        Render::RenderOptimizer optimizer(Render::RenderOptimizer::OptimizationFlags::All);
+        
+        // 设置视口
+        QRect viewport(0, 0, 1920, 1080);
+        optimizer.setViewport(viewport);
+        
+        // 创建测试帧数据
+        Render::FrameData frameData;
+        
+        // 添加一些在视口内的矩形
+        frameData.roundedRects.push_back(Render::RoundedRectCmd{
+            .rect = QRectF(100, 100, 200, 100),
+            .radiusPx = 5.0f,
+            .color = QColor(255, 0, 0)
+        });
+        
+        // 添加一些在视口外的矩形（应该被剔除）
+        frameData.roundedRects.push_back(Render::RoundedRectCmd{
+            .rect = QRectF(2000, 2000, 200, 100),
+            .radiusPx = 5.0f,
+            .color = QColor(0, 255, 0)
+        });
+        
+        // 添加图像命令
+        frameData.images.push_back(Render::ImageCmd{
+            .dstRect = QRectF(300, 300, 32, 32),
+            .textureId = 1,
+            .srcRectPx = QRectF(0, 0, 32, 32),
+            .tint = QColor(255, 255, 255)
+        });
+        
+        frameData.images.push_back(Render::ImageCmd{
+            .dstRect = QRectF(400, 400, 32, 32),
+            .textureId = 1, // 相同纹理，应该被批次化
+            .srcRectPx = QRectF(0, 0, 32, 32),
+            .tint = QColor(255, 255, 255)
+        });
+        
+        // 执行优化
+        auto optimizedData = optimizer.optimizeFrameData(frameData);
+        
+        // 检查剔除效果（应该剔除视口外的矩形）
+        QVERIFY(optimizedData.roundedRects.size() < frameData.roundedRects.size());
+        QCOMPARE(optimizedData.roundedRects.size(), 1); // 只有视口内的矩形
+        
+        // 检查图像命令保持不变（都在视口内）
+        QCOMPARE(optimizedData.images.size(), frameData.images.size());
+        
+        // 检查统计信息
+        auto stats = optimizer.getStats();
+        QVERIFY(stats.totalCommands > 0);
+        QVERIFY(stats.culledCommands > 0);
+        QVERIFY(stats.cullingRatio > 0.0f);
+        
+        // 测试脏区域管理
+        auto& dirtyManager = optimizer.getDirtyRegionManager();
+        dirtyManager.markDirty(QRect(50, 50, 100, 100));
+        QVERIFY(dirtyManager.hasDirtyRegions());
+        
+        dirtyManager.clearDirtyRegions();
+        QVERIFY(!dirtyManager.hasDirtyRegions());
+    }
+    
+    void testOptimizedRendering() {
+        m_context->makeCurrent(m_surface);
+        
+        // 创建测试数据
+        Render::FrameData frameData;
+        frameData.roundedRects.push_back(Render::RoundedRectCmd{
+            .rect = QRectF(10, 10, 100, 50),
+            .radiusPx = 5.0f,
+            .color = QColor(255, 0, 0, 128)
+        });
+        
+        frameData.images.push_back(Render::ImageCmd{
+            .dstRect = QRectF(120, 10, 32, 32),
+            .textureId = 1,
+            .srcRectPx = QRectF(0, 0, 32, 32),
+            .tint = QColor(255, 255, 255)
+        });
+        
+        // 测试优化渲染（不会崩溃即可）
+        m_renderer.resize(800, 600);
+        int rendered = m_renderer.drawOptimizedFrame(frameData, m_iconCache, 1.0f);
+        QVERIFY(rendered >= 0);
+        
+        // 测试获取优化器实例
+        auto& optimizer = m_renderer.getOptimizer();
+        QVERIFY(optimizer.isOptimizationEnabled(Render::RenderOptimizer::OptimizationFlags::ViewportCulling));
     }
 };
 
