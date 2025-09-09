@@ -2,6 +2,7 @@
 
 #include "IconCache.h"
 #include "RenderData.hpp"
+#include "TextureManager.hpp"
 
 #include <algorithm>
 #include <cmath>
@@ -51,6 +52,9 @@ namespace {
 void Renderer::initializeGL(QOpenGLFunctions* gl)
 {
 	m_gl = gl;
+
+	// 创建纹理管理器
+	m_textureManager = std::make_unique<Render::TextureManager>(64); // 64MB限制
 
 	if (!m_progRect) {
 		static auto vs1 = R"(#version 330 core
@@ -151,6 +155,12 @@ void main(){
 
 void Renderer::releaseGL()
 {
+	// 释放纹理管理器资源
+	if (m_textureManager && m_gl) {
+		m_textureManager->releaseAllTextures(m_gl);
+	}
+	m_textureManager.reset();
+
 	if (m_gl && m_vbo) { m_gl->glDeleteBuffers(1, &m_vbo); m_vbo = 0; }
 	if (m_progRect) { delete m_progRect; m_progRect = nullptr; }
 	if (m_progTex) { delete m_progTex; m_progTex = nullptr; }
@@ -258,4 +268,162 @@ void Renderer::drawFrame(const Render::FrameData& fd, const IconCache& iconCache
 
 	for (const auto& rr : fd.roundedRects) drawRoundedRect(rr);
 	for (const auto& im : fd.images)       drawImage(im, iconCache);
+}
+
+int Renderer::drawPipeline(Render::RenderPipeline& pipeline, float devicePixelRatio)
+{
+	m_currentDpr = std::max(0.5f, devicePixelRatio);
+	
+	// 设置管线配置
+	pipeline.enableBatching(m_batchingEnabled);
+	pipeline.enableCulling(m_cullingEnabled);
+	pipeline.setViewport(m_viewport);
+	
+	int totalRendered = 0;
+	
+	// 执行各个阶段
+	totalRendered += drawPipelineStage(pipeline, Render::Stage::Background);
+	totalRendered += drawPipelineStage(pipeline, Render::Stage::Content);
+	totalRendered += drawPipelineStage(pipeline, Render::Stage::Overlay);
+	totalRendered += drawPipelineStage(pipeline, Render::Stage::Debug);
+	
+	return totalRendered;
+}
+
+int Renderer::drawPipelineStage(Render::RenderPipeline& pipeline, Render::Stage stage)
+{
+	int rendered = 0;
+	
+	// 渲染圆角矩形
+	const auto& rects = pipeline.getRoundedRects(stage);
+	if (!rects.empty()) {
+		if (m_batchingEnabled) {
+			drawRoundedRectsBatch(rects);
+		} else {
+			for (const auto& rect : rects) {
+				drawRoundedRect(rect);
+			}
+		}
+		rendered += rects.size();
+	}
+	
+	// 渲染图像批次
+	const auto& imageBatches = pipeline.getImageBatches(stage);
+	for (const auto& [textureId, images] : imageBatches) {
+		if (m_batchingEnabled) {
+			drawImagesBatch(textureId, images);
+		} else {
+			// 使用传统IconCache接口的兼容模式
+			IconCache dummyCache; // TODO: 改进这个设计
+			for (const auto& img : images) {
+				drawImage(img, dummyCache);
+			}
+		}
+		rendered += images.size();
+	}
+	
+	return rendered;
+}
+
+void Renderer::drawRoundedRectsBatch(const std::vector<Render::RoundedRectCmd>& rects)
+{
+	if (rects.empty() || !m_progRect || !m_gl) return;
+
+	// 批次渲染圆角矩形 - 减少状态切换
+	m_progRect->bind();
+	m_progRect->setUniformValue(m_locViewportSize, QVector2D(static_cast<float>(m_fbWpx), static_cast<float>(m_fbHpx)));
+	
+	m_vao.bind();
+	
+	for (const auto& rect : rects) {
+		if (m_cullingEnabled && !isInViewport(rect.rect)) continue;
+		
+		applyClip(rect.clipRect);
+		
+		const QRectF rp(rect.rect.x() * m_currentDpr, rect.rect.y() * m_currentDpr, 
+			rect.rect.width() * m_currentDpr, rect.rect.height() * m_currentDpr);
+		const float rr = rect.radiusPx * m_currentDpr;
+
+		float verts[12];
+		rectPxToNdcVerts(rp, m_fbWpx, m_fbHpx, verts);
+
+		m_gl->glBindBuffer(GL_ARRAY_BUFFER, m_vbo);
+		m_gl->glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(verts), verts);
+
+		m_progRect->setUniformValue(m_locRectPx, QVector4D(static_cast<float>(rp.x()), static_cast<float>(rp.y()), static_cast<float>(rp.width()), static_cast<float>(rp.height())));
+		m_progRect->setUniformValue(m_locRadius, rr);
+		m_progRect->setUniformValue(m_locColor, QVector4D(rect.color.redF(), rect.color.greenF(), rect.color.blueF(), rect.color.alphaF()));
+		m_gl->glDrawArrays(GL_TRIANGLES, 0, 6);
+		
+		restoreClip();
+	}
+	
+	m_progRect->release();
+	m_vao.release();
+}
+
+void Renderer::drawImagesBatch(int textureId, const std::vector<Render::ImageCmd>& images)
+{
+	if (images.empty() || !m_progTex || !m_gl || textureId == 0) return;
+
+	// 批次渲染图像 - 绑定纹理一次，渲染多个图像
+	m_progTex->bind();
+	m_progTex->setUniformValue(m_texLocViewportSize, QVector2D(static_cast<float>(m_fbWpx), static_cast<float>(m_fbHpx)));
+	m_progTex->setUniformValue(m_texLocSampler, 0);
+	
+	// 绑定纹理
+	m_gl->glActiveTexture(GL_TEXTURE0);
+	m_gl->glBindTexture(GL_TEXTURE_2D, static_cast<GLuint>(textureId));
+	
+	m_vao.bind();
+	
+	for (const auto& img : images) {
+		if (m_cullingEnabled && !isInViewport(img.dstRect)) continue;
+		
+		applyClip(img.clipRect);
+		
+		const QRectF dstPx(img.dstRect.x() * m_currentDpr, img.dstRect.y() * m_currentDpr, 
+			img.dstRect.width() * m_currentDpr, img.dstRect.height() * m_currentDpr);
+
+		float verts[12];
+		rectPxToNdcVerts(dstPx, m_fbWpx, m_fbHpx, verts);
+
+		m_gl->glBindBuffer(GL_ARRAY_BUFFER, m_vbo);
+		m_gl->glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(verts), verts);
+
+		m_progTex->setUniformValue(m_texLocDstRect, QVector4D(static_cast<float>(dstPx.x()), static_cast<float>(dstPx.y()), static_cast<float>(dstPx.width()), static_cast<float>(dstPx.height())));
+		m_progTex->setUniformValue(m_texLocSrcRect, QVector4D(static_cast<float>(img.srcRectPx.x()), static_cast<float>(img.srcRectPx.y()),
+			static_cast<float>(img.srcRectPx.width()), static_cast<float>(img.srcRectPx.height())));
+		
+		// 查询纹理尺寸
+		QSize texSz;
+		if (m_textureManager) {
+			texSz = m_textureManager->getTextureSize(textureId);
+		}
+		if (texSz.isEmpty()) {
+			// 回退到合理的默认值，因为QOpenGLFunctions没有glGetTexLevelParameteriv
+			texSz = QSize(256, 256); // 假设默认尺寸
+		}
+		
+		m_progTex->setUniformValue(m_texLocTexSize, QVector2D(static_cast<float>(texSz.width()), static_cast<float>(texSz.height())));
+		m_progTex->setUniformValue(m_texLocTint, QVector4D(img.tint.redF(), img.tint.greenF(), img.tint.blueF(), img.tint.alphaF()));
+		
+		m_gl->glDrawArrays(GL_TRIANGLES, 0, 6);
+		
+		restoreClip();
+	}
+	
+	m_gl->glBindTexture(GL_TEXTURE_2D, 0);
+	m_progTex->release();
+	m_vao.release();
+}
+
+bool Renderer::isInViewport(const QRectF& rect) const
+{
+	if (!m_cullingEnabled || m_viewport.isEmpty()) {
+		return true; // 禁用剔除或无视口设置时，所有对象都可见
+	}
+	
+	// 简单的矩形相交检测
+	return rect.intersects(QRectF(m_viewport));
 }

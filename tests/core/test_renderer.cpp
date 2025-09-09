@@ -2,9 +2,12 @@
 #include <QOpenGLContext>
 #include <QOffscreenSurface>
 #include <QOpenGLFunctions>
-#include "../../src/core/rendering/Renderer.h"
-#include "../../src/core/rendering/IconCache.h"
-#include "../../src/core/rendering/RenderData.hpp"
+#include "../../infrastructure/gfx/Renderer.h"
+#include "../../infrastructure/gfx/IconCache.h"
+#include "../../infrastructure/gfx/RenderData.hpp"
+#include "../../infrastructure/gfx/DataBus.hpp"
+#include "../../infrastructure/gfx/RenderPipeline.hpp"
+#include "../../infrastructure/gfx/TextureManager.hpp"
 
 class TestRenderer : public QObject, protected QOpenGLFunctions
 {
@@ -124,6 +127,7 @@ private slots:
         
         // 初始状态：没有数据
         QVERIFY(!bus.consume(fd2));
+        QVERIFY(!bus.hasData());
         
         // 提交数据
         fd1.roundedRects.push_back(Render::RoundedRectCmd{
@@ -133,12 +137,97 @@ private slots:
         });
         bus.submit(fd1);
         
+        // 检查数据可用性
+        QVERIFY(bus.hasData());
+        
         // 消费数据
         QVERIFY(bus.consume(fd2));
         QCOMPARE(fd2.roundedRects.size(), 1);
         
         // 再次消费应该失败
         QVERIFY(!bus.consume(fd2));
+        QVERIFY(!bus.hasData());
+    }
+    
+    void testRenderPipeline() {
+        Render::RenderPipeline pipeline;
+        
+        // 初始状态为空
+        QVERIFY(pipeline.empty());
+        QCOMPARE(pipeline.getStageCommandCount(Render::Stage::Background), 0);
+        
+        // 添加背景渲染命令
+        Render::RoundedRectCmd bgRect{
+            .rect = QRectF(0, 0, 1920, 1080),
+            .radiusPx = 0.0f,
+            .color = QColor(240, 240, 240)
+        };
+        pipeline.addRoundedRect(Render::Stage::Background, bgRect);
+        
+        // 检查命令计数
+        QVERIFY(!pipeline.empty());
+        QCOMPARE(pipeline.getStageCommandCount(Render::Stage::Background), 1);
+        QCOMPARE(pipeline.getStageCommandCount(Render::Stage::Content), 0);
+        
+        // 添加内容阶段的图像命令
+        Render::ImageCmd contentImg{
+            .dstRect = QRectF(100, 100, 32, 32),
+            .textureId = 1,
+            .srcRectPx = QRectF(0, 0, 32, 32),
+            .tint = QColor(255, 255, 255)
+        };
+        pipeline.addImage(Render::Stage::Content, contentImg);
+        
+        QCOMPARE(pipeline.getStageCommandCount(Render::Stage::Content), 1);
+        
+        // 测试批量添加
+        Render::FrameData frameData;
+        frameData.roundedRects.push_back(Render::RoundedRectCmd{
+            .rect = QRectF(200, 200, 50, 50),
+            .radiusPx = 5.0f,
+            .color = QColor(0, 128, 255)
+        });
+        
+        pipeline.addFrameData(Render::Stage::Overlay, frameData);
+        QCOMPARE(pipeline.getStageCommandCount(Render::Stage::Overlay), 1);
+        
+        // 清空管线
+        pipeline.clear();
+        QVERIFY(pipeline.empty());
+    }
+    
+    void testTextureManager() {
+        m_context->makeCurrent(m_surface);
+        
+        // 创建纹理管理器
+        Render::TextureManager textureManager(16); // 16MB限制
+        
+        // 测试文本纹理创建
+        QFont font;
+        font.setPixelSize(16);
+        QString text = "Hello World";
+        QColor color(255, 255, 255);
+        
+        int textureId = textureManager.getOrCreateTextTexture(text, font, color, this);
+        QVERIFY(textureId > 0);
+        
+        // 测试纹理尺寸查询
+        QSize size = textureManager.getTextureSize(textureId);
+        QVERIFY(size.width() > 0);
+        QVERIFY(size.height() > 0);
+        
+        // 测试缓存命中
+        int textureId2 = textureManager.getOrCreateTextTexture(text, font, color, this);
+        QCOMPARE(textureId2, textureId); // 应该返回相同的纹理ID
+        
+        // 测试统计信息
+        auto stats = textureManager.getStats();
+        QVERIFY(stats.totalTextures >= 1);
+        QVERIFY(stats.cacheHits >= 1);
+        QVERIFY(stats.cacheMisses >= 1);
+        
+        // 清理
+        textureManager.releaseAllTextures(this);
     }
 };
 
