@@ -262,7 +262,7 @@ target_include_directories(fj_presentation_app PUBLIC
 
 # Application - Main executable (now uses FangjiaApp)
 file(GLOB APP_SOURCES
-    "apps/fangjia/main_new.cpp"
+    "apps/fangjia/main.cpp"
 )
 
 # 嵌入Qt资源文件（图标、字体等）
