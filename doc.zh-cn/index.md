@@ -4,6 +4,13 @@
 
 本文档按系统组织，为开发者提供全面的技术参考和开发指南。
 
+## 🎨 设计文档 (Design)
+
+### 重构设计
+- **[设计文档概览](design/)** - 系统设计和重构指南
+- **[UI框架重构设计](design/ui-framework-redesign.md)** - 完整的UI框架重构方案
+- **[UI框架实施指南](design/ui-framework-implementation-guide.md)** - 具体实施细节和代码示例
+
 ## 架构与设计
 
 ### 系统概览
