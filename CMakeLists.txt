@@ -108,11 +108,31 @@ add_library(fj_presentation_binding STATIC ${FJ_PRESENTATION_BINDING_SOURCES})
 target_link_libraries(fj_presentation_binding PUBLIC Qt6::Core)
 target_include_directories(fj_presentation_binding PUBLIC presentation/binding)
 
-# Presentation Layer - UI Framework (base, containers, widgets, declarative)
-file(GLOB FJ_PRESENTATION_UI_SOURCES
+# Presentation Layer - Base Framework Classes
+file(GLOB FJ_PRESENTATION_BASE_SOURCES
+    "presentation/ui/base/Window.hpp"
+    "presentation/ui/base/Window.cpp"
+    "presentation/ui/base/Application.hpp"
+    "presentation/ui/base/Application.cpp"
     "presentation/ui/base/*.hpp"
     "presentation/ui/base/*.cpp"
     "presentation/ui/base/*.h"
+)
+
+add_library(fj_presentation_base STATIC ${FJ_PRESENTATION_BASE_SOURCES})
+target_link_libraries(fj_presentation_base PUBLIC 
+    Qt6::Core 
+    Qt6::Gui 
+    Qt6::OpenGL
+    Qt6::OpenGLWidgets
+    Qt6::Widgets
+)
+target_include_directories(fj_presentation_base PUBLIC 
+    presentation/ui/base
+)
+
+# Presentation Layer - UI Framework (containers, widgets, declarative)
+file(GLOB FJ_PRESENTATION_UI_SOURCES
     "presentation/ui/containers/*.cpp"
     "presentation/ui/containers/*.h"
     "presentation/ui/widgets/*.cpp"
@@ -122,9 +142,10 @@ file(GLOB FJ_PRESENTATION_UI_SOURCES
 )
 
 add_library(fj_presentation_ui STATIC ${FJ_PRESENTATION_UI_SOURCES})
-# Link to binding to access interfaces only
+# Link to binding and base framework classes
 target_link_libraries(fj_presentation_ui PUBLIC 
     fj_infra_gfx 
+    fj_presentation_base
     fj_presentation_binding
     Qt6::Core 
     Qt6::Gui 
@@ -208,10 +229,40 @@ target_include_directories(fj_domain PUBLIC
     ${boost_di_SOURCE_DIR}/include
 )
 
-# Application - Main executable
+# Presentation Layer - Business Application Layer
+file(GLOB FJ_PRESENTATION_APP_SOURCES
+    "presentation/FangjiaApp.hpp"
+    "presentation/FangjiaApp.cpp"
+    "presentation/MainOpenGlWindow.hpp"
+    "presentation/MainOpenGlWindow.cpp"
+)
+
+add_library(fj_presentation_app STATIC ${FJ_PRESENTATION_APP_SOURCES})
+target_link_libraries(fj_presentation_app PUBLIC 
+    fj_presentation_pages
+    fj_presentation_ui 
+    fj_presentation_vm
+    fj_presentation_base
+    fj_infra_gfx
+    fj_data
+    Qt6::Core 
+    Qt6::Gui 
+    Qt6::OpenGL
+    Qt6::OpenGLWidgets
+    Qt6::Widgets
+)
+target_include_directories(fj_presentation_app PUBLIC 
+    presentation
+    apps/fangjia
+    data/sources/local
+    data/repositories
+    domain
+    ${boost_di_SOURCE_DIR}/include
+)
+
+# Application - Main executable (now uses FangjiaApp)
 file(GLOB APP_SOURCES
-    "apps/fangjia/*.cpp"
-    "apps/fangjia/*.h"
+    "apps/fangjia/main_new.cpp"
 )
 
 # 嵌入Qt资源文件（图标、字体等）
@@ -223,9 +274,11 @@ add_executable(FangJia WIN32 ${APP_SOURCES})
 
 # Link all dependencies to main application
 set(APP_LIBS
+    fj_presentation_app
     fj_presentation_pages
     fj_presentation_ui
     fj_presentation_vm
+    fj_presentation_base
     fj_infra_gfx
     fj_domain
     fj_data
@@ -244,6 +297,7 @@ endif()
 
 target_link_libraries(FangJia PRIVATE ${APP_LIBS})
 target_include_directories(FangJia PRIVATE 
+    presentation
     apps/fangjia
     data/sources/local
     data/repositories
