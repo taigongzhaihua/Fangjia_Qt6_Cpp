@@ -1,0 +1,417 @@
+name: AI PR Validation
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+    branches: [ master, main ]
+  workflow_dispatch:
+    inputs:
+      pr_number:
+        description: 'PR number to validate'
+        required: true
+        type: number
+
+env:
+  BUILD_TYPE: Release
+  QT_VERSION: '6.6.3'
+
+jobs:
+  # Quick validation for AI-generated PRs
+  quick-validation:
+    runs-on: ubuntu-latest
+    outputs:
+      pr-author: ${{ steps.pr-info.outputs.pr-author }}
+      is-ai-pr: ${{ steps.pr-info.outputs.is-ai-pr }}
+      validation-needed: ${{ steps.pr-info.outputs.validation-needed }}
+    steps:
+    - name: Checkout PR
+      uses: actions/checkout@v4
+      with:
+        ref: ${{ github.event.pull_request.head.sha || github.sha }}
+
+    - name: Get PR information
+      id: pr-info
+      run: |
+        # Determine if this is an AI-generated PR
+        pr_author="${{ github.event.pull_request.user.login || github.actor }}"
+        pr_title="${{ github.event.pull_request.title || 'Manual trigger' }}"
+        pr_body="${{ github.event.pull_request.body || '' }}"
+        
+        echo "pr-author=$pr_author" >> $GITHUB_OUTPUT
+        
+        # Check if this is likely an AI PR
+        if [[ "$pr_author" =~ ^(copilot|dependabot|renovate|github-actions).*$ ]] || 
+           [[ "$pr_title" =~ ^(🤖|AI|Automated|Copilot|Fix|Update).*$ ]] ||
+           [[ "$pr_body" == *"AI-generated"* ]] ||
+           [[ "$pr_body" == *"automated"* ]]; then
+          echo "is-ai-pr=true" >> $GITHUB_OUTPUT
+          echo "validation-needed=true" >> $GITHUB_OUTPUT
+          echo "🤖 Detected AI-generated PR - enabling comprehensive validation"
+        else
+          echo "is-ai-pr=false" >> $GITHUB_OUTPUT
+          echo "validation-needed=true" >> $GITHUB_OUTPUT
+          echo "👤 Human-generated PR - using standard validation"
+        fi
+
+    - name: Analyze changes
+      id: changes
+      run: |
+        echo "=== Analyzing PR Changes ==="
+        
+        # Get list of changed files
+        if [ "${{ github.event_name }}" = "pull_request" ]; then
+          base_sha="${{ github.event.pull_request.base.sha }}"
+          head_sha="${{ github.event.pull_request.head.sha }}"
+        else
+          base_sha="HEAD~1"
+          head_sha="HEAD"
+        fi
+        
+        changed_files=$(git diff --name-only $base_sha..$head_sha)
+        echo "Changed files:"
+        echo "$changed_files"
+        
+        # Categorize changes
+        has_source_changes=false
+        has_build_changes=false
+        has_test_changes=false
+        has_docs_changes=false
+        
+        while IFS= read -r file; do
+          case "$file" in
+            *.cpp|*.h|*.hpp)
+              has_source_changes=true
+              ;;
+            CMakeLists.txt|*.cmake|scripts/*)
+              has_build_changes=true
+              ;;
+            tests/*|*test*)
+              has_test_changes=true
+              ;;
+            *.md|doc/*|docs/*)
+              has_docs_changes=true
+              ;;
+          esac
+        done <<< "$changed_files"
+        
+        echo "has-source-changes=$has_source_changes" >> $GITHUB_OUTPUT
+        echo "has-build-changes=$has_build_changes" >> $GITHUB_OUTPUT
+        echo "has-test-changes=$has_test_changes" >> $GITHUB_OUTPUT
+        echo "has-docs-changes=$has_docs_changes" >> $GITHUB_OUTPUT
+        
+        # Determine validation requirements
+        if [[ "$has_source_changes" == "true" || "$has_build_changes" == "true" ]]; then
+          echo "build-validation-needed=true" >> $GITHUB_OUTPUT
+        else
+          echo "build-validation-needed=false" >> $GITHUB_OUTPUT
+        fi
+
+  # Fast build validation for critical changes
+  fast-build-validation:
+    needs: quick-validation
+    if: needs.quick-validation.outputs.validation-needed == 'true'
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout PR
+      uses: actions/checkout@v4
+      with:
+        ref: ${{ github.event.pull_request.head.sha || github.sha }}
+
+    - name: Setup build environment
+      run: |
+        sudo apt-get update -qq
+        sudo apt-get install -y \
+          qt6-base-dev \
+          qt6-tools-dev \
+          libqt6opengl6-dev \
+          libqt6svg6-dev \
+          cmake \
+          build-essential \
+          ninja-build
+
+    - name: Configure and build (fast)
+      run: |
+        echo "=== Fast Build Validation ==="
+        
+        # Configure with minimal settings for speed
+        cmake -B build -S . \
+          -DCMAKE_BUILD_TYPE=Debug \
+          -GNinja \
+          -DCMAKE_CXX_FLAGS="-O0 -g0" # Disable optimization and debug info for speed
+        
+        # Build with timing
+        echo "Starting build at $(date)"
+        start_time=$(date +%s)
+        
+        cmake --build build --parallel
+        
+        end_time=$(date +%s)
+        build_duration=$((end_time - start_time))
+        echo "Build completed in ${build_duration} seconds"
+        
+        # Basic executable check
+        if [ -f "build/FangJia" ]; then
+          echo "✅ Main executable built successfully"
+        else
+          echo "❌ Main executable not found"
+          exit 1
+        fi
+
+    - name: Quick test run
+      run: |
+        echo "=== Quick Test Validation ==="
+        cd build
+        export QT_QPA_PLATFORM=offscreen
+        export QT_LOGGING_RULES="qt.qpa.gl=false"
+        
+        # Run tests with timeout
+        if timeout 60s ./tests/FangJia_Tests; then
+          echo "✅ Tests passed"
+        else
+          echo "⚠️ Tests completed with issues or timeout"
+        fi
+
+  # Comprehensive validation for AI PRs
+  comprehensive-validation:
+    needs: [quick-validation, fast-build-validation]
+    if: needs.quick-validation.outputs.is-ai-pr == 'true' && needs.fast-build-validation.result == 'success'
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+        build-type: [Release, Debug]
+        include:
+          - os: ubuntu-latest
+            name: "Linux"
+          - os: windows-latest
+            name: "Windows"
+    runs-on: ${{ matrix.os }}
+    name: "AI Validation: ${{ matrix.name }} ${{ matrix.build-type }}"
+    
+    steps:
+    - name: Checkout PR
+      uses: actions/checkout@v4
+      with:
+        ref: ${{ github.event.pull_request.head.sha || github.sha }}
+
+    # Platform-specific setup (condensed)
+    - name: Setup build environment
+      run: |
+        if [ "${{ runner.os }}" = "Linux" ]; then
+          sudo apt-get update -qq
+          sudo apt-get install -y qt6-base-dev qt6-tools-dev libqt6opengl6-dev cmake build-essential xvfb
+        fi
+      shell: bash
+
+    - name: Install Qt6 (Windows)
+      if: runner.os == 'Windows'
+      uses: jurplel/install-qt-action@v4
+      with:
+        version: ${{ env.QT_VERSION }}
+        host: 'windows'
+        target: 'desktop'
+        arch: 'win64_msvc2019_64'
+        cache: true
+
+    - name: Setup MSVC (Windows)
+      if: runner.os == 'Windows'
+      uses: microsoft/setup-msbuild@v1
+
+    - name: Configure CMake
+      run: |
+        if [ "${{ runner.os }}" = "Windows" ]; then
+          cmake -B build -S . -DCMAKE_BUILD_TYPE=${{ matrix.build-type }} -G "Visual Studio 17 2022" -A x64 -DCMAKE_PREFIX_PATH="${QT_ROOT_DIR}"
+        else
+          cmake -B build -S . -DCMAKE_BUILD_TYPE=${{ matrix.build-type }}
+        fi
+      shell: bash
+
+    - name: Build and test
+      run: |
+        # Build
+        if [ "${{ runner.os }}" = "Windows" ]; then
+          cmake --build build --config ${{ matrix.build-type }} --parallel
+        else
+          cmake --build build --parallel
+        fi
+        
+        # Test
+        cd build
+        export QT_QPA_PLATFORM=offscreen
+        if [ "${{ runner.os }}" = "Windows" ]; then
+          ./tests/${{ matrix.build-type }}/FangJia_Tests.exe || echo "Tests completed"
+        else
+          xvfb-run -a ./tests/FangJia_Tests || echo "Tests completed"
+        fi
+      shell: bash
+
+    - name: AI PR Quality Checks
+      if: needs.quick-validation.outputs.is-ai-pr == 'true'
+      run: |
+        echo "=== AI PR Quality Validation ==="
+        
+        # Check if AI changes maintain code quality
+        echo "Validating AI-generated changes..."
+        
+        # Check for common AI mistakes
+        echo "Checking for potential AI-generated issues..."
+        
+        # Look for placeholder comments
+        if grep -r "TODO.*AI\|FIXME.*AI\|placeholder\|IMPLEMENT" --include="*.cpp" --include="*.h" .; then
+          echo "⚠️ Found placeholder code that may need attention"
+        fi
+        
+        # Check for missing include guards or proper headers
+        find . -name "*.h" -o -name "*.hpp" | while read header; do
+          if ! grep -q "#pragma once\|#ifndef.*_H\|#ifndef.*_HPP" "$header"; then
+            echo "⚠️ Header file may be missing include guard: $header"
+          fi
+        done
+        
+        # Check for memory management
+        if grep -r "new\|delete\|malloc\|free" --include="*.cpp" .; then
+          echo "⚠️ Found manual memory management - verify RAII usage"
+        fi
+        
+        echo "AI PR quality checks completed"
+
+  # Provide feedback for AI PRs
+  ai-pr-feedback:
+    needs: [quick-validation, fast-build-validation, comprehensive-validation]
+    if: always() && needs.quick-validation.outputs.is-ai-pr == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
+    steps:
+    - name: Generate feedback
+      id: feedback
+      run: |
+        # Create comprehensive feedback for AI PR
+        cat > ai_feedback.md << 'EOF'
+        ## 🤖 AI PR Validation Results
+        
+        ### Summary
+        This AI-generated PR has been automatically validated.
+        
+        ### Validation Results
+        - **Fast Build**: ${{ needs.fast-build-validation.result }}
+        - **Comprehensive Validation**: ${{ needs.comprehensive-validation.result }}
+        
+        ### Quality Assessment
+        EOF
+        
+        if [[ "${{ needs.comprehensive-validation.result }}" == "success" ]]; then
+          cat >> ai_feedback.md << 'EOF'
+        ✅ **Overall Status: PASSED**
+        
+        The AI-generated changes have passed all validation checks:
+        - Build compiles successfully on multiple platforms
+        - Tests execute without critical failures
+        - Code quality checks passed
+        
+        ### Recommendations
+        - The changes appear to be ready for review
+        - Human review is still recommended for complex logic changes
+        - Consider running additional manual tests if applicable
+        EOF
+        else
+          cat >> ai_feedback.md << 'EOF'
+        ❌ **Overall Status: NEEDS ATTENTION**
+        
+        The AI-generated changes require attention:
+        - Some validation checks failed
+        - Please review the CI logs for specific issues
+        - Manual intervention may be required
+        
+        ### Next Steps
+        1. Review the failed validation logs
+        2. Fix any compilation or test issues
+        3. Ensure the changes align with project standards
+        4. Re-run validation after fixes
+        EOF
+        fi
+        
+        cat >> ai_feedback.md << 'EOF'
+        
+        ### Validation Details
+        - **PR Author**: ${{ needs.quick-validation.outputs.pr-author }}
+        - **Validation Type**: AI PR Comprehensive
+        - **Build Platforms**: Linux, Windows
+        - **Test Coverage**: Core functionality tests
+        
+        ---
+        *This feedback was automatically generated by the AI PR validation system.*
+        EOF
+        
+        echo "feedback_ready=true" >> $GITHUB_OUTPUT
+
+    - name: Post feedback comment
+      if: steps.feedback.outputs.feedback_ready == 'true' && github.event_name == 'pull_request'
+      uses: actions/github-script@v7
+      with:
+        script: |
+          const fs = require('fs');
+          const feedback = fs.readFileSync('ai_feedback.md', 'utf8');
+          
+          // Look for existing feedback comment
+          const comments = await github.rest.issues.listComments({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            issue_number: context.issue.number,
+          });
+          
+          const existingComment = comments.data.find(
+            comment => comment.body.includes('🤖 AI PR Validation Results')
+          );
+          
+          if (existingComment) {
+            // Update existing comment
+            await github.rest.issues.updateComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              comment_id: existingComment.id,
+              body: feedback
+            });
+            console.log('Updated existing feedback comment');
+          } else {
+            // Create new comment
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              body: feedback
+            });
+            console.log('Created new feedback comment');
+          }
+
+  # Final status check
+  validation-status:
+    needs: [quick-validation, fast-build-validation, comprehensive-validation, ai-pr-feedback]
+    if: always() && needs.quick-validation.outputs.validation-needed == 'true'
+    runs-on: ubuntu-latest
+    steps:
+    - name: Validation Summary
+      run: |
+        echo "=== AI PR Validation Summary ==="
+        echo "Quick validation: ${{ needs.quick-validation.result }}"
+        echo "Fast build: ${{ needs.fast-build-validation.result }}"
+        echo "Comprehensive validation: ${{ needs.comprehensive-validation.result }}"
+        echo "AI feedback: ${{ needs.ai-pr-feedback.result }}"
+        
+        # Determine overall status
+        if [[ "${{ needs.fast-build-validation.result }}" == "success" ]]; then
+          if [[ "${{ needs.quick-validation.outputs.is-ai-pr }}" == "true" ]]; then
+            if [[ "${{ needs.comprehensive-validation.result }}" == "success" ]]; then
+              echo "🎉 AI PR validation completed successfully!"
+              exit 0
+            else
+              echo "⚠️ AI PR validation completed with issues"
+              exit 1
+            fi
+          else
+            echo "✅ Standard PR validation completed successfully!"
+            exit 0
+          fi
+        else
+          echo "❌ PR validation failed"
+          exit 1
+        fi

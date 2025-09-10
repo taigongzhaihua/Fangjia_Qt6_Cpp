@@ -1,0 +1,533 @@
+name: Automatic Build Fix
+
+on:
+  workflow_dispatch:
+    inputs:
+      fix_type:
+        description: 'Type of fix to generate'
+        required: true
+        type: choice
+        options:
+          - 'build_errors'
+          - 'test_failures'
+          - 'dependency_issues'
+          - 'configuration_problems'
+          - 'all'
+        default: 'build_errors'
+      create_pr:
+        description: 'Create PR with fixes'
+        required: false
+        default: true
+        type: boolean
+  schedule:
+    # Run daily at 2 AM UTC to catch issues early
+    - cron: '0 2 * * *'
+
+env:
+  QT_VERSION: '6.6.3'
+
+jobs:
+  # Detect and analyze build issues
+  detect-issues:
+    runs-on: ubuntu-latest
+    outputs:
+      has-build-errors: ${{ steps.analysis.outputs.has-build-errors }}
+      has-test-failures: ${{ steps.analysis.outputs.has-test-failures }}
+      has-dependency-issues: ${{ steps.analysis.outputs.has-dependency-issues }}
+      has-config-issues: ${{ steps.analysis.outputs.has-config-issues }}
+      fix-needed: ${{ steps.analysis.outputs.fix-needed }}
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup build environment
+      run: |
+        sudo apt-get update -qq
+        sudo apt-get install -y \
+          qt6-base-dev \
+          qt6-tools-dev \
+          libqt6opengl6-dev \
+          libqt6svg6-dev \
+          cmake \
+          build-essential \
+          xvfb
+
+    - name: Analyze current state
+      id: analysis
+      run: |
+        echo "=== Analyzing Project State ==="
+        
+        has_build_errors=false
+        has_test_failures=false
+        has_dependency_issues=false
+        has_config_issues=false
+        
+        # Try to configure CMake
+        echo "Testing CMake configuration..."
+        if ! cmake -B build -S . -DCMAKE_BUILD_TYPE=Release 2>&1 | tee cmake_config.log; then
+          echo "CMake configuration failed"
+          has_config_issues=true
+          
+          # Check for common configuration issues
+          if grep -i "qt6.*not found\|could not find qt" cmake_config.log; then
+            echo "Qt6 dependency issue detected"
+            has_dependency_issues=true
+          fi
+        fi
+        
+        # Try to build if configuration succeeded
+        if [[ "$has_config_issues" != "true" ]]; then
+          echo "Testing build..."
+          if ! cmake --build build --parallel 2>&1 | tee build.log; then
+            echo "Build failed"
+            has_build_errors=true
+            
+            # Analyze build errors
+            if grep -i "error.*undefined\|error.*unresolved" build.log; then
+              echo "Linker issues detected"
+            fi
+            if grep -i "error.*no such file\|fatal error.*not found" build.log; then
+              echo "Missing header/dependency issues detected"
+              has_dependency_issues=true
+            fi
+          fi
+        fi
+        
+        # Try to run tests if build succeeded
+        if [[ "$has_build_errors" != "true" && "$has_config_issues" != "true" ]]; then
+          echo "Testing test execution..."
+          cd build
+          export QT_QPA_PLATFORM=offscreen
+          if ! timeout 60s ./tests/FangJia_Tests 2>&1 | tee test.log; then
+            echo "Tests failed or timed out"
+            has_test_failures=true
+          fi
+          cd ..
+        fi
+        
+        # Output results
+        echo "has-build-errors=$has_build_errors" >> $GITHUB_OUTPUT
+        echo "has-test-failures=$has_test_failures" >> $GITHUB_OUTPUT
+        echo "has-dependency-issues=$has_dependency_issues" >> $GITHUB_OUTPUT
+        echo "has-config-issues=$has_config_issues" >> $GITHUB_OUTPUT
+        
+        if [[ "$has_build_errors" == "true" || "$has_test_failures" == "true" || 
+              "$has_dependency_issues" == "true" || "$has_config_issues" == "true" ]]; then
+          echo "fix-needed=true" >> $GITHUB_OUTPUT
+        else
+          echo "fix-needed=false" >> $GITHUB_OUTPUT
+          echo "✅ No issues detected - project is healthy"
+        fi
+
+    - name: Upload diagnostic logs
+      if: steps.analysis.outputs.fix-needed == 'true'
+      uses: actions/upload-artifact@v4
+      with:
+        name: diagnostic-logs
+        path: |
+          cmake_config.log
+          build.log
+          build/test.log
+        retention-days: 7
+
+  # Generate fixes for detected issues
+  generate-fixes:
+    needs: detect-issues
+    if: needs.detect-issues.outputs.fix-needed == 'true'
+    runs-on: ubuntu-latest
+    outputs:
+      fixes-generated: ${{ steps.fixes.outputs.fixes-generated }}
+      fix-branch: ${{ steps.fixes.outputs.fix-branch }}
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+
+    - name: Download diagnostic logs
+      uses: actions/download-artifact@v4
+      with:
+        name: diagnostic-logs
+        path: ./logs/
+
+    - name: Generate fixes
+      id: fixes
+      run: |
+        echo "=== Generating Fixes ==="
+        
+        fix_branch="auto-fix-$(date +%Y%m%d-%H%M%S)"
+        git checkout -b "$fix_branch"
+        
+        fixes_applied=false
+        
+        # Fix CMake configuration issues
+        if [[ "${{ needs.detect-issues.outputs.has-config-issues }}" == "true" ]]; then
+          echo "Applying CMake configuration fixes..."
+          
+          # Check if CMakeLists.txt needs Qt6 version specification
+          if ! grep -q "find_package(Qt6.*REQUIRED" CMakeLists.txt; then
+            echo "Adding explicit Qt6 version requirement..."
+            sed -i 's/find_package(Qt6 REQUIRED/find_package(Qt6 6.4 REQUIRED/' CMakeLists.txt
+            fixes_applied=true
+          fi
+          
+          # Add CMake policy fixes for newer versions
+          if ! grep -q "cmake_policy.*CMP0167" CMakeLists.txt; then
+            sed -i '1a\
+# Fix for CMake 3.30+ Qt6 compatibility\
+if (POLICY CMP0167)\
+  cmake_policy(SET CMP0167 NEW)\
+endif()' CMakeLists.txt
+            fixes_applied=true
+          fi
+        fi
+        
+        # Fix dependency issues
+        if [[ "${{ needs.detect-issues.outputs.has-dependency-issues }}" == "true" ]]; then
+          echo "Applying dependency fixes..."
+          
+          # Add fallback Qt6 paths for common installations
+          if ! grep -q "Qt6_DIR.*fallback" CMakeLists.txt; then
+            cat >> CMakeLists.txt << 'EOF'
+
+# Fallback Qt6 paths for different installations
+if(NOT Qt6_FOUND AND NOT Qt6_DIR)
+    set(Qt6_POSSIBLE_PATHS
+        "/usr/lib/x86_64-linux-gnu/cmake/Qt6"
+        "/usr/lib/cmake/Qt6"
+        "/opt/Qt/6.6.3/gcc_64/lib/cmake/Qt6"
+        "/opt/Qt/6.5.0/gcc_64/lib/cmake/Qt6"
+        "/usr/local/opt/qt@6/lib/cmake/Qt6"
+    )
+    
+    foreach(QT_PATH ${Qt6_POSSIBLE_PATHS})
+        if(EXISTS "${QT_PATH}")
+            set(Qt6_DIR "${QT_PATH}")
+            break()
+        endif()
+    endforeach()
+endif()
+EOF
+            fixes_applied=true
+          fi
+        fi
+        
+        # Fix build errors
+        if [[ "${{ needs.detect-issues.outputs.has-build-errors }}" == "true" ]]; then
+          echo "Analyzing build errors for fixes..."
+          
+          if [ -f "logs/build.log" ]; then
+            # Check for missing includes
+            if grep -i "error.*no such file.*\.h" logs/build.log; then
+              echo "Adding common missing include fixes..."
+              
+              # Add common Qt includes to main files
+              find apps/fangjia -name "*.cpp" | while read file; do
+                if ! grep -q "#include <QApplication>" "$file" && grep -q "QApplication" "$file"; then
+                  sed -i '1i#include <QApplication>' "$file"
+                  fixes_applied=true
+                fi
+              done
+            fi
+            
+            # Check for C++ standard issues
+            if grep -i "error.*c++.*not.*supported\|requires.*c++.*or later" logs/build.log; then
+              echo "Fixing C++ standard requirement..."
+              sed -i 's/set(CMAKE_CXX_STANDARD 23)/set(CMAKE_CXX_STANDARD 20)/' CMakeLists.txt
+              fixes_applied=true
+            fi
+          fi
+        fi
+        
+        # Fix test failures
+        if [[ "${{ needs.detect-issues.outputs.has-test-failures }}" == "true" ]]; then
+          echo "Applying test fixes..."
+          
+          # Add missing test environment setup
+          test_cmake="tests/CMakeLists.txt"
+          if [ -f "$test_cmake" ] && ! grep -q "QT_QPA_PLATFORM" "$test_cmake"; then
+            cat >> "$test_cmake" << 'EOF'
+
+# Set test environment for headless execution
+set_tests_properties(AllTests PROPERTIES
+    ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_LOGGING_RULES=qt.qpa.gl=false"
+)
+EOF
+            fixes_applied=true
+          fi
+        fi
+        
+        # Create a comprehensive fix documentation
+        cat > AUTO_FIX_REPORT.md << 'EOF'
+# Automated Fix Report
+
+## Issues Detected
+- Build Errors: ${{ needs.detect-issues.outputs.has-build-errors }}
+- Test Failures: ${{ needs.detect-issues.outputs.has-test-failures }}
+- Dependency Issues: ${{ needs.detect-issues.outputs.has-dependency-issues }}
+- Configuration Issues: ${{ needs.detect-issues.outputs.has-config-issues }}
+
+## Fixes Applied
+
+This automated fix addresses the following issues:
+
+### CMake Configuration Fixes
+- Added explicit Qt6 version requirement
+- Fixed CMake policy compatibility for newer versions
+- Added fallback Qt6 installation paths
+
+### Dependency Resolution
+- Enhanced Qt6 discovery with multiple fallback paths
+- Improved cross-platform compatibility
+
+### Build System Improvements
+- Fixed C++ standard compatibility issues
+- Added missing include statements where detected
+
+### Test Environment Fixes
+- Configured headless test execution
+- Set proper environment variables for CI
+
+## Validation
+
+These fixes were generated automatically based on build failure analysis.
+Please review and test before merging:
+
+1. `cmake -B build -S .`
+2. `cmake --build build`
+3. `./build/tests/FangJia_Tests`
+
+## Notes
+
+- This is an automated fix and may require manual refinement
+- Some issues might need additional human intervention
+- Always test thoroughly in your development environment
+EOF
+        
+        if [[ "$fixes_applied" == "true" ]]; then
+          git add -A
+          git config user.name "GitHub Actions"
+          git config user.email "actions@github.com"
+          git commit -m "🔧 Automated build fixes
+
+Applied automatic fixes for detected build issues:
+- Configuration improvements
+- Dependency resolution enhancements  
+- Build system fixes
+- Test environment setup
+
+Generated by: Auto Fix Bot
+Fixes for: ${{ needs.detect-issues.outputs.has-build-errors && 'build-errors ' }}${{ needs.detect-issues.outputs.has-test-failures && 'test-failures ' }}${{ needs.detect-issues.outputs.has-dependency-issues && 'dependencies ' }}${{ needs.detect-issues.outputs.has-config-issues && 'configuration' }}
+"
+          
+          git push origin "$fix_branch"
+          
+          echo "fixes-generated=true" >> $GITHUB_OUTPUT
+          echo "fix-branch=$fix_branch" >> $GITHUB_OUTPUT
+        else
+          echo "fixes-generated=false" >> $GITHUB_OUTPUT
+          echo "No automatic fixes could be generated"
+        fi
+
+  # Test the generated fixes
+  test-fixes:
+    needs: [detect-issues, generate-fixes]
+    if: needs.generate-fixes.outputs.fixes-generated == 'true'
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout fix branch
+      uses: actions/checkout@v4
+      with:
+        ref: ${{ needs.generate-fixes.outputs.fix-branch }}
+
+    - name: Setup build environment
+      run: |
+        sudo apt-get update -qq
+        sudo apt-get install -y \
+          qt6-base-dev \
+          qt6-tools-dev \
+          libqt6opengl6-dev \
+          libqt6svg6-dev \
+          cmake \
+          build-essential \
+          xvfb
+
+    - name: Test fixes
+      id: test
+      run: |
+        echo "=== Testing Applied Fixes ==="
+        
+        # Test CMake configuration
+        echo "Testing CMake configuration with fixes..."
+        if cmake -B build -S . -DCMAKE_BUILD_TYPE=Release; then
+          echo "✅ CMake configuration successful"
+          config_success=true
+        else
+          echo "❌ CMake configuration still failing"
+          config_success=false
+        fi
+        
+        # Test build if configuration succeeded
+        if [[ "$config_success" == "true" ]]; then
+          echo "Testing build with fixes..."
+          if cmake --build build --parallel; then
+            echo "✅ Build successful"
+            build_success=true
+          else
+            echo "❌ Build still failing"
+            build_success=false
+          fi
+        else
+          build_success=false
+        fi
+        
+        # Test execution if build succeeded
+        if [[ "$build_success" == "true" ]]; then
+          echo "Testing application execution..."
+          cd build
+          export QT_QPA_PLATFORM=offscreen
+          
+          # Test main application
+          if timeout 10s ./FangJia --help || true; then
+            echo "✅ Application runs"
+          fi
+          
+          # Test test suite
+          if timeout 60s xvfb-run -a ./tests/FangJia_Tests; then
+            echo "✅ Tests pass"
+            test_success=true
+          else
+            echo "⚠️ Tests completed with issues"
+            test_success=false
+          fi
+          cd ..
+        else
+          test_success=false
+        fi
+        
+        # Overall assessment
+        if [[ "$config_success" == "true" && "$build_success" == "true" ]]; then
+          echo "fix-validation=success" >> $GITHUB_OUTPUT
+          echo "🎉 Fixes appear to be working!"
+        else
+          echo "fix-validation=partial" >> $GITHUB_OUTPUT
+          echo "⚠️ Fixes partially successful - manual intervention may be needed"
+        fi
+
+    - name: Upload test results
+      uses: actions/upload-artifact@v4
+      with:
+        name: fix-test-results
+        path: |
+          build/
+          AUTO_FIX_REPORT.md
+        retention-days: 7
+
+  # Create PR with fixes
+  create-fix-pr:
+    needs: [detect-issues, generate-fixes, test-fixes]
+    if: needs.generate-fixes.outputs.fixes-generated == 'true' && 
+        (github.event.inputs.create_pr != 'false' || github.event_name == 'schedule')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Create Pull Request
+      uses: actions/github-script@v7
+      with:
+        script: |
+          const { data: pullRequest } = await github.rest.pulls.create({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            title: '🔧 Automated Build Fixes',
+            head: '${{ needs.generate-fixes.outputs.fix-branch }}',
+            base: 'master',
+            body: `## 🤖 Automated Build Fix
+
+This PR contains automatically generated fixes for detected build issues.
+
+### Issues Addressed
+- **Build Errors**: ${{ needs.detect-issues.outputs.has-build-errors }}
+- **Test Failures**: ${{ needs.detect-issues.outputs.has-test-failures }}  
+- **Dependency Issues**: ${{ needs.detect-issues.outputs.has-dependency-issues }}
+- **Configuration Issues**: ${{ needs.detect-issues.outputs.has-config-issues }}
+
+### Fix Validation Status
+**Validation Result**: ${{ needs.test-fixes.outputs.fix-validation || 'not-tested' }}
+
+${{ needs.test-fixes.outputs.fix-validation == 'success' && '✅ **All fixes validated successfully!**' || '⚠️ **Fixes require review** - some issues may remain' }}
+
+### What's Included
+- Enhanced CMake configuration with Qt6 compatibility
+- Improved dependency resolution with fallback paths
+- Build system improvements for cross-platform support
+- Test environment configuration for headless execution
+- Comprehensive fix documentation (\`AUTO_FIX_REPORT.md\`)
+
+### Testing Done
+The fixes have been automatically tested on Ubuntu with:
+- CMake configuration verification
+- Full project build
+- Test suite execution
+- Basic application startup
+
+### How to Review
+1. Check out the branch: \`git checkout ${{ needs.generate-fixes.outputs.fix-branch }}\`
+2. Build the project: \`cmake -B build -S . && cmake --build build\`
+3. Run tests: \`./build/tests/FangJia_Tests\`
+4. Review the \`AUTO_FIX_REPORT.md\` for details
+
+### Notes
+- This is an automated fix generated by analysis of build failures
+- Human review is recommended before merging
+- Some complex issues may require additional manual fixes
+- Test thoroughly in your development environment
+
+---
+*Generated by: Automated Fix Bot v1.0*
+*Trigger: ${{ github.event_name == 'schedule' && 'Scheduled maintenance' || 'Manual trigger' }}*
+            `,
+            draft: false
+          });
+          
+          console.log('Pull request created:', pullRequest.html_url);
+          
+          // Add labels
+          await github.rest.issues.addLabels({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            issue_number: pullRequest.number,
+            labels: ['automated', 'build-fix', 'ci/cd']
+          });
+
+  # Summary reporting
+  fix-summary:
+    needs: [detect-issues, generate-fixes, test-fixes, create-fix-pr]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+    - name: Generate summary
+      run: |
+        echo "=== Automated Fix Summary ==="
+        echo "Detection: ${{ needs.detect-issues.result }}"
+        echo "Fix generation: ${{ needs.generate-fixes.result }}"
+        echo "Fix testing: ${{ needs.test-fixes.result }}"
+        echo "PR creation: ${{ needs.create-fix-pr.result }}"
+        
+        echo -e "\n=== Issues Found ==="
+        echo "Build errors: ${{ needs.detect-issues.outputs.has-build-errors }}"
+        echo "Test failures: ${{ needs.detect-issues.outputs.has-test-failures }}"
+        echo "Dependency issues: ${{ needs.detect-issues.outputs.has-dependency-issues }}"
+        echo "Configuration issues: ${{ needs.detect-issues.outputs.has-config-issues }}"
+        
+        if [[ "${{ needs.generate-fixes.outputs.fixes-generated }}" == "true" ]]; then
+          echo -e "\n✅ Fixes were generated and tested"
+          echo "Fix branch: ${{ needs.generate-fixes.outputs.fix-branch }}"
+          echo "Validation: ${{ needs.test-fixes.outputs.fix-validation }}"
+        else
+          echo -e "\n❌ No fixes were generated (no issues found or no automatic fixes available)"
+        fi
