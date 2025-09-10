@@ -8,12 +8,89 @@ endif()
 
 project(Fangjia_Qt6_Cpp LANGUAGES CXX)
 
+# Windows/MSVC特定配置
+if(WIN32)
+    # 全局编译器定义，避免Windows.h冲突
+    add_compile_definitions(
+        WIN32_LEAN_AND_MEAN     # 减少Windows.h包含内容
+        NOMINMAX                # 避免min/max宏冲突
+        _CRT_SECURE_NO_WARNINGS # 禁用MSVC安全警告
+        UNICODE _UNICODE        # 使用Unicode字符集
+    )
+    
+    # MSVC特定编译选项
+    if(MSVC)
+        # 提高编译性能和兼容性
+        add_compile_options(
+            /MP                 # 多进程编译
+            /permissive-        # 严格C++标准兼容
+            /Zc:__cplusplus     # 正确设置__cplusplus宏
+            /wd4267             # 禁用size_t转换警告
+            /wd4244             # 禁用类型转换警告
+            /wd4996             # 禁用已弃用函数警告
+            /utf-8              # 源文件和执行字符集都使用UTF-8
+        )
+        
+        # Debug配置特定选项
+        add_compile_options(
+            $<$<CONFIG:Debug>:/JMC>     # Just My Code调试
+            $<$<CONFIG:Debug>:/ZI>      # 增强调试信息
+        )
+        
+        # Release配置优化
+        add_compile_options(
+            $<$<CONFIG:Release>:/O2>    # 最大优化
+            $<$<CONFIG:Release>:/GL>    # 全程序优化
+        )
+        add_link_options(
+            $<$<CONFIG:Release>:/LTCG>  # 链接时代码生成
+        )
+    endif()
+endif()
+
 # Qt构建配置
 set(CMAKE_AUTOMOC ON)         # 自动运行MOC（元对象编译器）
 set(CMAKE_AUTOUIC ON)         # 自动处理UI文件
 set(CMAKE_AUTORCC ON)         # 自动处理资源文件
-set(CMAKE_CXX_STANDARD 23)    # 使用C++23标准
+set(CMAKE_CXX_STANDARD 20)    # 使用C++20标准（VS2022兼容性更好）
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
+
+# Windows Qt6路径提示（如果未设置CMAKE_PREFIX_PATH）
+if(WIN32 AND NOT CMAKE_PREFIX_PATH)
+    # 常见Qt6安装路径
+    set(QT_POSSIBLE_PATHS
+        "C:/Qt/6.8.0/msvc2022_64"
+        "C:/Qt/6.7.3/msvc2022_64"
+        "C:/Qt/6.7.2/msvc2022_64"
+        "C:/Qt/6.7.1/msvc2022_64"
+        "C:/Qt/6.7.0/msvc2022_64"
+        "C:/Qt/6.6.3/msvc2022_64"
+        "C:/Qt/6.6.2/msvc2022_64"
+        "C:/Qt/6.6.1/msvc2022_64"
+        "C:/Qt/6.6.0/msvc2022_64"
+        "C:/Qt/6.5.3/msvc2022_64"
+        "C:/Qt/6.5.2/msvc2022_64"
+        "C:/Qt/6.5.1/msvc2022_64"
+        "C:/Qt/6.5.0/msvc2022_64"
+        "C:/Qt/6.4.3/msvc2022_64"
+        "C:/Qt/6.4.2/msvc2022_64"
+        "C:/Qt/6.4.1/msvc2022_64"
+        "C:/Qt/6.4.0/msvc2022_64"
+    )
+    
+    foreach(QT_PATH ${QT_POSSIBLE_PATHS})
+        if(EXISTS "${QT_PATH}/lib/cmake/Qt6")
+            set(CMAKE_PREFIX_PATH ${QT_PATH})
+            message(STATUS "发现Qt6安装路径: ${QT_PATH}")
+            break()
+        endif()
+    endforeach()
+    
+    if(NOT CMAKE_PREFIX_PATH)
+        message(WARNING "未找到Qt6安装路径。请设置CMAKE_PREFIX_PATH环境变量指向Qt6安装目录，或确保Qt6在系统PATH中。")
+        message(STATUS "示例: set CMAKE_PREFIX_PATH=C:/Qt/6.8.0/msvc2022_64")
+    endif()
+endif()
 
 # 查找Qt6依赖组件
 find_package(Qt6 REQUIRED COMPONENTS Core Gui OpenGL OpenGLWidgets Widgets Svg Sql)
@@ -64,7 +141,6 @@ if(WIN32)
     if(FJ_INFRA_PLATFORM_SOURCES)
         add_library(fj_infra_platform STATIC ${FJ_INFRA_PLATFORM_SOURCES})
         target_link_libraries(fj_infra_platform PUBLIC Qt6::Core Qt6::Gui Dwmapi)
-        target_compile_definitions(fj_infra_platform PUBLIC WIN32_LEAN_AND_MEAN NOMINMAX)
         target_include_directories(fj_infra_platform PUBLIC 
             infrastructure/platform
             infrastructure/platform/windows

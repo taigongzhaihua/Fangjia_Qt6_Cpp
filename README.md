@@ -31,27 +31,51 @@ Fangjia Qt6 C++ is a modern desktop application framework built on Qt 6 and Open
 
 ### Requirements
 
-- **Qt 6 Components**: Core, Gui, Widgets, OpenGL, Svg
+- **Qt 6 Components**: Core, Gui, Widgets, OpenGL, Svg, Sql
 - **Build Tools**: CMake ≥ 3.16
-- **Compiler**: Modern C++23 compatible compiler
+- **Compiler**: Modern C++20 compatible compiler
+  - **Windows**: Visual Studio 2022 (v143) or newer
+  - **Linux**: GCC 10+ or Clang 12+
+  - **macOS**: Xcode 12+ (Apple Clang 12+)
 
 ### Build Steps
 
+#### Windows (Visual Studio 2022)
+
+**Quick build (recommended):**
+```cmd
+# Method 1: Use build script
+.\build_windows.bat
+
+# Method 2: Use PowerShell script  
+.\build_windows.ps1 -BuildType Release -Run
+```
+
+**Manual build:**
+```cmd
+# In Developer Command Prompt for VS 2022
+set CMAKE_PREFIX_PATH=C:\Qt\6.8.0\msvc2022_64
+cmake -S . -B build -G "Visual Studio 17 2022" -A x64
+cmake --build build --config Debug
+```
+
+📖 **Detailed Windows guide**: [BUILD_WINDOWS.md](BUILD_WINDOWS.md)
+
+#### Linux/macOS
 ```bash
-# Linux/macOS
+# Install Qt6 first (Ubuntu/Debian example)
+sudo apt install qt6-base-dev qt6-tools-dev libqt6opengl6-dev libqt6svg6-dev
+
+# Build
 cmake -S . -B build -DCMAKE_BUILD_TYPE=Debug
 cmake --build build -j$(nproc)
-
-# Windows (in Qt Developer Command Prompt)
-cmake -S . -B build -DCMAKE_BUILD_TYPE=Debug
-cmake --build build --config Debug
 ```
 
 ### Run Demo
 
 After successful build, run the executable:
-- Linux/macOS: `./build/apps/fangjia/fangjia`
-- Windows: `.\build\apps\fangjia\Debug\FangJia.exe`
+- **Linux/macOS**: `./build/FangJia`
+- **Windows**: `.\build\Debug\FangJia.exe`
 
 The application demonstrates declarative UI components, theme switching, navigation interactions, and other core features.
 
