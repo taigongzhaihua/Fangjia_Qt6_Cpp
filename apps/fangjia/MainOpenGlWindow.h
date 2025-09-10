@@ -23,6 +23,7 @@
 #include "UiNav.h"
 #include "UiRoot.h"
 #include "UiTopBar.h"
+#include "Window.h"
 
 #ifdef Q_OS_WIN
 class WinWindowChrome;
@@ -44,19 +45,18 @@ namespace fj::presentation::binding {
 /// 主窗口：基于OpenGL的自绘UI应用程序窗口
 /// 
 /// 功能：
-/// - OpenGL渲染管线与资源管理
-/// - UI组件层次结构与事件分发
-/// - 页面路由与导航状态管理  
+/// - 应用级UI组件管理（导航栏、顶栏、页面路由）
 /// - 主题模式切换与传播
-/// - 动画循环驱动（60fps目标）
+/// - 页面导航状态管理
+/// - 平台特定功能集成（Windows窗口装饰）
 /// 
 /// 生命周期：
 /// 1. 构造时注入依赖服务（配置、主题管理器）
-/// 2. initializeGL()中初始化渲染器和UI组件
-/// 3. resizeGL()中更新视口和布局
-/// 4. paintGL()中执行帧渲染
-/// 5. 析构时清理OpenGL资源
-class MainOpenGlWindow final : public QOpenGLWindow, protected QOpenGLFunctions
+/// 2. initializeUI()中初始化应用UI组件
+/// 3. updateLayout()中计算应用布局
+/// 4. 继承基类的渲染和事件处理流程
+/// 5. 析构时清理应用资源
+class MainOpenGlWindow final : public Window
 {
 public:
 	enum class Theme { Light, Dark };
@@ -94,21 +94,22 @@ public:
 	QRect topBarSystemButtonsRect() const;
 
 protected:
-	/// OpenGL生命周期回调
-	void initializeGL() override;
-	void resizeGL(int w, int h) override;
-	void paintGL() override;
-
-	/// 鼠标事件处理：转发到UI组件层次结构
+	/// 应用UI初始化：设置导航、页面和声明式Shell
+	void initializeUI() override;
+	
+	/// 应用布局更新：计算组件位置和大小
+	void updateLayout() override;
+	
+	/// 应用动画更新：处理应用特定的动画逻辑
+	bool onAnimationTick(qint64 deltaTime) override;
+	
+	/// 获取主题相关的清屏颜色
+	QColor getClearColor() const override;
+	
+	/// 自定义鼠标事件处理：TopBar拖拽功能
 	void mousePressEvent(QMouseEvent* e) override;
 	void mouseMoveEvent(QMouseEvent* e) override;
-	void mouseReleaseEvent(QMouseEvent* e) override;
 	void mouseDoubleClickEvent(QMouseEvent* e) override;
-	void wheelEvent(QWheelEvent* e) override;
-
-	/// 键盘事件处理：转发到UI组件层次结构
-	void keyPressEvent(QKeyEvent* e) override;
-	void keyReleaseEvent(QKeyEvent* e) override;
 
 private:
 	// 初始化子系统
@@ -133,7 +134,6 @@ private:
 private:
 	// 主题状态
 	Theme m_theme{ Theme::Dark };
-	QColor m_clearColor;
 	bool m_animateFollowChange{ false };
 
 	// 依赖服务（注入）
@@ -143,10 +143,10 @@ private:
 	// 数据模型
 	NavViewModel m_navVm;
 
-	// UI组件层次结构
+	// UI组件层次结构  
 	Ui::NavRail m_nav;
 	UiTopBar m_topBar;
-	UiRoot m_uiRoot;
+	// 注意：UiRoot现在由基类Window管理
 
 	// 声明式Shell支持
 	std::unique_ptr<CurrentPageHost> m_pageHost;
@@ -156,15 +156,10 @@ private:
 	// 页面路由管理
 	PageRouter m_pageRouter;
 
-	// 渲染子系统
-	Renderer m_renderer;
-	IconCache m_iconCache;
-	int m_fbWpx{ 0 };    // 帧缓冲宽度（像素）
-	int m_fbHpx{ 0 };    // 帧缓冲高度（像素）
+	// 注意：Renderer和IconCache现在由基类Window管理
 
-	// 动画驱动（目标60fps）
-	QTimer m_animTimer;
-	QElapsedTimer m_animClock;
+	// 动画状态（应用级）
+	bool m_hasActiveAnimation{ false };
 
 #ifdef Q_OS_WIN
 	WinWindowChrome* m_winChrome{ nullptr };  // Windows平台自定义标题栏

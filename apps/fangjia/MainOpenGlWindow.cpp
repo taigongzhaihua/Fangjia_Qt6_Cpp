@@ -75,12 +75,6 @@ MainOpenGlWindow::MainOpenGlWindow(
 		// Bootstrap the database during app initialization
 		Data::DatabaseBootstrapper::initialize();
 
-		// 设置动画定时器
-		connect(&m_animTimer, &QTimer::timeout, this, &MainOpenGlWindow::onAnimationTick);
-		m_animTimer.setTimerType(Qt::PreciseTimer);
-		m_animTimer.setInterval(16);
-		m_animClock.start();
-
 		qDebug() << "MainOpenGlWindow constructor end";
 	}
 	catch (const std::exception& e)
@@ -112,8 +106,8 @@ MainOpenGlWindow::~MainOpenGlWindow()
 #endif
 
 		makeCurrent();
-		m_iconCache.releaseAll(this);
-		m_renderer.releaseGL();
+		iconCache().releaseAll(this);
+		renderer().releaseGL();
 		doneCurrent();
 	}
 	catch (const std::exception& e)
@@ -122,17 +116,11 @@ MainOpenGlWindow::~MainOpenGlWindow()
 	}
 }
 
-void MainOpenGlWindow::initializeGL()
+void MainOpenGlWindow::initializeUI()
 {
 	try
 	{
-		qDebug() << "MainOpenGlWindow::initializeGL start";
-
-		initializeOpenGLFunctions();
-		glEnable(GL_BLEND);
-		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-
-		m_renderer.initializeGL(this);
+		qDebug() << "MainOpenGlWindow::initializeUI start";
 
 #ifdef Q_OS_WIN
 		if (!m_winChrome)
@@ -158,77 +146,75 @@ void MainOpenGlWindow::initializeGL()
 			m_theme = Theme::Light; // 默认浅色
 		}
 
-		// 设置清屏颜色
-		if (m_theme == Theme::Dark)
-		{
-			m_clearColor = QColor::fromRgbF(0.05f, 0.10f, 0.15f);
-		}
-		else
-		{
-			m_clearColor = QColor::fromRgbF(0.91f, 0.92f, 0.94f);
-		}
-
 		qDebug() << "Initializing navigation...";
 		initializeNavigation();
 
 		qDebug() << "Initializing pages...";
 		initializePages();
 
-		// qDebug() << "Initializing top bar...";
-		// initializeTopBar(); // 不再需要：现在使用声明式TopBar
-
 		qDebug() << "Initializing declarative shell...";
 		initializeDeclarativeShell();
 
 		// 在所有组件添加后，应用初始主题
 		const bool isDark = (m_theme == Theme::Dark);
-		m_uiRoot.propagateThemeChange(isDark);
+		uiRoot().propagateThemeChange(isDark);
 
 		updateLayout();
 
 		// 设置主题监听
 		setupThemeListeners();
 
-		qDebug() << "MainOpenGlWindow::initializeGL end";
+		qDebug() << "MainOpenGlWindow::initializeUI end";
 	}
 	catch (const std::exception& e)
 	{
-		qCritical() << "Exception in initializeGL:" << e.what();
+		qCritical() << "Exception in initializeUI:" << e.what();
 		throw;
 	}
 }
 
 
-void MainOpenGlWindow::resizeGL(const int w, const int h)
+QColor MainOpenGlWindow::getClearColor() const
 {
-	m_fbWpx = w;
-	m_fbHpx = h;
-	m_renderer.resize(w, h);
-	updateLayout();
-
-#ifdef Q_OS_WIN
-	if (m_winChrome) m_winChrome->notifyLayoutChanged();
-#endif
+	// 设置清屏颜色基于当前主题
+	if (m_theme == Theme::Dark)
+	{
+		return QColor::fromRgbF(0.05f, 0.10f, 0.15f);
+	}
+	else
+	{
+		return QColor::fromRgbF(0.91f, 0.92f, 0.94f);
+	}
 }
 
-void MainOpenGlWindow::paintGL()
+bool MainOpenGlWindow::onAnimationTick(qint64 deltaTime)
 {
-	glClearColor(m_clearColor.redF(), m_clearColor.greenF(), m_clearColor.blueF(), 1.0f);
-	glClear(GL_COLOR_BUFFER_BIT);
+	// 调用基类处理UI组件动画
+	bool hasAnimation = Window::onAnimationTick(deltaTime);
 
-	Render::FrameData frameData;
-	m_uiRoot.append(frameData);
-	m_renderer.drawFrame(frameData, m_iconCache, static_cast<float>(devicePixelRatio()));
+	// 检查导航栏动画
+	if (m_nav.hasActiveAnimation())
+	{
+		updateLayout();
+
+		// 如果导航栏有动画，请求重建以保持列宽同步
+		if (m_shellRebuildHost)
+		{
+			m_shellRebuildHost->requestRebuild();
+		}
+		hasAnimation = true;
+	}
+
+	// 更新应用级动画状态
+	m_hasActiveAnimation = hasAnimation;
+	
+	return hasAnimation;
 }
 
 void MainOpenGlWindow::mousePressEvent(QMouseEvent* e)
 {
+	// Custom application logic: handle TopBar dragging
 	if (e->button() == Qt::LeftButton) {
-		if (m_uiRoot.onMousePress(e->pos())) {
-			update();
-			e->accept();
-			return;
-		}
 		// 手动处理TopBar空白区域拖拽：不在系统按钮区域内时开始系统移动
 		const QPoint p = e->pos();
 		const QRect tb = topBarBounds();
@@ -239,128 +225,38 @@ void MainOpenGlWindow::mousePressEvent(QMouseEvent* e)
 			return;
 		}
 	}
-	QOpenGLWindow::mousePressEvent(e);
+	
+	// Call base class to handle UI component events
+	Window::mousePressEvent(e);
 }
 
 void MainOpenGlWindow::mouseMoveEvent(QMouseEvent* e)
 {
-	const bool handled = m_uiRoot.onMouseMove(e->pos());
+	// Call base class first to handle UI events
+	Window::mouseMoveEvent(e);
+	
+	// Custom cursor handling for the application
+	const bool handled = uiRoot().onMouseMove(e->pos());
 	setCursor(handled ? Qt::PointingHandCursor : Qt::ArrowCursor);
-	if (handled) update();
-	QOpenGLWindow::mouseMoveEvent(e);
-}
-
-void MainOpenGlWindow::mouseReleaseEvent(QMouseEvent* e)
-{
-	if (e->button() == Qt::LeftButton)
-	{
-		const bool handled = m_uiRoot.onMouseRelease(e->pos());
-
-		if (handled)
-		{
-			// 声明式TopBar现在通过回调处理系统按钮，无需手动检查
-			// 旧的 m_topBar.takeActions() 和 m_topBar.takeSystemActions() 调用已移除
-
-			if (!m_animTimer.isActive())
-			{
-				m_animClock.start();
-				m_animTimer.start();
-			}
-		}
-
-		// Always schedule a redraw on left-button release to ensure VM-driven rebuilds are rendered
-		update();
-
-		if (handled)
-		{
-			e->accept();
-			return;
-		}
-	}
-	QOpenGLWindow::mouseReleaseEvent(e);
 }
 
 void MainOpenGlWindow::mouseDoubleClickEvent(QMouseEvent* e)
 {
+	// Custom application logic: navigation rail expansion
 	if (e->button() == Qt::LeftButton)
 	{
 		if (m_nav.bounds().contains(e->pos()))
 		{
 			m_navVm.toggleExpanded();
 			updateLayout();
-			if (!m_animTimer.isActive())
-			{
-				m_animClock.start();
-				m_animTimer.start();
-			}
+			startAnimationLoop(); // Use base class animation management
 			e->accept();
 			return;
 		}
 	}
-	QOpenGLWindow::mouseDoubleClickEvent(e);
-}
-
-void MainOpenGlWindow::wheelEvent(QWheelEvent* e)
-{
-	// 将 QWheelEvent 的位置与 angleDelta 传给 UiRoot
-
-	if (m_uiRoot.onWheel(e->position().toPoint(), e->angleDelta()))
-	{
-		// 如有消费则启动动画计时器并重绘
-		if (!m_animTimer.isActive())
-		{
-			m_animClock.start();
-			m_animTimer.start();
-		}
-		update();
-		e->accept();
-	}
-	else
-	{
-		QOpenGLWindow::wheelEvent(e);
-	}
-}
-
-void MainOpenGlWindow::keyPressEvent(QKeyEvent* e)
-{
-	// 将键盘按下事件转发到UI组件层次结构
-
-	if (m_uiRoot.onKeyPress(e->key(), e->modifiers()))
-	{
-		// 如有消费则启动动画计时器并重绘
-		if (!m_animTimer.isActive())
-		{
-			m_animClock.start();
-			m_animTimer.start();
-		}
-		update();
-		e->accept();
-	}
-	else
-	{
-		QOpenGLWindow::keyPressEvent(e);
-	}
-}
-
-void MainOpenGlWindow::keyReleaseEvent(QKeyEvent* e)
-{
-	// 将键盘释放事件转发到UI组件层次结构
-
-	if (m_uiRoot.onKeyRelease(e->key(), e->modifiers()))
-	{
-		// 如有消费则启动动画计时器并重绘
-		if (!m_animTimer.isActive())
-		{
-			m_animClock.start();
-			m_animTimer.start();
-		}
-		update();
-		e->accept();
-	}
-	else
-	{
-		QOpenGLWindow::keyReleaseEvent(e);
-	}
+	
+	// Call base class to handle UI component events
+	Window::mouseDoubleClickEvent(e);
 }
 
 void MainOpenGlWindow::initializeNavigation()
@@ -478,9 +374,8 @@ void MainOpenGlWindow::setupThemeListeners()
 					{
 						m_shellRebuildHost->requestRebuild();
 						// Ensure animation timer is running if a follow animation is expected
-						if (m_animateFollowChange && !m_animTimer.isActive()) {
-							m_animClock.start();
-							m_animTimer.start();
+						if (m_animateFollowChange) {
+							startAnimationLoop(); // Use base class method
 						}
 						// Clear the animation intent after a short delay to avoid racing the rebuild
 						QTimer::singleShot(300, [this]() {
@@ -500,8 +395,9 @@ void MainOpenGlWindow::updateLayout()
 
 	// 声明式模式：让AppShell/CurrentPageHost处理页面视口，无需手动设置
 	// 更新所有组件布局
-	m_uiRoot.updateLayout(winSize);
-	m_uiRoot.updateResourceContext(m_iconCache, this, static_cast<float>(devicePixelRatio()));
+	uiRoot().updateLayout(winSize);
+	
+	// Note: Base Window class handles updateResourceContext in resizeGL
 
 #ifdef Q_OS_WIN
 	if (m_winChrome) m_winChrome->notifyLayoutChanged();
@@ -519,23 +415,14 @@ void MainOpenGlWindow::applyTheme()
 {
 	const bool isDark = (m_theme == Theme::Dark);
 
-	// 设置清屏颜色
-	if (isDark)
-	{
-		m_clearColor = QColor::fromRgbF(0.05f, 0.10f, 0.15f);
-	}
-	else
-	{
-		m_clearColor = QColor::fromRgbF(0.91f, 0.92f, 0.94f);
-	}
+	// Note: Clear color is now handled by getClearColor() override
 
 	// 通过UiRoot传播主题变化到所有组件
-	m_uiRoot.propagateThemeChange(isDark);
+	uiRoot().propagateThemeChange(isDark);
 
-	// 更新资源上下文（图标可能需要重新加载）
-	m_uiRoot.updateResourceContext(m_iconCache, this, static_cast<float>(devicePixelRatio()));
+	// Note: Base Window class handles updateResourceContext
 
-	update();
+	requestRedraw(); // Use base class method
 }
 
 bool MainOpenGlWindow::followSystem() const noexcept
@@ -604,35 +491,9 @@ void MainOpenGlWindow::onFollowSystemToggle() const
 		if (self->m_shellRebuildHost) {
 			self->m_shellRebuildHost->requestRebuild();
 		}
-		if (!self->m_animTimer.isActive()) {
-			self->m_animClock.start();
-			self->m_animTimer.start();
-		}
-		self->update();
+		startAnimationLoop(); // Use base class method
+		self->requestRedraw(); // Use base class method
 		});
-}
-
-void MainOpenGlWindow::onAnimationTick()
-{
-	const bool hasAnimation = m_uiRoot.tick();
-
-	if (m_nav.hasActiveAnimation())
-	{
-		updateLayout();
-
-		// 如果导航栏有动画，请求重建以保持列宽同步
-		if (m_shellRebuildHost)
-		{
-			m_shellRebuildHost->requestRebuild();
-		}
-	}
-
-	if (!hasAnimation)
-	{
-		m_animTimer.stop();
-	}
-
-	update();
 }
 
 void MainOpenGlWindow::initializeDeclarativeShell()
@@ -700,7 +561,7 @@ void MainOpenGlWindow::initializeDeclarativeShell()
 
 	// 将Shell BindingHost添加到UiRoot
 	auto shellComponent = m_shellHost->build();
-	m_uiRoot.add(shellComponent.release()); // 转移所有权给UiRoot
+	uiRoot().add(shellComponent.release()); // 转移所有权给UiRoot
 }
 
 // 计算右上角系统按钮集的矩形（与 UiTopBar 的布局常量保持一致）
