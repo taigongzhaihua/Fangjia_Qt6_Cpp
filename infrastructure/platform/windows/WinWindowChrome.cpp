@@ -41,8 +41,15 @@ WinWindowChrome* WinWindowChrome::attach(QWindow* win,
 			}, Qt::QueuedConnection);
 
 		if (const auto h = static_cast<HWND>(chrome->hwnd())) {
-			constexpr MARGINS m{ 0, 0, 0, 0 };
-			DwmExtendFrameIntoClientArea(h, &m); // 保持 DWM 阴影
+			// 移除默认标题栏但保留窗口的其他功能（如调整大小、任务栏集成等）
+			LONG_PTR style = GetWindowLongPtr(h, GWL_STYLE);
+			style &= ~WS_CAPTION;  // 移除默认标题栏
+			SetWindowLongPtr(h, GWL_STYLE, style);
+			
+			// 扩展框架到客户区以实现自定义窗口 chrome 效果
+			// 使用 {1, 1, 1, 1} 扩展边框1像素，启用自定义绘制同时保持窗口行为
+			constexpr MARGINS m{ 1, 1, 1, 1 };
+			DwmExtendFrameIntoClientArea(h, &m); // 启用非客户区扩展并保持 DWM 阴影
 		}
 		chrome->notifyLayoutChanged();
 		return chrome;
@@ -260,7 +267,9 @@ bool WinWindowChrome::nativeEventFilter(const QByteArray& eventType, void* messa
 			return true;
 
 		case WM_NCACTIVATE:
-			return false;
+			// 对于自定义窗口 chrome，我们需要允许激活状态绘制，但阻止默认的非客户区绘制
+			if (result) *result = TRUE;
+			return true;
 
 		default:
 			break;
