@@ -1,6 +1,7 @@
 #pragma once
 #include "AdvancedWidgets.h"
 #include "BasicWidgets.h"
+#include "BasicWidgets_Button.h"
 #include "ComponentWrapper.h"
 #include "Decorators.h"
 #include "Layouts.h"
@@ -15,6 +16,7 @@ namespace UI {
 	// 便捷创建函数
 	inline auto text(const QString& str) { return make_widget<Text>(str); }
 	inline auto icon(const QString& path) { return make_widget<Icon>(path); }
+	inline auto button(const QString& text) { return make_widget<Button>(text); }
 	inline auto container(WidgetPtr child = nullptr) { return make_widget<Container>(child); }
 	inline auto card(WidgetPtr child) { return make_widget<Card>(child); }
 

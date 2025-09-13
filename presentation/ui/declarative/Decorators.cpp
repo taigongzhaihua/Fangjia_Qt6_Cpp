@@ -51,11 +51,32 @@ namespace UI
 
 	QSize DecoratedBox::measure(const SizeConstraints& cs)
 	{
-		// 固定尺寸优先（不考虑 margin，margin 仅视觉）
+		// 处理部分固定尺寸：优先获取子组件自然尺寸，然后按需覆盖
 		if (m_p.fixedSize.width() > 0 || m_p.fixedSize.height() > 0)
 		{
-			int w = (m_p.fixedSize.width() > 0 ? m_p.fixedSize.width() : 0);
-			int h = (m_p.fixedSize.height() > 0 ? m_p.fixedSize.height() : 0);
+			// 首先获取子组件的自然尺寸（用于未固定的维度）
+			QSize childSize(0, 0);
+			const int padW = m_p.padding.left() + m_p.padding.right();
+			const int padH = m_p.padding.top() + m_p.padding.bottom();
+			
+			if (auto* l = dynamic_cast<ILayoutable*>(m_child.get()))
+			{
+				SizeConstraints innerCs;
+				innerCs.minW = std::max(0, cs.minW - padW);
+				innerCs.minH = std::max(0, cs.minH - padH);
+				innerCs.maxW = std::max(0, cs.maxW - padW);
+				innerCs.maxH = std::max(0, cs.maxH - padH);
+				childSize = l->measure(innerCs);
+			}
+			else if (m_child)
+			{
+				childSize = m_child->bounds().size();
+			}
+			
+			// 使用固定尺寸覆盖对应维度，保留自然尺寸用于未固定维度
+			int w = (m_p.fixedSize.width() > 0 ? m_p.fixedSize.width() : childSize.width() + padW);
+			int h = (m_p.fixedSize.height() > 0 ? m_p.fixedSize.height() : childSize.height() + padH);
+			
 			w = std::clamp(w, cs.minW, cs.maxW);
 			h = std::clamp(h, cs.minH, cs.maxH);
 			return { w, h };
