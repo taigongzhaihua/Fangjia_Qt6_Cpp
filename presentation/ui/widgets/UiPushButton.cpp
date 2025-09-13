@@ -68,7 +68,7 @@ QSize UiPushButton::measure(const SizeConstraints& cs) {
 	if (!m_text.isEmpty()) {
 		textWidth = fm.horizontalAdvance(m_text);
 		// 使用 ascent + descent 而不是 height() 获得更精确的文本高度
-		// 这与绘制时的计算保持一致，避免额外的 leading 空间
+		// 这与绘制时的计算保持一致，避免额外的 leading 空间导致按钮尺寸计算错误
 		textHeight = fm.ascent() + fm.descent();
 	}
 
@@ -413,6 +413,7 @@ void UiPushButton::createIconAndTextPainter() {
 				
 				// 使用实际文本渲染高度而不是字体高度，确保与图标几何中心对齐
 				// ascent + descent 给出文本的实际视觉高度，排除额外的 leading 空间
+				// 这解决了按钮文本与图标和背景矩形的视觉错位问题
 				const float textHeight = fm.ascent() + fm.descent();
 				
 				// 与图标使用相同的几何居中方式
