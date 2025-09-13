@@ -67,7 +67,9 @@ QSize UiPushButton::measure(const SizeConstraints& cs) {
 	int textHeight = 0;
 	if (!m_text.isEmpty()) {
 		textWidth = fm.horizontalAdvance(m_text);
-		textHeight = fm.height();
+		// 使用 ascent + descent 而不是 height() 获得更精确的文本高度
+		// 这与绘制时的计算保持一致，避免额外的 leading 空间
+		textHeight = fm.ascent() + fm.descent();
 	}
 
 	// 计算总内容宽度
@@ -405,10 +407,15 @@ void UiPushButton::createIconAndTextPainter() {
 			const QSize texSizePx = m_cache->textureSizePx(texId);
 
 			if (texId > 0 && !texSizePx.isEmpty()) {
-				// 计算文本位置（垂直居中）
+				// 计算文本位置（改进的垂直居中，与图标对齐）
 				const QFontMetrics fm(font);
 				const float textWidth = fm.horizontalAdvance(m_text);
-				const float textHeight = fm.height();
+				
+				// 使用实际文本渲染高度而不是字体高度，确保与图标几何中心对齐
+				// ascent + descent 给出文本的实际视觉高度，排除额外的 leading 空间
+				const float textHeight = fm.ascent() + fm.descent();
+				
+				// 与图标使用相同的几何居中方式
 				const float textY = contentRect.top() + (contentRect.height() - textHeight) * 0.5f;
 
 				// 计算水平居中位置
