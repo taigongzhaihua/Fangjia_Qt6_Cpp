@@ -33,6 +33,7 @@ namespace UI {
 	std::shared_ptr<Widget> Widget::opacity(const float o) { m_decorations.opacity = o; return self<Widget>(); }
 	std::shared_ptr<Widget> Widget::onTap(std::function<void()> h) { m_decorations.onTap = std::move(h); return self<Widget>(); }
 	std::shared_ptr<Widget> Widget::onHover(std::function<void(bool)> h) { m_decorations.onHover = std::move(h); return self<Widget>(); }
+	std::shared_ptr<Widget> Widget::name(const QString& componentName) { m_decorations.componentName = componentName; return self<Widget>(); }
 
 	void Widget::applyDecorations(IUiComponent* /*component*/) const {
 		// 保留给可以直接吃属性的组件（可直接 setMargins/setBackground）

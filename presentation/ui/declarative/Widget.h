@@ -37,6 +37,9 @@ namespace UI {
 		std::shared_ptr<Widget> opacity(float o);
 		std::shared_ptr<Widget> onTap(std::function<void()> handler);
 		std::shared_ptr<Widget> onHover(std::function<void(bool)> handler);
+		
+		// Component identification / 组件标识
+		std::shared_ptr<Widget> name(const QString& componentName);
 
 	protected:
 		struct Decorations {
@@ -60,6 +63,7 @@ namespace UI {
 			float    opacity{ 1.0f };
 			std::function<void()> onTap;
 			std::function<void(bool)> onHover;
+			QString  componentName; // Component identification
 		} m_decorations;
 
 		// 仍保留（对可以直接改属性的组件在里面直接设置）

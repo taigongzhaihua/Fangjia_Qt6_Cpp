@@ -1,6 +1,7 @@
 #pragma once
 #include "AdvancedWidgets.h"
 #include "BasicWidgets.h"
+#include "BasicWidgets_Button.h"
 #include "ComponentWrapper.h"
 #include "Decorators.h"
 #include "Layouts.h"
@@ -14,6 +15,7 @@ namespace UI {
 
 	// 便捷创建函数
 	inline auto text(const QString& str) { return make_widget<Text>(str); }
+	inline auto textblock(const QString& str) { return make_widget<Text>(str); } // Alias for text
 	inline auto icon(const QString& path) { return make_widget<Icon>(path); }
 	inline auto container(WidgetPtr child = nullptr) { return make_widget<Container>(child); }
 	inline auto card(WidgetPtr child) { return make_widget<Card>(child); }
@@ -51,6 +53,15 @@ namespace UI {
 	// 条件渲染
 	inline auto when(bool condition, WidgetPtr ifTrue, WidgetPtr ifFalse = nullptr) {
 		return make_widget<Conditional>(condition, ifTrue, ifFalse);
+	}
+	
+	// Layout convenience functions / 布局便捷函数
+	inline auto vbox(WidgetList children = {}) {
+		return make_widget<Panel>(children)->vertical();
+	}
+	
+	inline auto hbox(WidgetList children = {}) {
+		return make_widget<Panel>(children)->horizontal();
 	}
 	
 	// Simple colored box using DecoratedBox (useful for separators)

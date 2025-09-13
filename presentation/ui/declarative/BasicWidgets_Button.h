@@ -143,6 +143,15 @@ namespace UI {
 			m_onTap = std::move(callback);
 			return self<Button>();
 		}
+		
+		/// 功能：设置按钮文本内容
+		/// 参数：text — 按钮显示文本
+		/// 返回：当前按钮实例（支持链式调用）
+		/// 说明：允许在创建后修改按钮文本，支持流式API
+		std::shared_ptr<Button> content(const QString& text) {
+			m_text = text;
+			return self<Button>();
+		}
 
 	protected:
 		/// 功能：创建运行时组件实例
@@ -170,10 +179,10 @@ namespace UI {
 	};
 
 	/// 功能：创建按钮组件的工厂函数
-	/// 参数：text — 按钮显示文本
+	/// 参数：text — 按钮显示文本（可选，支持后续通过content()设置）
 	/// 返回：可进行链式配置的按钮实例
 	/// 说明：这是创建按钮的推荐入口点
-	inline std::shared_ptr<Button> button(const QString& text) {
+	inline std::shared_ptr<Button> button(const QString& text = QString()) {
 		return std::make_shared<Button>(text);
 	}
 
