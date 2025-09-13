@@ -1,0 +1,88 @@
+🎯 UI框架独立宽高设置 - 修复演示
+UI Framework Independent Width/Height Setting - Fix Demonstration
+=================================================================
+
+❌ 修复前的问题行为 (Before Fix - Problematic Behavior):
+   text("Hello")->width(200)
+   结果: 宽度=200, 高度=0 (错误!)
+   Result: width=200, height=0 (Wrong!)
+
+   text("Hello")->height(50)
+   结果: 宽度=0, 高度=50 (错误!)
+   Result: width=0, height=50 (Wrong!)
+
+⬇️ 经过修复后 (After Fixing)...
+
+✅ 修复后的正确行为 (After Fix - Correct Behavior):
+   text("Hello")->width(200)
+   结果: 宽度=200, 高度=自然高度 (正确!)
+   Result: width=200, height=natural (Correct!)
+
+   text("Hello")->height(50)
+   结果: 宽度=自然宽度, 高度=50 (正确!)
+   Result: width=natural, height=50 (Correct!)
+
+   text("Hello")->width(200)->height(50)
+   结果: 宽度=200, 高度=50 (正确!)
+   Result: width=200, height=50 (Correct!)
+
+🏢 实际业务场景示例 (Real Business Examples):
+
+1. 表单输入框 (Form Input Fields):
+   container()->width(300)->height(40)
+   • 输入框固定宽度300px，高度40px
+   • Fixed width 300px, height 40px for input fields
+
+2. 响应式文本卡片 (Responsive Text Cards):
+   card(text("Long content..."))->width(250)
+   • 卡片宽度固定250px，高度根据文本内容自适应
+   • Card width fixed at 250px, height adapts to text content
+
+3. 统计指标显示 (Statistics Display):
+   panel({icon, title, value})->width(180)->height(120)
+   • 统计卡片统一尺寸，便于网格排列
+   • Uniform card sizes for grid layout
+
+4. 侧边栏导航 (Sidebar Navigation):
+   navItem("Home")->width(200)
+   • 导航项固定宽度，高度根据文本和图标自适应
+   • Fixed width nav items, height adapts to content
+
+🎨 完整函数式API展示 (Complete Functional API Showcase):
+
+// 文本组件 (Text Component)
+text("Hello World")
+    ->fontSize(16)
+    ->fontWeight(QFont::Bold)
+    ->color(Qt::blue)
+    ->width(300)
+    ->padding(12)
+    ->background(Qt::lightBlue, 6.0f)
+
+// 按钮组件 (Button Component)
+button("Save")
+    ->primary()
+    ->size(Button::Size::M)
+    ->width(120)
+    ->height(40)
+    ->onTap([]{ save(); })
+
+// 布局容器 (Layout Container)
+panel({
+    text("Title")->fontSize(18),
+    spacer(16),
+    button("Action")->primary()
+})
+    ->vertical()
+    ->spacing(8)
+    ->padding(20)
+    ->width(400)  // 容器固定宽度
+    ->background(Qt::white, 12.0f)
+
+✨ 总结 (Summary):
+• ✅ 独立设置宽度或高度现在正常工作
+• ✅ Independent width/height setting now works correctly
+• ✅ 完整的函数式API支持所有组件
+• ✅ Complete functional API for all components
+• ✅ 业务代码可以完全使用声明式语法
+• ✅ Business code can use fully declarative syntax
