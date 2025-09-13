@@ -29,12 +29,19 @@ namespace {
 
 	QRect clipLogicalToPxTopLeft(const QRectF& logical, const float dpr, const int fbWpx, const int fbHpx) {
 		if (logical.width() <= 0.0 || logical.height() <= 0.0) return {};
-		const int x = std::clamp(static_cast<int>(std::floor(logical.left() * dpr)), 0, fbWpx);
-		const int yTop = static_cast<int>(std::floor(logical.top() * dpr));
-		const int hPx = static_cast<int>(std::ceil(logical.height() * dpr));
-		const int y = std::clamp(yTop, 0, fbHpx);
-		const int w = std::clamp(static_cast<int>(std::ceil(logical.width() * dpr)), 0, fbWpx - x);
-		const int h = std::clamp(hPx, 0, fbHpx - y);
+		
+		// 改进精度计算：使用更保守的边界计算以避免精度问题
+		const float leftPx = logical.left() * dpr;
+		const float topPx = logical.top() * dpr;
+		const float rightPx = (logical.left() + logical.width()) * dpr;
+		const float bottomPx = (logical.top() + logical.height()) * dpr;
+		
+		// 向内收缩边界以确保不会意外剪裁到目标矩形
+		const int x = std::clamp(static_cast<int>(std::floor(leftPx + 0.001f)), 0, fbWpx);
+		const int y = std::clamp(static_cast<int>(std::floor(topPx + 0.001f)), 0, fbHpx);
+		const int w = std::clamp(static_cast<int>(std::ceil(rightPx - 0.001f)) - x, 0, fbWpx - x);
+		const int h = std::clamp(static_cast<int>(std::ceil(bottomPx - 0.001f)) - y, 0, fbHpx - y);
+		
 		return { x, y, w, h };
 	}
 
@@ -76,11 +83,19 @@ void main(){
     vec2 fragPx = vec2(gl_FragCoord.x, uViewportSize.y - gl_FragCoord.y);
     vec2 rectCenter = uRectPx.xy + 0.5 * uRectPx.zw;
     vec2 halfSize   = 0.5 * uRectPx.zw;
-    float r = min(uRadius, min(halfSize.x, halfSize.y));
+    
+    // 改进：更好的半径限制，确保不会超出矩形尺寸
+    float maxRadius = min(halfSize.x, halfSize.y);
+    float r = min(uRadius, maxRadius - 0.5); // 减少0.5像素以改善边缘质量
+    r = max(r, 0.0); // 确保半径不为负
+    
     vec2 p = fragPx - rectCenter;
     float dist = sdRoundRect(p, halfSize, r);
-    float aa = fwidth(dist);
-    float alpha = 1.0 - smoothstep(0.0, aa, dist);
+    
+    // 改进：更好的抗锯齿计算
+    float aa = max(fwidth(dist), 0.5); // 确保最小抗锯齿宽度
+    float alpha = 1.0 - smoothstep(-aa * 0.5, aa * 0.5, dist);
+    
     FragColor = vec4(uColor.rgb, uColor.a * alpha);
 })";
 
@@ -191,11 +206,15 @@ void Renderer::restoreClip()
 void Renderer::drawRoundedRect(const Render::RoundedRectCmd& cmd)
 {
 	if (!m_progRect || !m_gl || m_fbWpx <= 0 || m_fbHpx <= 0) return;
+	
+	// 验证矩形有效性
+	if (cmd.rect.width() <= 0.0f || cmd.rect.height() <= 0.0f) return;
+	if (cmd.color.alphaF() <= 0.001f) return; // 完全透明不渲染
 
 	applyClip(cmd.clipRect);
 
 	const QRectF rp(cmd.rect.x() * m_currentDpr, cmd.rect.y() * m_currentDpr, cmd.rect.width() * m_currentDpr, cmd.rect.height() * m_currentDpr);
-	const float  rr = cmd.radiusPx * m_currentDpr;
+	const float  rr = std::max(0.0f, cmd.radiusPx * m_currentDpr); // 确保半径不为负
 
 	float verts[12];
 	rectPxToNdcVerts(rp, m_fbWpx, m_fbHpx, verts);

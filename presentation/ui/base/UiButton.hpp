@@ -111,8 +111,14 @@ namespace Ui
 			if (m_opacity <= 0.001f) return; // 完全透明不绘制
 			const QRectF r = visualRectF();
 			const QColor bg = withOpacity(backgroundForState(), m_opacity);
+			
+			// 修复：避免自剪裁精度问题 - 扩展剪裁区域或禁用剪裁
+			// 对于按钮背景，通常不需要自剪裁，因为SDF shader会处理边界
 			fd.roundedRects.push_back(Render::RoundedRectCmd{
-				.rect = r, .radiusPx = m_corner, .color = bg, .clipRect = r // 新增：按钮背景裁剪
+				.rect = r, 
+				.radiusPx = m_corner, 
+				.color = bg, 
+				.clipRect = QRectF() // 禁用自剪裁，避免精度问题
 				});
 
 			if (m_iconPainter)
