@@ -196,7 +196,8 @@ target_include_directories(fj_presentation_pages PUBLIC
 file(GLOB FJ_DOMAIN_SOURCES
     "domain/entities/*.h"
     "domain/entities/*.ixx"
-    "domain/repositories/*.h" 
+    "domain/repositories/*.h"
+    "domain/repositories/*.ixx"
     "domain/services/*.cpp"
     "domain/services/*.h"
     "domain/services/*.ixx"
