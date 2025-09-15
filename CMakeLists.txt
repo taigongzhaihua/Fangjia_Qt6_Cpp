@@ -15,6 +15,12 @@ set(CMAKE_AUTORCC ON)         # 自动处理资源文件
 set(CMAKE_CXX_STANDARD 23)    # 使用C++23标准
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
+# Enable C++20 modules support
+if(CMAKE_CXX_COMPILER_ID STREQUAL "Clang" OR CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+    set(CMAKE_EXPERIMENTAL_CXX_MODULE_CMAKE_API "2182bf5c-ef0d-489a-91da-49dbc3090d2a")
+    set(CMAKE_EXPERIMENTAL_CXX_MODULE_DYNDEP 1)
+endif()
+
 # 查找Qt6依赖组件
 find_package(Qt6 REQUIRED COMPONENTS Core Gui OpenGL OpenGLWidgets Widgets Svg Sql)
 
@@ -189,11 +195,14 @@ target_include_directories(fj_presentation_pages PUBLIC
 # Domain Layer - Core business logic and abstractions (Pure C++)
 file(GLOB FJ_DOMAIN_SOURCES
     "domain/entities/*.h"
+    "domain/entities/*.ixx"
     "domain/repositories/*.h" 
     "domain/services/*.cpp"
     "domain/services/*.h"
+    "domain/services/*.ixx"
     "domain/usecases/*.cpp"
     "domain/usecases/*.h"
+    "domain/usecases/*.ixx"
     "domain/ServiceRegistry.cpp"
     "domain/ServiceRegistry.h"
 )
@@ -212,6 +221,7 @@ target_include_directories(fj_domain PUBLIC
 file(GLOB APP_SOURCES
     "apps/fangjia/*.cpp"
     "apps/fangjia/*.h"
+    "apps/fangjia/*.ixx"
 )
 
 # 嵌入Qt资源文件（图标、字体等）
