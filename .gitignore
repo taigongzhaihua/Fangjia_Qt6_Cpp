@@ -363,6 +363,11 @@ MigrationBackup/
 FodyWeavers.xsdbuild/
 build/
 
+# Visual Studio solution build directories (project-specific)
+build_vs2019/
+build_vs2022/
+build_ninja/
+
 # Test executables
 test_wheel_logic
 validate_fix.sh

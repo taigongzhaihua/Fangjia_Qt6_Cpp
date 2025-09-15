@@ -1,4 +1,4 @@
-﻿{
+{
   "configurations": [
     {
       "name": "x64-Debug",
@@ -22,6 +22,78 @@
       "ctestCommandArgs": "",
       "inheritEnvironments": [ "msvc_x64_x64" ],
       "variables": []
+    },
+    {
+      "name": "VS2019-x64-Debug",
+      "generator": "Visual Studio 16 2019",
+      "configurationType": "Debug",
+      "inheritEnvironments": [ "msvc_x64_x64" ],
+      "buildRoot": "${projectDir}\\out\\build\\${name}",
+      "installRoot": "${projectDir}\\out\\install\\${name}",
+      "cmakeCommandArgs": "-A x64",
+      "buildCommandArgs": "",
+      "ctestCommandArgs": "",
+      "variables": [
+        {
+          "name": "CMAKE_TOOLCHAIN_FILE",
+          "value": "",
+          "type": "FILEPATH"
+        }
+      ]
+    },
+    {
+      "name": "VS2019-x64-Release",
+      "generator": "Visual Studio 16 2019",
+      "configurationType": "Release",
+      "inheritEnvironments": [ "msvc_x64_x64" ],
+      "buildRoot": "${projectDir}\\out\\build\\${name}",
+      "installRoot": "${projectDir}\\out\\install\\${name}",
+      "cmakeCommandArgs": "-A x64",
+      "buildCommandArgs": "",
+      "ctestCommandArgs": "",
+      "variables": [
+        {
+          "name": "CMAKE_TOOLCHAIN_FILE",
+          "value": "",
+          "type": "FILEPATH"
+        }
+      ]
+    },
+    {
+      "name": "VS2022-x64-Debug",
+      "generator": "Visual Studio 17 2022",
+      "configurationType": "Debug",
+      "inheritEnvironments": [ "msvc_x64_x64" ],
+      "buildRoot": "${projectDir}\\out\\build\\${name}",
+      "installRoot": "${projectDir}\\out\\install\\${name}",
+      "cmakeCommandArgs": "-A x64",
+      "buildCommandArgs": "",
+      "ctestCommandArgs": "",
+      "variables": [
+        {
+          "name": "CMAKE_TOOLCHAIN_FILE",
+          "value": "",
+          "type": "FILEPATH"
+        }
+      ]
+    },
+    {
+      "name": "VS2022-x64-Release",
+      "generator": "Visual Studio 17 2022",
+      "configurationType": "Release",
+      "inheritEnvironments": [ "msvc_x64_x64" ],
+      "buildRoot": "${projectDir}\\out\\build\\${name}",
+      "installRoot": "${projectDir}\\out\\install\\${name}",
+      "cmakeCommandArgs": "-A x64",
+      "buildCommandArgs": "",
+      "ctestCommandArgs": "",
+      "variables": [
+        {
+          "name": "CMAKE_TOOLCHAIN_FILE",
+          "value": "",
+          "type": "FILEPATH"
+        }
+      ]
     }
   ]
 }
